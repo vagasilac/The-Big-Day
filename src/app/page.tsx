@@ -1,14 +1,15 @@
+
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, MapPin, Gift, Mail } from 'lucide-react';
+import { Calendar, MapPin, Gift, Mail, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-svh">
-      {/* Header - Simple placeholder */}
+      {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -18,10 +19,16 @@ export default function Home() {
             </span>
           </Link>
           <nav className="flex flex-1 items-center space-x-4 justify-end">
-             <Link href="#story" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Our Story</Link>
-             <Link href="#details" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Details</Link>
-             <Link href="#registry" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">Registry</Link>
-             <Link href="#rsvp" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">RSVP</Link>
+             <Link href="#story" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary hidden sm:inline-block">Our Story</Link>
+             <Link href="#details" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary hidden sm:inline-block">Details</Link>
+             <Link href="#registry" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary hidden sm:inline-block">Registry</Link>
+             <Link href="#rsvp" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary hidden sm:inline-block">RSVP</Link>
+             <Link href="/auth">
+                <Button variant="ghost" size="sm">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
+                </Button>
+             </Link>
           </nav>
         </div>
       </header>
