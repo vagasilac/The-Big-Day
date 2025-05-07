@@ -14,7 +14,7 @@ export default function Home() {
         <div className="container flex h-14 items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             {/* Optional: Add a simple logo/icon here */}
-            <span className="font-bold sm:inline-block text-lg" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
+            <span className="px-2 font-bold sm:inline-block text-lg" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
               Sarah &amp; Tom
             </span>
           </Link>
@@ -203,3 +203,4 @@ export default function Home() {
     </div>
   );
 }
+
