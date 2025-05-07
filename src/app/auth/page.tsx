@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import Link from 'next/link';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +19,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label } from '@/components/ui/label'; // Keep Label for potential future direct use
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Form,
@@ -28,6 +30,16 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { firebaseConfig } from '@/lib/firebase-config'; 
+import { ArrowLeft } from 'lucide-react';
+
+
+// Initialize Firebase
+if (!getApps().length) {
+  initializeApp(firebaseConfig);
+}
+const auth = getAuth(getApp());
+
 
 // Define Zod schemas for validation
 const loginSchema = z.object({
@@ -51,6 +63,8 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { toast } = useToast();
+  const [isLoginLoading, setIsLoginLoading] = React.useState(false);
+  const [isRegisterLoading, setIsRegisterLoading] = React.useState(false);
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -69,31 +83,57 @@ export default function AuthPage() {
     },
   });
 
-  function onLoginSubmit(data: LoginFormValues) {
-    console.log('Login Data:', data);
-    // TODO: Implement actual login logic (e.g., API call)
-    toast({
-      title: 'Login Submitted (Demo)',
-      description: `Email: ${data.email}`,
-    });
-    // Reset form or redirect on success
+  async function onLoginSubmit(data: LoginFormValues) {
+    setIsLoginLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+      toast({
+        title: 'Login Successful',
+        description: `Welcome back, ${data.email}!`,
+      });
+      // TODO: Redirect to dashboard or user-specific page
+      // router.push('/dashboard'); 
+      loginForm.reset();
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      toast({
+        title: 'Login Failed',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoginLoading(false);
+    }
   }
 
-  function onRegisterSubmit(data: RegisterFormValues) {
-    console.log('Register Data:', data);
-    // TODO: Implement actual registration logic (e.g., API call)
-    toast({
-      title: 'Registration Submitted (Demo)',
-      description: `Email: ${data.email}`,
-    });
-     // Reset form or redirect on success
+  async function onRegisterSubmit(data: RegisterFormValues) {
+    setIsRegisterLoading(true);
+    try {
+      await createUserWithEmailAndPassword(auth, data.email, data.password);
+      toast({
+        title: 'Registration Successful',
+        description: `Account created for ${data.email}. You can now log in.`,
+      });
+      // TODO: Optionally auto-login or redirect
+      // router.push('/auth?tab=login'); // Redirect to login tab
+      registerForm.reset();
+    } catch (error: any) {
+      console.error("Registration Error:", error);
+      toast({
+        title: 'Registration Failed',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRegisterLoading(false);
+    }
   }
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-secondary p-4">
        <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
           <Button variant="outline">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            <ArrowLeft className="mr-2 h-4 w-4"/>
             Back to Home
           </Button>
       </Link>
@@ -149,8 +189,8 @@ export default function AuthPage() {
                   />
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full" disabled={loginForm.formState.isSubmitting}>
-                    {loginForm.formState.isSubmitting ? 'Logging in...' : 'Login'}
+                  <Button type="submit" className="w-full" disabled={isLoginLoading}>
+                    {isLoginLoading ? 'Logging in...' : 'Login'}
                   </Button>
                 </CardFooter>
               </form>
@@ -211,8 +251,8 @@ export default function AuthPage() {
                   />
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full" disabled={registerForm.formState.isSubmitting}>
-                     {registerForm.formState.isSubmitting ? 'Registering...' : 'Create Account'}
+                  <Button type="submit" className="w-full" disabled={isRegisterLoading}>
+                     {isRegisterLoading ? 'Registering...' : 'Create Account'}
                   </Button>
                 </CardFooter>
               </form>
