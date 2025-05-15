@@ -29,7 +29,7 @@ const HeroSection = () => {
           <div className="md:w-1/2">
             <div className="relative aspect-[4/3] md:aspect-auto md:h-full max-w-xl mx-auto">
               <Image
-                src="https://placehold.co/800x600.png"
+                src="https://images.unsplash.com/photo-1550005809-91ad75fb315f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMXx8d2VkZGluZ3xlbnwwfHx8fDE3NDczNDU2NjZ8MA&ixlib=rb-4.1.0&q=80&w=1080"
                 alt="Elegant wedding scene"
                 width={800}
                 height={600}
