@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LogIn, Newspaper, Camera, ListChecks, Music, Gift, Gamepad2, Users, Palette, Share2 } from 'lucide-react';
+import { LogIn, Newspaper, Camera, ListChecks, Music, Gift, Gamepad2, Users, Palette, Share2, ArrowRight, LayoutTemplate } from 'lucide-react';
 
 const HeroSection = () => {
   return (
@@ -124,9 +124,89 @@ const FeaturesSection = () => {
   );
 };
 
+const WEDDING_TEMPLATES = [
+  {
+    id: 'classic-elegance',
+    name: 'Classic Elegance',
+    description: 'A timeless design with sophisticated typography and a clean layout.',
+    image: 'https://placehold.co/600x400.png',
+    aiHint: 'classic wedding invitation'
+  },
+  {
+    id: 'modern-romance',
+    name: 'Modern Romance',
+    description: 'Chic and contemporary, perfect for the modern couple.',
+    image: 'https://placehold.co/600x400.png',
+    aiHint: 'modern wedding invitation'
+  },
+  {
+    id: 'rustic-charm',
+    name: 'Rustic Charm',
+    description: 'Warm and inviting, ideal for a countryside or barn wedding.',
+    image: 'https://placehold.co/600x400.png',
+    aiHint: 'rustic wedding invitation'
+  },
+];
+
+const TemplatesSection = () => {
+  return (
+    <section id="templates" className="py-16 md:py-24 bg-background">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12 md:mb-16">
+          <LayoutTemplate className="w-12 h-12 text-primary mx-auto mb-4" />
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Beautiful Wedding Templates
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Choose from our collection of professionally designed templates. Personalize with your photos, colors, and content to create a unique wedding website.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {WEDDING_TEMPLATES.map((template) => (
+            <div
+              key={template.id}
+              className="bg-card rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
+            >
+              <div className="relative aspect-video w-full">
+                <Image
+                  src={template.image}
+                  alt={`${template.name} template preview`}
+                  layout="fill"
+                  objectFit="cover"
+                  className="rounded-t-xl"
+                  data-ai-hint={template.aiHint}
+                />
+              </div>
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-grow">{template.description}</p>
+                <Button variant="outline" className="mt-auto w-full">
+                  Preview Template
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 text-center">
+          <Button asChild size="lg" className="px-8 py-3 h-auto text-base group">
+            {/* TODO: Create /templates page and link here */}
+            <Link href="/#templates">
+              Browse All Templates
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+
 const CTASection = () => {
   return (
-    <section className="py-16 md:py-24 bg-background">
+    <section className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
           Ready to Start Planning <span className="text-primary">The Big Day</span>?
@@ -149,7 +229,7 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            {/* Optional: Add a simple logo/icon here, e.g. <WeddingRingsIcon /> */}
+            <LayoutTemplate className="h-6 w-6 text-primary" />
             <span className="font-bold text-xl" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
               The Big Day
             </span>
@@ -158,10 +238,10 @@ export default function HomePage() {
              <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#features">Features</Link>
              </Button>
-             {/* <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3 hidden sm:inline-flex">
-                <Link href="/templates">Templates</Link>
+             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+                <Link href="/#templates">Templates</Link>
              </Button>
-             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3 hidden sm:inline-flex">
+             {/* <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3 hidden sm:inline-flex">
                 <Link href="/pricing">Pricing</Link>
              </Button> */}
              <Link href="/auth">
@@ -182,6 +262,7 @@ export default function HomePage() {
       <main className="flex-1">
         <HeroSection />
         <FeaturesSection />
+        <TemplatesSection />
         <CTASection />
       </main>
 
@@ -194,3 +275,4 @@ export default function HomePage() {
     </div>
   );
 }
+
