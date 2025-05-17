@@ -149,21 +149,21 @@ const WEDDING_TEMPLATES = [
     id: 'classic-elegance',
     name: 'Classic Elegance',
     description: 'A timeless design with sophisticated typography and a clean layout.',
-    image: 'https://placehold.co/600x400.png',
+    image: 'https://placehold.co/600x400.png', // Replace with actual image if available
     aiHint: 'classic wedding invitation'
   },
   {
     id: 'modern-romance',
     name: 'Modern Romance',
     description: 'Chic and contemporary, perfect for the modern couple.',
-    image: 'https://placehold.co/600x400.png', 
+    image: 'https://placehold.co/600x400.png', // Replace with actual image if available
     aiHint: 'modern wedding invitation'
   },
   {
     id: 'rustic-charm',
     name: 'Rustic Charm',
     description: 'Warm and inviting, ideal for a countryside or barn wedding.',
-    image: 'https://placehold.co/600x400.png', 
+    image: 'https://placehold.co/600x400.png', // Replace with actual image if available
     aiHint: 'rustic wedding invitation'
   },
 ];
@@ -504,7 +504,12 @@ const CTASection = () => {
 };
 
 const AppFooter = () => {
-  const currentYear = new Date().getFullYear();
+  const [currentYear, setCurrentYear] = React.useState(new Date().getFullYear());
+
+  React.useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
+
 
   return (
     <footer className="py-12 bg-secondary border-t border-border">
@@ -723,7 +728,7 @@ export default function HomePage() {
         <SheetContent side="right" className="w-full sm:w-3/4 md:w-1/2 lg:w-2/5 xl:w-1/3 p-0 overflow-y-auto">
           {selectedTemplate ? (
             <>
-              <SheetHeader className="p-6 border-b bg-background sticky top-0 z-10">
+              <SheetHeader className="p-6 border-b bg-background sticky top-0 z-20">
                 <div className="flex justify-between items-center">
                   <SheetTitle className="text-2xl">{selectedTemplate.name}</SheetTitle>
                   <SheetClose asChild>
@@ -758,3 +763,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
