@@ -150,5 +150,4 @@ const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding }) => {
 };
 
 export default ElegantTemplate;
-
     
