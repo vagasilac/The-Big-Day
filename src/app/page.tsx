@@ -1,9 +1,15 @@
 
+'use client'; // Required for useState
+
+import React from 'react'; // Import React for useState
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LogIn, Newspaper, Camera, ListChecks, Music, Gift, Gamepad2, Users, Palette, Share2, ArrowRight, LayoutTemplate, CheckCircle, Edit3, Send } from 'lucide-react';
+import { 
+  LogIn, Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight, 
+  CheckCircle, Edit3, Send, Heart, Menu, X // Added Heart, Menu, X
+} from 'lucide-react';
 
 const HeroSection = () => {
   return (
@@ -153,7 +159,8 @@ const TemplatesSection = () => {
     <section id="templates" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
-          <LayoutTemplate className="w-12 h-12 text-primary mx-auto mb-4" />
+          {/* Replaced LayoutTemplate with Palette for a more generic template icon */}
+          <Palette className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Beautiful Wedding Templates
           </h2>
@@ -172,8 +179,8 @@ const TemplatesSection = () => {
                 <Image
                   src={template.image}
                   alt={`${template.name} template preview`}
-                  layout="fill"
-                  objectFit="cover"
+                  fill // Changed from layout="fill" objectFit="cover"
+                  style={{ objectFit: 'cover' }} // Added for next/image v13+
                   className="rounded-t-xl"
                   data-ai-hint={template.aiHint}
                 />
@@ -211,7 +218,7 @@ const HowItWorksSection = () => {
       description: "Create an account and select your favorite template to customize your wedding website."
     },
     {
-      icon: <LayoutTemplate className="w-10 h-10 text-primary" />,
+      icon: <Palette className="w-10 h-10 text-primary" />, // Changed from LayoutTemplate
       title: "2. Add Your Details",
       description: "Add your wedding information, photos, and manage your guest list all in one place."
     },
@@ -266,8 +273,8 @@ const HowItWorksSection = () => {
               <Image
                 src="https://placehold.co/800x600.png"
                 alt="Wedding website demo on a laptop"
-                layout="fill"
-                objectFit="cover"
+                fill // Changed from layout="fill" objectFit="cover"
+                style={{ objectFit: 'cover' }} // Added for next/image v13+
                 data-ai-hint="wedding website laptop"
               />
             </div>
@@ -299,43 +306,78 @@ const CTASection = () => {
 
 
 export default function HomePage() {
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const closeMenu = () => setIsMenuOpen(false);
+
   return (
     <div className="flex flex-col min-h-svh bg-background">
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            {/* Consider a more generic App Icon if this is a portal */}
-            <LayoutTemplate className="h-6 w-6 text-primary" /> 
+        <div className="container flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center space-x-2" onClick={closeMenu}>
+            <Heart className="h-6 w-6 text-primary" />
             <span className="font-bold text-xl" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
               The Big Day
             </span>
           </Link>
-          <nav className="flex flex-1 items-center space-x-1 sm:space-x-2 justify-end">
-             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+
+          <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
+             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
                 <Link href="/#features">Features</Link>
              </Button>
-             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
                 <Link href="/#templates">Templates</Link>
              </Button>
-            <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+            <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
                 <Link href="/#how-it-works">How It Works</Link>
              </Button>
-             {/* <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3 hidden sm:inline-flex">
-                <Link href="/pricing">Pricing</Link>
-             </Button> */}
              <Link href="/auth">
-                <Button variant="ghost" size="sm" className="px-2 sm:px-3">
+                <Button variant="ghost" size="sm">
                   <LogIn className="mr-1.5 h-4 w-4" />
                   Login
                 </Button>
              </Link>
              <Link href="/auth">
-                <Button size="sm" className="px-2 sm:px-3">
+                <Button size="sm">
                   Sign Up
                 </Button>
              </Link>
           </nav>
+
+          <div className="md:hidden">
+            <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Toggle menu">
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </Button>
+          </div>
         </div>
+
+        {isMenuOpen && (
+          <div className="md:hidden bg-background border-t border-border shadow-md">
+            <nav className="container flex flex-col space-y-2 py-4">
+              <Link href="/#features" className="block py-2 text-muted-foreground hover:text-primary" onClick={closeMenu}>
+                Features
+              </Link>
+              <Link href="/#templates" className="block py-2 text-muted-foreground hover:text-primary" onClick={closeMenu}>
+                Templates
+              </Link>
+              <Link href="/#how-it-works" className="block py-2 text-muted-foreground hover:text-primary" onClick={closeMenu}>
+                How It Works
+              </Link>
+              <Separator className="my-2" />
+              <Link href="/auth" onClick={closeMenu}>
+                <Button variant="outline" className="w-full justify-start">
+                  <LogIn className="mr-2 h-4 w-4" /> Log In
+                </Button>
+              </Link>
+              <Link href="/auth" onClick={closeMenu}>
+                <Button className="w-full justify-start">
+                  {/* Consider: <UserPlus className="mr-2 h-4 w-4" /> */}
+                  Sign Up
+                </Button>
+              </Link>
+            </nav>
+          </div>
+        )}
       </header>
 
       <main className="flex-1">
@@ -355,3 +397,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
