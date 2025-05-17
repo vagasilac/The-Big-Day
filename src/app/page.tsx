@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
   LogIn, Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight, 
-  CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign
+  CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign, Star
 } from 'lucide-react';
 
 const HeroSection = () => {
@@ -209,6 +209,183 @@ const TemplatesSection = () => {
   );
 };
 
+const PRICING_PLANS = [
+  {
+    name: "Basic",
+    price: "$49",
+    period: "one-time",
+    description: "Perfect for intimate celebrations with core features.",
+    features: [
+      "Custom wedding website",
+      "RSVP management (up to 50 guests)",
+      "Digital invitations",
+      "Photo gallery (250 photos)",
+      "6 months access"
+    ],
+    popular: false
+  },
+  {
+    name: "Premium",
+    price: "$99",
+    period: "one-time",
+    description: "Comprehensive features for the perfect celebration.",
+    features: [
+      "Everything in Basic",
+      "RSVP management (up to 150 guests)",
+      "Interactive guest games & polls",
+      "Music playlist voting",
+      "Unlimited photos",
+      "12 months access"
+    ],
+    popular: true
+  },
+  {
+    name: "Deluxe",
+    price: "$149",
+    period: "one-time",
+    description: "For large weddings with all premium features.",
+    features: [
+      "Everything in Premium",
+      "Unlimited guest count",
+      "Seating planner",
+      "Video & voice guestbook",
+      "Custom domain name",
+      "24 months access"
+    ],
+    popular: false
+  }
+];
+
+const PricingSection = () => {
+  return (
+    <section id="pricing" className="py-16 md:py-24 bg-secondary">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12 md:mb-16">
+          <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h2>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Choose the plan that works best for your wedding celebration.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {PRICING_PLANS.map((plan) => (
+            <div 
+              key={plan.name}
+              className={`bg-card rounded-xl overflow-hidden flex flex-col ${
+                plan.popular 
+                  ? "shadow-2xl border-2 border-primary transform md:-translate-y-4 scale-105 ring-4 ring-primary/20" 
+                  : "shadow-lg border border-border hover:shadow-xl transition-shadow duration-300"
+              }`}
+            >
+              {plan.popular && (
+                <div className="bg-primary text-primary-foreground text-center py-2 text-sm font-semibold tracking-wider uppercase">Most Popular</div>
+              )}
+              <div className="p-6 md:p-8 flex-grow flex flex-col">
+                <h3 className="text-2xl font-semibold mb-2 text-foreground">{plan.name}</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold text-foreground">{plan.price}</span>
+                  <span className="text-muted-foreground"> / {plan.period}</span>
+                </div>
+                <p className="text-muted-foreground mb-6 text-sm flex-grow">{plan.description}</p>
+                
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start text-sm">
+                      <Check className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                      <span className="text-foreground">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                
+                <Button 
+                  variant={plan.popular ? "default" : "outline"} 
+                  size="lg"
+                  className="w-full mt-auto"
+                  asChild
+                >
+                  <Link href="/auth?tab=register">Get Started</Link>
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const testimonialsData = [
+  {
+    quote: "The Big Day made our wedding planning so much easier! Our guests loved the interactive features, especially the photo sharing during the reception.",
+    author: "Sarah & Michael",
+    date: "Married June 2024",
+    image: "https://placehold.co/100x100.png",
+    aiHint: "happy couple portrait"
+  },
+  {
+    quote: "The RSVP management saved us so much time and stress. We loved how easy it was to track everything in one place, and our guests found it super convenient.",
+    author: "Jessica & David",
+    date: "Married August 2024",
+    image: "https://placehold.co/100x100.png",
+    aiHint: "smiling couple"
+  },
+  {
+    quote: "The playlist voting was a hit! Our DJ loved having input from our guests, and it created the perfect atmosphere. The photo gallery is a beautiful keepsake.",
+    author: "Emma & James",
+    date: "Married October 2024",
+    image: "https://placehold.co/100x100.png",
+    aiHint: "joyful couple"
+  }
+];
+
+const TestimonialsSection = () => {
+  return (
+    <section id="testimonials" className="py-16 md:py-24 bg-background">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12 md:mb-16">
+          <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">What Couples Say</h2>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Hear from couples who created memorable wedding experiences with The Big Day.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {testimonialsData.map((testimonial, index) => (
+            <div key={index} className="bg-card rounded-xl shadow-lg p-6 flex flex-col hover:shadow-xl transition-shadow duration-300">
+              <div className="flex-grow">
+                <div className="flex text-yellow-400 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 fill-current" />
+                  ))}
+                </div>
+                <p className="text-muted-foreground italic mb-6">"{testimonial.quote}"</p>
+              </div>
+              <div className="flex items-center mt-auto">
+                <div className="relative w-12 h-12 rounded-full overflow-hidden mr-4">
+                  <Image 
+                    src={testimonial.image} 
+                    alt={testimonial.author} 
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    data-ai-hint={testimonial.aiHint}
+                  />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground">{testimonial.author}</h4>
+                  <p className="text-muted-foreground text-sm">{testimonial.date}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+
 const HowItWorksSection = () => {
   const steps = [
     {
@@ -284,116 +461,10 @@ const HowItWorksSection = () => {
   );
 };
 
-const PRICING_PLANS = [
-  {
-    name: "Basic",
-    price: "$49",
-    period: "one-time",
-    description: "Perfect for intimate celebrations with core features.",
-    features: [
-      "Custom wedding website",
-      "RSVP management (up to 50 guests)",
-      "Digital invitations",
-      "Photo gallery (250 photos)",
-      "6 months access"
-    ],
-    popular: false
-  },
-  {
-    name: "Premium",
-    price: "$99",
-    period: "one-time",
-    description: "Comprehensive features for the perfect celebration.",
-    features: [
-      "Everything in Basic",
-      "RSVP management (up to 150 guests)",
-      "Interactive guest games & polls",
-      "Music playlist voting",
-      "Unlimited photos",
-      "12 months access"
-    ],
-    popular: true
-  },
-  {
-    name: "Deluxe",
-    price: "$149",
-    period: "one-time",
-    description: "For large weddings with all premium features.",
-    features: [
-      "Everything in Premium",
-      "Unlimited guest count",
-      "Seating planner",
-      "Video & voice guestbook",
-      "Custom domain name",
-      "24 months access"
-    ],
-    popular: false
-  }
-];
-
-const PricingSection = () => {
-  return (
-    <section id="pricing" className="py-16 md:py-24 bg-background">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12 md:mb-16">
-          <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Choose the plan that works best for your wedding celebration.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {PRICING_PLANS.map((plan) => (
-            <div 
-              key={plan.name}
-              className={`bg-card rounded-xl overflow-hidden flex flex-col ${
-                plan.popular 
-                  ? "shadow-2xl border-2 border-primary transform md:-translate-y-4 scale-105 ring-4 ring-primary/20" 
-                  : "shadow-lg border border-border hover:shadow-xl transition-shadow duration-300"
-              }`}
-            >
-              {plan.popular && (
-                <div className="bg-primary text-primary-foreground text-center py-2 text-sm font-semibold tracking-wider uppercase">Most Popular</div>
-              )}
-              <div className="p-6 md:p-8 flex-grow flex flex-col">
-                <h3 className="text-2xl font-semibold mb-2 text-foreground">{plan.name}</h3>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                  <span className="text-muted-foreground"> / {plan.period}</span>
-                </div>
-                <p className="text-muted-foreground mb-6 text-sm flex-grow">{plan.description}</p>
-                
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start text-sm">
-                      <Check className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                      <span className="text-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <Button 
-                  variant={plan.popular ? "default" : "outline"} 
-                  size="lg"
-                  className="w-full mt-auto"
-                  asChild
-                >
-                  <Link href="/auth?tab=register">Get Started</Link>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
 
 const CTASection = () => {
   return (
-    <section className="py-16 md:py-24 bg-secondary">
+    <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 text-center">
         <Heart className="w-12 h-12 text-primary mx-auto mb-6" />
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
@@ -412,7 +483,7 @@ const CTASection = () => {
 
 const AppFooter = () => {
   return (
-    <footer className="py-12 bg-background border-t border-border">
+    <footer className="py-12 bg-secondary border-t border-border">
       <div className="container max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
@@ -486,7 +557,7 @@ const AppFooter = () => {
         </div>
         
         {/* Bottom Footer */}
-        <Separator className="my-8" />
+        <Separator className="my-8 bg-border/50" />
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} The Big Day. All rights reserved.
@@ -584,6 +655,7 @@ export default function HomePage() {
         <FeaturesSection />
         <TemplatesSection />
         <PricingSection />
+        <TestimonialsSection />
         <HowItWorksSection />
         <CTASection />
       </main>
