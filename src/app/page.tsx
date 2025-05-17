@@ -7,6 +7,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose, // Optional: if you want an explicit close button inside
+} from "@/components/ui/sheet";
+import { 
   LogIn, Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight, 
   CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign, Star
 } from 'lucide-react';
@@ -154,7 +162,11 @@ const WEDDING_TEMPLATES = [
   },
 ];
 
-const TemplatesSection = () => {
+interface TemplatesSectionProps {
+  onPreview: (template: typeof WEDDING_TEMPLATES[0]) => void;
+}
+
+const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
   return (
     <section id="templates" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -187,7 +199,11 @@ const TemplatesSection = () => {
               <div className="p-6 flex flex-col flex-grow">
                 <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-grow">{template.description}</p>
-                <Button variant="outline" className="mt-auto w-full">
+                <Button 
+                  variant="outline" 
+                  className="mt-auto w-full"
+                  onClick={() => onPreview(template)}
+                >
                   Preview Template
                 </Button>
               </div>
@@ -482,6 +498,9 @@ const CTASection = () => {
 };
 
 const AppFooter = () => {
+  // Get current year for copyright
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="py-12 bg-secondary border-t border-border">
       <div className="container max-w-7xl mx-auto px-4">
@@ -560,7 +579,7 @@ const AppFooter = () => {
         <Separator className="my-8 bg-border/50" />
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} The Big Day. All rights reserved.
+            &copy; {currentYear} The Big Day. All rights reserved.
           </p>
         </div>
       </div>
@@ -573,6 +592,14 @@ export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
+
+  const [isPreviewSheetOpen, setIsPreviewSheetOpen] = React.useState(false);
+  const [selectedTemplate, setSelectedTemplate] = React.useState<typeof WEDDING_TEMPLATES[0] | null>(null);
+
+  const handleOpenPreview = (template: typeof WEDDING_TEMPLATES[0]) => {
+    setSelectedTemplate(template);
+    setIsPreviewSheetOpen(true);
+  };
 
   return (
     <div className="flex flex-col min-h-svh bg-background">
@@ -653,7 +680,7 @@ export default function HomePage() {
       <main className="flex-1">
         <HeroSection />
         <FeaturesSection />
-        <TemplatesSection />
+        <TemplatesSection onPreview={handleOpenPreview} />
         <PricingSection />
         <TestimonialsSection />
         <HowItWorksSection />
@@ -661,7 +688,65 @@ export default function HomePage() {
       </main>
 
       <AppFooter />
+
+      <Sheet open={isPreviewSheetOpen} onOpenChange={setIsPreviewSheetOpen}>
+        <SheetContent side="right" className="w-full sm:w-3/4 md:w-1/2 p-0 overflow-y-auto">
+          {selectedTemplate ? (
+            <>
+              <SheetHeader className="p-6 border-b bg-background sticky top-0 z-10">
+                <div className="flex justify-between items-center">
+                  <SheetTitle className="text-2xl">{selectedTemplate.name}</SheetTitle>
+                  <SheetClose asChild>
+                    <Button variant="ghost" size="icon">
+                      <X className="h-5 w-5" />
+                      <span className="sr-only">Close</span>
+                    </Button>
+                  </SheetClose>
+                </div>
+                <SheetDescription>{selectedTemplate.description}</SheetDescription>
+              </SheetHeader>
+              <div className="p-6">
+                <div className="relative aspect-video w-full mb-6 rounded-lg overflow-hidden shadow-md">
+                  <Image
+                    src={selectedTemplate.image}
+                    alt={`${selectedTemplate.name} preview`}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    data-ai-hint={selectedTemplate.aiHint}
+                  />
+                </div>
+                {/* Placeholder for actual template content */}
+                <div className="prose prose-sm max-w-none text-muted-foreground">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Live Preview Area</h3>
+                  <p>
+                    This area would typically display a live, interactive preview of the <strong>{selectedTemplate.name}</strong> template. 
+                    Users would be able to see how their content might look and feel within this design.
+                  </p>
+                  <p>
+                    For now, this is a static representation. Imagine this space filled with a beautiful wedding website layout based on the "{selectedTemplate.name}" theme, showcasing elements like:
+                  </p>
+                  <ul>
+                    <li>Welcome messages</li>
+                    <li>Event details (ceremony, reception)</li>
+                    <li>Photo galleries</li>
+                    <li>RSVP forms</li>
+                    <li>Gift registry links</li>
+                  </ul>
+                  <p>
+                    The actual template would be fully responsive and customizable.
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : (
+              <div className="p-6 text-center text-muted-foreground">
+                <p>No template selected for preview.</p>
+                <p>Please close this panel and select a template to see its preview.</p>
+              </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
     </div>
   );
 }
-
