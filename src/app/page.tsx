@@ -6,18 +6,24 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { 
+import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetClose, // Optional: if you want an explicit close button inside
+  SheetClose,
 } from "@/components/ui/sheet";
-import { 
-  LogIn, Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight, 
+import {
+  LogIn, Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight,
   CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign, Star
 } from 'lucide-react';
+
+import type { Wedding } from '@/types/wedding';
+import ElegantTemplate from '@/app/templates/wedding/elegant-template';
+import ModernTemplate from '@/app/templates/wedding/modern-template';
+import RusticTemplate from '@/app/templates/wedding/rustic-template';
+
 
 const HeroSection = () => {
   return (
@@ -199,8 +205,8 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
               <div className="p-6 flex flex-col flex-grow">
                 <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-grow">{template.description}</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="mt-auto w-full"
                   onClick={() => onPreview(template)}
                 >
@@ -283,14 +289,14 @@ const PricingSection = () => {
             Choose the plan that works best for your wedding celebration.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {PRICING_PLANS.map((plan) => (
-            <div 
+            <div
               key={plan.name}
               className={`bg-card rounded-xl overflow-hidden flex flex-col ${
-                plan.popular 
-                  ? "shadow-2xl border-2 border-primary transform md:-translate-y-4 scale-105 ring-4 ring-primary/20" 
+                plan.popular
+                  ? "shadow-2xl border-2 border-primary transform md:-translate-y-4 scale-105 ring-4 ring-primary/20"
                   : "shadow-lg border border-border hover:shadow-xl transition-shadow duration-300"
               }`}
             >
@@ -304,7 +310,7 @@ const PricingSection = () => {
                   <span className="text-muted-foreground"> / {plan.period}</span>
                 </div>
                 <p className="text-muted-foreground mb-6 text-sm flex-grow">{plan.description}</p>
-                
+
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start text-sm">
@@ -313,9 +319,9 @@ const PricingSection = () => {
                     </li>
                   ))}
                 </ul>
-                
-                <Button 
-                  variant={plan.popular ? "default" : "outline"} 
+
+                <Button
+                  variant={plan.popular ? "default" : "outline"}
                   size="lg"
                   className="w-full mt-auto"
                   asChild
@@ -366,7 +372,7 @@ const TestimonialsSection = () => {
             Hear from couples who created memorable wedding experiences with The Big Day.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {testimonialsData.map((testimonial, index) => (
             <div key={index} className="bg-card rounded-xl shadow-lg p-6 flex flex-col hover:shadow-xl transition-shadow duration-300">
@@ -380,9 +386,9 @@ const TestimonialsSection = () => {
               </div>
               <div className="flex items-center mt-auto">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden mr-4">
-                  <Image 
-                    src={testimonial.image} 
-                    alt={testimonial.author} 
+                  <Image
+                    src={testimonial.image}
+                    alt={testimonial.author}
                     fill
                     style={{ objectFit: 'cover' }}
                     data-ai-hint={testimonial.aiHint}
@@ -498,14 +504,12 @@ const CTASection = () => {
 };
 
 const AppFooter = () => {
-  // Get current year for copyright
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="py-12 bg-secondary border-t border-border">
       <div className="container max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand */}
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center mb-4">
               <Heart className="h-6 w-6 text-primary mr-2" />
@@ -517,8 +521,7 @@ const AppFooter = () => {
               Create beautiful wedding websites to share your special day with family and friends.
             </p>
           </div>
-          
-          {/* Quick Links */}
+
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-foreground">Quick Links</h3>
             <ul className="space-y-2 text-sm">
@@ -542,6 +545,11 @@ const AppFooter = () => {
                   Pricing
                 </Link>
               </li>
+               <li>
+                <Link href="/#how-it-works" className="text-muted-foreground hover:text-primary transition-colors">
+                  How It Works
+                </Link>
+              </li>
               <li>
                 <Link href="/auth" className="text-muted-foreground hover:text-primary transition-colors">
                   Log In / Sign Up
@@ -549,8 +557,7 @@ const AppFooter = () => {
               </li>
             </ul>
           </div>
-          
-          {/* Features Column (can be more specific or different from main features) */}
+
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-foreground">Key Features</h3>
             <ul className="space-y-2 text-sm">
@@ -561,8 +568,7 @@ const AppFooter = () => {
               <li className="text-muted-foreground">Registry Links</li>
             </ul>
           </div>
-          
-          {/* Contact */}
+
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-foreground">Contact</h3>
             <p className="text-sm text-muted-foreground mb-2">
@@ -571,11 +577,9 @@ const AppFooter = () => {
             <p className="text-sm text-muted-foreground">
               support@thebigday.app
             </p>
-            {/* Optional: Social Media Links */}
           </div>
         </div>
-        
-        {/* Bottom Footer */}
+
         <Separator className="my-8 bg-border/50" />
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
@@ -585,6 +589,32 @@ const AppFooter = () => {
       </div>
     </footer>
   );
+};
+
+// Sample data for template previews
+const sampleWeddingData: Partial<Wedding> = {
+  title: "Anna & Paul's Wedding",
+  description: "We are so excited to celebrate our special day with all of our amazing friends and family! Join us for a day filled with love, laughter, and unforgettable memories as we begin our new journey together.",
+  date: new Date(new Date().getFullYear() + 1, 5, 15, 16, 30, 0).toISOString(), // Example: June 15th next year, 4:30 PM
+  location: "The Enchanted Garden, Springsville",
+  coverPhoto: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwYmFucXVldCUyMHJvb218ZW58MHx8fHwxNzQ3NTg4OTg5fDA&ixlib=rb-4.0.3&q=80&w=1080",
+  gallery: [
+    { id: '1', url: 'https://images.unsplash.com/photo-1519741497674-611481863552?ixlib=rb-4.0.3&q=80&w=800&fit=crop&crop=entropy&cs=tinysrgb', description: 'Our first dance' },
+    { id: '2', url: 'https://images.unsplash.com/photo-1523438003649-06009572282a?ixlib=rb-4.0.3&q=80&w=800&fit=crop&crop=entropy&cs=tinysrgb', description: 'Cutting the cake' },
+    { id: '3', url: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?ixlib=rb-4.0.3&q=80&w=800&fit=crop&crop=entropy&cs=tinysrgb', description: 'Cheers to forever' },
+    { id: '4', url: 'https://images.unsplash.com/photo-1542042161-951353350513?ixlib=rb-4.0.3&q=80&w=800&fit=crop&crop=entropy&cs=tinysrgb', description: 'Beautiful venue' },
+    { id: '5', url: 'https://images.unsplash.com/photo-1509610696553-9243c1e230f4?ixlib=rb-4.0.3&q=80&w=800&fit=crop&crop=entropy&cs=tinysrgb', description: 'The rings' },
+    { id: '6', url: 'https://images.unsplash.com/photo-1541250848049-b4f7145d7327?ixlib=rb-4.0.3&q=80&w=800&fit=crop&crop=entropy&cs=tinysrgb', description: 'Sunset kiss' },
+  ],
+  schedule: [
+    { time: '3:00 PM', event: 'Guest Arrival', description: 'Welcome drinks and light refreshments' },
+    { time: '4:00 PM', event: 'Ceremony', description: 'Join us as we say "I do"' },
+    { time: '5:00 PM', event: 'Cocktail Hour', description: 'Enjoy cocktails and appetizers' },
+    { time: '6:30 PM', event: 'Reception', description: 'Dinner, dancing, and celebrations' },
+    { time: '10:00 PM', event: 'Sparkler Send-off', description: 'Wish us well as we depart' },
+  ],
+  dressCode: "Semi-Formal: Suits, gowns, or cocktail dresses.",
+  rsvpDeadline: new Date(new Date().getFullYear() + 1, 4, 1).toISOString(), // Example: May 1st next year
 };
 
 
@@ -690,7 +720,7 @@ export default function HomePage() {
       <AppFooter />
 
       <Sheet open={isPreviewSheetOpen} onOpenChange={setIsPreviewSheetOpen}>
-        <SheetContent side="right" className="w-full sm:w-3/4 md:w-1/2 p-0 overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:w-3/4 md:w-1/2 lg:w-2/5 xl:w-1/3 p-0 overflow-y-auto">
           {selectedTemplate ? (
             <>
               <SheetHeader className="p-6 border-b bg-background sticky top-0 z-10">
@@ -705,38 +735,16 @@ export default function HomePage() {
                 </div>
                 <SheetDescription>{selectedTemplate.description}</SheetDescription>
               </SheetHeader>
-              <div className="p-6">
-                <div className="relative aspect-video w-full mb-6 rounded-lg overflow-hidden shadow-md">
-                  <Image
-                    src={selectedTemplate.image}
-                    alt={`${selectedTemplate.name} preview`}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    data-ai-hint={selectedTemplate.aiHint}
-                  />
+
+              {/* Render actual template */}
+              {selectedTemplate.id === 'classic-elegance' && <ElegantTemplate wedding={sampleWeddingData} />}
+              {selectedTemplate.id === 'modern-romance' && <ModernTemplate wedding={sampleWeddingData} />}
+              {selectedTemplate.id === 'rustic-charm' && <RusticTemplate wedding={sampleWeddingData} />}
+              {!['classic-elegance', 'modern-romance', 'rustic-charm'].includes(selectedTemplate.id) && (
+                <div className="p-6">
+                    <p className="text-muted-foreground">Preview for this template is not available yet.</p>
                 </div>
-                {/* Placeholder for actual template content */}
-                <div className="prose prose-sm max-w-none text-muted-foreground">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Live Preview Area</h3>
-                  <p>
-                    This area would typically display a live, interactive preview of the <strong>{selectedTemplate.name}</strong> template. 
-                    Users would be able to see how their content might look and feel within this design.
-                  </p>
-                  <p>
-                    For now, this is a static representation. Imagine this space filled with a beautiful wedding website layout based on the "{selectedTemplate.name}" theme, showcasing elements like:
-                  </p>
-                  <ul>
-                    <li>Welcome messages</li>
-                    <li>Event details (ceremony, reception)</li>
-                    <li>Photo galleries</li>
-                    <li>RSVP forms</li>
-                    <li>Gift registry links</li>
-                  </ul>
-                  <p>
-                    The actual template would be fully responsive and customizable.
-                  </p>
-                </div>
-              </div>
+              )}
             </>
           ) : (
               <div className="p-6 text-center text-muted-foreground">
