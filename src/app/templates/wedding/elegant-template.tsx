@@ -3,9 +3,9 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
-import BaseTemplate from './base-template';
+import BaseTemplate from './base-template'; // Relative path
 import { greatVibes, cormorantGaramond } from '../../../lib/fonts'; // Relative path
-import { Calendar, MapPin, Heart, Camera, Users, Gift } from 'lucide-react'; // Rsvp removed
+import { Calendar, MapPin, Heart, Camera, Users, Gift } from 'lucide-react';
 import Image from 'next/image';
 
 interface ElegantTemplateProps {
@@ -128,7 +128,6 @@ const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding }) => {
         <section className="py-16 md:py-20 bg-primary/5 text-foreground">
           <div className="container mx-auto px-6 max-w-3xl text-center">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
-               {/* Using Users icon as a placeholder since Rsvp is not standard */}
               <Users className="h-10 w-10 text-primary" />
             </div>
             <h2 className={`${greatVibes.variable} font-serif text-4xl md:text-5xl text-center mb-6 text-primary`}>
