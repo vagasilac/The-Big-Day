@@ -149,21 +149,21 @@ const WEDDING_TEMPLATES = [
     id: 'classic-elegance',
     name: 'Classic Elegance',
     description: 'A timeless design with sophisticated typography and a clean layout.',
-    image: 'https://placehold.co/600x400.png',
+    image: 'https://placehold.co/600x400.png', // Placeholder, will be overridden by template's own cover
     aiHint: 'classic wedding invitation'
   },
   {
     id: 'modern-romance',
     name: 'Modern Romance',
     description: 'Chic and contemporary, perfect for the modern couple.',
-    image: 'https://placehold.co/600x400.png',
+    image: 'https://placehold.co/600x400.png', // Placeholder
     aiHint: 'modern wedding invitation'
   },
   {
     id: 'rustic-charm',
     name: 'Rustic Charm',
     description: 'Warm and inviting, ideal for a countryside or barn wedding.',
-    image: 'https://placehold.co/600x400.png',
+    image: 'https://placehold.co/600x400.png', // Placeholder
     aiHint: 'rustic wedding invitation'
   },
 ];
@@ -193,6 +193,7 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
               className="bg-card rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
             >
               <div className="relative aspect-video w-full">
+                 {/* This image is just for the card on the landing page. The sheet will render the template's actual cover. */}
                 <Image
                   src={template.image}
                   alt={`${template.name} template preview`}
@@ -758,3 +759,4 @@ export default function HomePage() {
     </div>
   );
 }
+
