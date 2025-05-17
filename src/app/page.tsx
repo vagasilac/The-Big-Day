@@ -1,5 +1,5 @@
 
-'use client'; // Required for useState
+'use client'; // Required for useState and other hooks
 
 import React from 'react'; // Import React for useState
 import Image from 'next/image';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
   LogIn, Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight, 
-  CheckCircle, Edit3, Send, Heart, Menu, X // Added Heart, Menu, X
+  CheckCircle, Edit3, Send, Heart, Menu, X
 } from 'lucide-react';
 
 const HeroSection = () => {
@@ -159,7 +159,6 @@ const TemplatesSection = () => {
     <section id="templates" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
-          {/* Replaced LayoutTemplate with Palette for a more generic template icon */}
           <Palette className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Beautiful Wedding Templates
@@ -179,8 +178,8 @@ const TemplatesSection = () => {
                 <Image
                   src={template.image}
                   alt={`${template.name} template preview`}
-                  fill // Changed from layout="fill" objectFit="cover"
-                  style={{ objectFit: 'cover' }} // Added for next/image v13+
+                  fill
+                  style={{ objectFit: 'cover' }}
                   className="rounded-t-xl"
                   data-ai-hint={template.aiHint}
                 />
@@ -218,7 +217,7 @@ const HowItWorksSection = () => {
       description: "Create an account and select your favorite template to customize your wedding website."
     },
     {
-      icon: <Palette className="w-10 h-10 text-primary" />, // Changed from LayoutTemplate
+      icon: <Palette className="w-10 h-10 text-primary" />,
       title: "2. Add Your Details",
       description: "Add your wedding information, photos, and manage your guest list all in one place."
     },
@@ -273,8 +272,8 @@ const HowItWorksSection = () => {
               <Image
                 src="https://placehold.co/800x600.png"
                 alt="Wedding website demo on a laptop"
-                fill // Changed from layout="fill" objectFit="cover"
-                style={{ objectFit: 'cover' }} // Added for next/image v13+
+                fill
+                style={{ objectFit: 'cover' }}
                 data-ai-hint="wedding website laptop"
               />
             </div>
@@ -301,6 +300,86 @@ const CTASection = () => {
         </Button>
       </div>
     </section>
+  );
+};
+
+const AppFooter = () => {
+  return (
+    <footer className="py-12 bg-secondary border-t border-border">
+      <div className="container max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div className="col-span-1 md:col-span-1">
+            <div className="flex items-center mb-4">
+              <Heart className="h-6 w-6 text-primary mr-2" />
+              <span className="text-xl text-primary" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
+                The Big Day
+              </span>
+            </div>
+            <p className="text-secondary-foreground mb-4">
+              Create beautiful wedding websites to share your special day with family and friends.
+            </p>
+          </div>
+          
+          {/* Quick Links */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Quick Links</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/" className="text-secondary-foreground hover:text-primary transition-colors">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link href="/#templates" className="text-secondary-foreground hover:text-primary transition-colors">
+                  Templates
+                </Link>
+              </li>
+              <li>
+                <Link href="/auth" className="text-secondary-foreground hover:text-primary transition-colors">
+                  Log In
+                </Link>
+              </li>
+              <li>
+                <Link href="/auth" className="text-secondary-foreground hover:text-primary transition-colors">
+                  Sign Up
+                </Link>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Features */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Features</h3>
+            <ul className="space-y-2">
+              <li className="text-secondary-foreground">Wedding Websites</li>
+              <li className="text-secondary-foreground">Guest Management</li>
+              <li className="text-secondary-foreground">RSVP Tracking</li>
+              <li className="text-secondary-foreground">Photo Sharing</li>
+              <li className="text-secondary-foreground">Interactive Polls</li>
+            </ul>
+          </div>
+          
+          {/* Contact */}
+          <div className="col-span-1">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Contact</h3>
+            <p className="text-secondary-foreground mb-2">
+              Have questions? We're here to help!
+            </p>
+            <p className="text-secondary-foreground">
+              support@thebigday.app
+            </p>
+          </div>
+        </div>
+        
+        {/* Bottom Footer */}
+        <div className="border-t border-border mt-10 pt-6 text-center">
+          <p className="text-sm text-secondary-foreground">
+            &copy; {new Date().getFullYear()} The Big Day. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </footer>
   );
 };
 
@@ -371,7 +450,6 @@ export default function HomePage() {
               </Link>
               <Link href="/auth" onClick={closeMenu}>
                 <Button className="w-full justify-start">
-                  {/* Consider: <UserPlus className="mr-2 h-4 w-4" /> */}
                   Sign Up
                 </Button>
               </Link>
@@ -388,14 +466,7 @@ export default function HomePage() {
         <CTASection />
       </main>
 
-      <footer className="py-8 bg-secondary text-secondary-foreground">
-        <div className="container mx-auto text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} The Big Day. All rights reserved.</p>
-          <p className="mt-1">Plan your perfect wedding with us.</p>
-        </div>
-      </footer>
+      <AppFooter />
     </div>
   );
 }
-
-    
