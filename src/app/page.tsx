@@ -149,21 +149,21 @@ const WEDDING_TEMPLATES = [
     id: 'classic-elegance',
     name: 'Classic Elegance',
     description: 'A timeless design with sophisticated typography and a clean layout.',
-    image: 'https://placehold.co/600x400.png', // Placeholder, will be overridden by template's own cover
+    image: 'https://placehold.co/600x400.png',
     aiHint: 'classic wedding invitation'
   },
   {
     id: 'modern-romance',
     name: 'Modern Romance',
     description: 'Chic and contemporary, perfect for the modern couple.',
-    image: 'https://placehold.co/600x400.png', // Placeholder
+    image: 'https://placehold.co/600x400.png', 
     aiHint: 'modern wedding invitation'
   },
   {
     id: 'rustic-charm',
     name: 'Rustic Charm',
     description: 'Warm and inviting, ideal for a countryside or barn wedding.',
-    image: 'https://placehold.co/600x400.png', // Placeholder
+    image: 'https://placehold.co/600x400.png', 
     aiHint: 'rustic wedding invitation'
   },
 ];
@@ -193,7 +193,6 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
               className="bg-card rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
             >
               <div className="relative aspect-video w-full">
-                 {/* This image is just for the card on the landing page. The sheet will render the template's actual cover. */}
                 <Image
                   src={template.image}
                   alt={`${template.name} template preview`}
@@ -738,9 +737,9 @@ export default function HomePage() {
               </SheetHeader>
 
               {/* Render actual template */}
-              {selectedTemplate.id === 'classic-elegance' && <ElegantTemplate wedding={sampleWeddingData} />}
-              {selectedTemplate.id === 'modern-romance' && <ModernTemplate wedding={sampleWeddingData} />}
-              {selectedTemplate.id === 'rustic-charm' && <RusticTemplate wedding={sampleWeddingData} />}
+              {selectedTemplate.id === 'classic-elegance' && <ElegantTemplate wedding={sampleWeddingData} isPreviewMode={true} />}
+              {selectedTemplate.id === 'modern-romance' && <ModernTemplate wedding={sampleWeddingData} isPreviewMode={true} />}
+              {selectedTemplate.id === 'rustic-charm' && <RusticTemplate wedding={sampleWeddingData} isPreviewMode={true} />}
               {!['classic-elegance', 'modern-romance', 'rustic-charm'].includes(selectedTemplate.id) && (
                 <div className="p-6">
                     <p className="text-muted-foreground">Preview for this template is not available yet.</p>
@@ -759,4 +758,3 @@ export default function HomePage() {
     </div>
   );
 }
-

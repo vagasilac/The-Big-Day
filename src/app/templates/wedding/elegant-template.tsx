@@ -4,17 +4,18 @@
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
 import BaseTemplate from './base-template';
-import { greatVibes, cormorantGaramond } from '../../../lib/fonts'; // Corrected to relative path
+import { greatVibes, cormorantGaramond } from '../../../lib/fonts'; 
 import { Calendar, MapPin, Heart, Camera, Users, Gift } from 'lucide-react';
 import Image from 'next/image';
 
 interface ElegantTemplateProps {
   wedding: Partial<Wedding>;
+  isPreviewMode?: boolean;
 }
 
-const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding }) => {
+const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMode }) => {
   return (
-    <BaseTemplate wedding={wedding}>
+    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode}>
       <div className={`${cormorantGaramond.variable} font-sans`}>
         {/* Details Section */}
         <section className="py-12 md:py-16 bg-background text-foreground">

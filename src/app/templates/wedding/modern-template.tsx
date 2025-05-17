@@ -3,17 +3,18 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
-import BaseTemplate from './base-template'; // Relative path
+import BaseTemplate from './base-template'; 
 import { Calendar, MapPin, Heart, Camera, Music, Users, Gift, ListChecks } from 'lucide-react';
 import Image from 'next/image';
 
 interface ModernTemplateProps {
   wedding: Partial<Wedding>;
+  isPreviewMode?: boolean;
 }
 
-const ModernTemplate: React.FC<ModernTemplateProps> = ({ wedding }) => {
+const ModernTemplate: React.FC<ModernTemplateProps> = ({ wedding, isPreviewMode }) => {
   return (
-    <BaseTemplate wedding={wedding}>
+    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode}>
       <div className="font-sans"> {/* Using Geist Sans from layout.tsx by default */}
         {/* Details Section */}
         <section className="py-12 md:py-16 bg-secondary text-secondary-foreground">

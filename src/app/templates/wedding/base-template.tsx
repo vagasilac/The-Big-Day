@@ -1,5 +1,5 @@
 
-'use client'; // Add 'use client' if using client-side hooks like format, or if it's used by client components
+'use client'; 
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
@@ -10,12 +10,17 @@ import Image from 'next/image';
 interface BaseTemplateProps {
   wedding: Partial<Wedding>;
   children?: React.ReactNode;
+  isPreviewMode?: boolean;
 }
 
-const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children }) => {
+const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children, isPreviewMode }) => {
   const formattedDate = wedding.date
     ? format(new Date(wedding.date), "EEEE, MMMM do, yyyy 'at' h:mm a")
     : 'Date to be announced';
+
+  const titleClassName = isPreviewMode
+    ? "text-2xl md:text-3xl font-bold mb-3" // Smaller size for preview
+    : "text-4xl md:text-6xl font-bold mb-4"; // Original size
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
@@ -29,10 +34,10 @@ const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children }) => {
         }}
       >
         <div className="container mx-auto px-6 text-center relative z-10">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+          <h1 className={titleClassName} style={{ fontFamily: "'Times New Roman', Times, serif" }}>
             {wedding.title || "Our Wedding Day"}
           </h1>
-          <div className="w-24 h-1 bg-white mx-auto my-6 opacity-75"></div>
+          {!isPreviewMode && <div className="w-24 h-1 bg-white mx-auto my-6 opacity-75"></div>}
           <p className="text-xl md:text-2xl mb-2">
             {formattedDate}
           </p>

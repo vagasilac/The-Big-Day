@@ -4,17 +4,18 @@
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
 import BaseTemplate from './base-template';
-import { nunitoSans, caveat } from '../../../lib/fonts'; // Relative path
+import { nunitoSans, caveat } from '../../../lib/fonts'; 
 import { Calendar, MapPin, Heart, Users, Gift, Leaf, Clock, Camera } from 'lucide-react';
 import Image from 'next/image';
 
 interface RusticTemplateProps {
   wedding: Partial<Wedding>;
+  isPreviewMode?: boolean;
 }
 
-const RusticTemplate: React.FC<RusticTemplateProps> = ({ wedding }) => {
+const RusticTemplate: React.FC<RusticTemplateProps> = ({ wedding, isPreviewMode }) => {
   return (
-    <BaseTemplate wedding={wedding}>
+    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode}>
       <div className={`${nunitoSans.variable} font-sans bg-[#fdfaf6] text-[#5d4037]`}>
         {/* Details Section */}
         <section className="py-12 md:py-16">
