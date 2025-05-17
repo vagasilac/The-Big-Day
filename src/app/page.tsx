@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LogIn, Newspaper, Camera, ListChecks, Music, Gift, Gamepad2, Users, Palette, Share2, ArrowRight, LayoutTemplate } from 'lucide-react';
+import { LogIn, Newspaper, Camera, ListChecks, Music, Gift, Gamepad2, Users, Palette, Share2, ArrowRight, LayoutTemplate, CheckCircle, Edit3, Send } from 'lucide-react';
 
 const HeroSection = () => {
   return (
@@ -37,7 +37,7 @@ const HeroSection = () => {
                 priority
                 data-ai-hint="elegant wedding celebration"
               />
-              <div className="absolute -bottom-5 -right-5 bg-card p-4 rounded-lg shadow-xl border-2 border-primary animate-pulse">
+              <div className="absolute -bottom-5 -right-5 bg-card p-4 rounded-lg shadow-xl border-2 border-primary">
                 <div className="text-xl md:text-2xl text-primary" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Anna & Paul</div>
                 <p className="text-muted-foreground text-xs md:text-sm">June 15, 2025</p>
               </div>
@@ -203,10 +203,85 @@ const TemplatesSection = () => {
   );
 };
 
+const HowItWorksSection = () => {
+  const steps = [
+    {
+      icon: <Edit3 className="w-10 h-10 text-primary" />,
+      title: "1. Sign Up & Create",
+      description: "Create an account and select your favorite template to customize your wedding website."
+    },
+    {
+      icon: <LayoutTemplate className="w-10 h-10 text-primary" />,
+      title: "2. Add Your Details",
+      description: "Add your wedding information, photos, and manage your guest list all in one place."
+    },
+    {
+      icon: <Send className="w-10 h-10 text-primary" />,
+      title: "3. Share & Celebrate",
+      description: "Send invitations, collect RSVPs, and enjoy all the interactive features with your guests."
+    }
+  ];
+
+  return (
+    <section id="how-it-works" className="py-16 md:py-24 bg-secondary">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12 md:mb-16">
+           <CheckCircle className="w-12 h-12 text-primary mx-auto mb-4" />
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">How It Works</h2>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Creating your dream wedding website is simple and takes just a few minutes to get started.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          {steps.map((step, index) => (
+            <div key={index} className="text-center p-6 bg-card rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                {step.icon}
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{step.title}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-card rounded-xl shadow-2xl overflow-hidden">
+          <div className="flex flex-col md:flex-row">
+            <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center text-center md:text-left">
+              <h3 className="text-2xl md:text-3xl font-bold text-primary mb-4" style={{fontFamily: 'Times New Roman, Times, serif'}}>
+                See a Live Demo
+              </h3>
+              <p className="text-lg text-muted-foreground mb-6">
+                Explore a fully featured demo wedding website. Experience both the guest view and the powerful admin dashboard.
+              </p>
+              <Button asChild size="lg" className="px-8 py-3 h-auto text-base self-center md:self-start">
+                {/* TODO: Create /demo page and link here */}
+                <Link href="/#how-it-works">
+                  View Demo Website
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="md:w-1/2 relative aspect-video md:aspect-auto min-h-[300px] md:min-h-0">
+              <Image
+                src="https://placehold.co/800x600.png"
+                alt="Wedding website demo on a laptop"
+                layout="fill"
+                objectFit="cover"
+                data-ai-hint="wedding website laptop"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 
 const CTASection = () => {
   return (
-    <section className="py-16 md:py-24 bg-secondary">
+    <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
           Ready to Start Planning <span className="text-primary">The Big Day</span>?
@@ -229,17 +304,21 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <LayoutTemplate className="h-6 w-6 text-primary" />
+            {/* Consider a more generic App Icon if this is a portal */}
+            <LayoutTemplate className="h-6 w-6 text-primary" /> 
             <span className="font-bold text-xl" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
               The Big Day
             </span>
           </Link>
-          <nav className="flex flex-1 items-center space-x-2 sm:space-x-4 justify-end">
+          <nav className="flex flex-1 items-center space-x-1 sm:space-x-2 justify-end">
              <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#features">Features</Link>
              </Button>
              <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#templates">Templates</Link>
+             </Button>
+            <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+                <Link href="/#how-it-works">How It Works</Link>
              </Button>
              {/* <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3 hidden sm:inline-flex">
                 <Link href="/pricing">Pricing</Link>
@@ -263,6 +342,7 @@ export default function HomePage() {
         <HeroSection />
         <FeaturesSection />
         <TemplatesSection />
+        <HowItWorksSection />
         <CTASection />
       </main>
 
@@ -275,4 +355,3 @@ export default function HomePage() {
     </div>
   );
 }
-
