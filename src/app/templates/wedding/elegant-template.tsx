@@ -5,7 +5,7 @@ import React from 'react';
 import type { Wedding } from '@/types/wedding';
 import BaseTemplate from './base-template';
 import { greatVibes, cormorantGaramond } from '../../../lib/fonts'; // Relative path
-import { Calendar, MapPin, Heart, Camera, Users, Gift } from 'lucide-react'; // Removed Rsvp
+import { Calendar, MapPin, Heart, Camera, Users, Gift } from 'lucide-react'; // Rsvp removed
 import Image from 'next/image';
 
 interface ElegantTemplateProps {
@@ -151,3 +151,5 @@ const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding }) => {
 };
 
 export default ElegantTemplate;
+
+    
