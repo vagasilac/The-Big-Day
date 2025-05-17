@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
   LogIn, Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight, 
-  CheckCircle, Edit3, Send, Heart, Menu, X
+  CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign
 } from 'lucide-react';
 
 const HeroSection = () => {
@@ -284,11 +284,118 @@ const HowItWorksSection = () => {
   );
 };
 
+const PRICING_PLANS = [
+  {
+    name: "Basic",
+    price: "$49",
+    period: "one-time",
+    description: "Perfect for intimate celebrations with core features.",
+    features: [
+      "Custom wedding website",
+      "RSVP management (up to 50 guests)",
+      "Digital invitations",
+      "Photo gallery (250 photos)",
+      "6 months access"
+    ],
+    popular: false
+  },
+  {
+    name: "Premium",
+    price: "$99",
+    period: "one-time",
+    description: "Comprehensive features for the perfect celebration.",
+    features: [
+      "Everything in Basic",
+      "RSVP management (up to 150 guests)",
+      "Interactive guest games & polls",
+      "Music playlist voting",
+      "Unlimited photos",
+      "12 months access"
+    ],
+    popular: true
+  },
+  {
+    name: "Deluxe",
+    price: "$149",
+    period: "one-time",
+    description: "For large weddings with all premium features.",
+    features: [
+      "Everything in Premium",
+      "Unlimited guest count",
+      "Seating planner",
+      "Video & voice guestbook",
+      "Custom domain name",
+      "24 months access"
+    ],
+    popular: false
+  }
+];
+
+const PricingSection = () => {
+  return (
+    <section id="pricing" className="py-16 md:py-24 bg-background">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12 md:mb-16">
+          <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h2>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Choose the plan that works best for your wedding celebration.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {PRICING_PLANS.map((plan) => (
+            <div 
+              key={plan.name}
+              className={`bg-card rounded-xl overflow-hidden flex flex-col ${
+                plan.popular 
+                  ? "shadow-2xl border-2 border-primary transform md:-translate-y-4 scale-105 ring-4 ring-primary/20" 
+                  : "shadow-lg border border-border hover:shadow-xl transition-shadow duration-300"
+              }`}
+            >
+              {plan.popular && (
+                <div className="bg-primary text-primary-foreground text-center py-2 text-sm font-semibold tracking-wider uppercase">Most Popular</div>
+              )}
+              <div className="p-6 md:p-8 flex-grow flex flex-col">
+                <h3 className="text-2xl font-semibold mb-2 text-foreground">{plan.name}</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold text-foreground">{plan.price}</span>
+                  <span className="text-muted-foreground"> / {plan.period}</span>
+                </div>
+                <p className="text-muted-foreground mb-6 text-sm flex-grow">{plan.description}</p>
+                
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start text-sm">
+                      <Check className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                      <span className="text-foreground">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                
+                <Button 
+                  variant={plan.popular ? "default" : "outline"} 
+                  size="lg"
+                  className="w-full mt-auto"
+                  asChild
+                >
+                  <Link href="/auth?tab=register">Get Started</Link>
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 
 const CTASection = () => {
   return (
-    <section className="py-16 md:py-24 bg-background">
+    <section className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4 text-center">
+        <Heart className="w-12 h-12 text-primary mx-auto mb-6" />
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
           Ready to Start Planning <span className="text-primary">The Big Day</span>?
         </h2>
@@ -296,7 +403,7 @@ const CTASection = () => {
           Sign up today and begin creating the wedding website of your dreams. It's free to get started!
         </p>
         <Button asChild size="lg" className="px-10 py-3 h-auto text-lg">
-          <Link href="/auth">Get Started Now</Link>
+          <Link href="/auth?tab=register">Create Your Account</Link>
         </Button>
       </div>
     </section>
@@ -305,18 +412,18 @@ const CTASection = () => {
 
 const AppFooter = () => {
   return (
-    <footer className="py-12 bg-secondary border-t border-border">
+    <footer className="py-12 bg-background border-t border-border">
       <div className="container max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center mb-4">
+            <Link href="/" className="flex items-center mb-4">
               <Heart className="h-6 w-6 text-primary mr-2" />
-              <span className="text-xl text-primary" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
+              <span className="text-xl text-foreground" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
                 The Big Day
               </span>
-            </div>
-            <p className="text-secondary-foreground mb-4">
+            </Link>
+            <p className="text-sm text-muted-foreground mb-4">
               Create beautiful wedding websites to share your special day with family and friends.
             </p>
           </div>
@@ -324,57 +431,64 @@ const AppFooter = () => {
           {/* Quick Links */}
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-foreground">Quick Links</h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/" className="text-secondary-foreground hover:text-primary transition-colors">
+                <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
                   Home
                 </Link>
               </li>
+               <li>
+                <Link href="/#features" className="text-muted-foreground hover:text-primary transition-colors">
+                  Features
+                </Link>
+              </li>
               <li>
-                <Link href="/#templates" className="text-secondary-foreground hover:text-primary transition-colors">
+                <Link href="/#templates" className="text-muted-foreground hover:text-primary transition-colors">
                   Templates
                 </Link>
               </li>
-              <li>
-                <Link href="/auth" className="text-secondary-foreground hover:text-primary transition-colors">
-                  Log In
+               <li>
+                <Link href="/#pricing" className="text-muted-foreground hover:text-primary transition-colors">
+                  Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/auth" className="text-secondary-foreground hover:text-primary transition-colors">
-                  Sign Up
+                <Link href="/auth" className="text-muted-foreground hover:text-primary transition-colors">
+                  Log In / Sign Up
                 </Link>
               </li>
             </ul>
           </div>
           
-          {/* Features */}
+          {/* Features Column (can be more specific or different from main features) */}
           <div className="col-span-1">
-            <h3 className="text-lg font-semibold mb-4 text-foreground">Features</h3>
-            <ul className="space-y-2">
-              <li className="text-secondary-foreground">Wedding Websites</li>
-              <li className="text-secondary-foreground">Guest Management</li>
-              <li className="text-secondary-foreground">RSVP Tracking</li>
-              <li className="text-secondary-foreground">Photo Sharing</li>
-              <li className="text-secondary-foreground">Interactive Polls</li>
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Key Features</h3>
+            <ul className="space-y-2 text-sm">
+              <li className="text-muted-foreground">Custom Websites</li>
+              <li className="text-muted-foreground">Guest Management</li>
+              <li className="text-muted-foreground">RSVP Tracking</li>
+              <li className="text-muted-foreground">Photo Galleries</li>
+              <li className="text-muted-foreground">Registry Links</li>
             </ul>
           </div>
           
           {/* Contact */}
           <div className="col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-foreground">Contact</h3>
-            <p className="text-secondary-foreground mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               Have questions? We're here to help!
             </p>
-            <p className="text-secondary-foreground">
+            <p className="text-sm text-muted-foreground">
               support@thebigday.app
             </p>
+            {/* Optional: Social Media Links */}
           </div>
         </div>
         
         {/* Bottom Footer */}
-        <div className="border-t border-border mt-10 pt-6 text-center">
-          <p className="text-sm text-secondary-foreground">
+        <Separator className="my-8" />
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} The Big Day. All rights reserved.
           </p>
         </div>
@@ -395,29 +509,33 @@ export default function HomePage() {
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2" onClick={closeMenu}>
             <Heart className="h-6 w-6 text-primary" />
-            <span className="font-bold text-xl" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
+            <span className="font-bold text-xl text-foreground" style={{ fontFamily: 'Times New Roman, Times, serif' }}>
               The Big Day
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
-             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+          <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
+             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#features">Features</Link>
              </Button>
-             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#templates">Templates</Link>
              </Button>
-            <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+             <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+                <Link href="/#pricing">Pricing</Link>
+             </Button>
+            <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#how-it-works">How It Works</Link>
              </Button>
+             <Separator orientation="vertical" className="h-6 mx-2"/>
              <Link href="/auth">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="px-2 sm:px-3">
                   <LogIn className="mr-1.5 h-4 w-4" />
                   Login
                 </Button>
              </Link>
-             <Link href="/auth">
-                <Button size="sm">
+             <Link href="/auth?tab=register">
+                <Button size="sm" className="px-2 sm:px-3">
                   Sign Up
                 </Button>
              </Link>
@@ -432,23 +550,26 @@ export default function HomePage() {
 
         {isMenuOpen && (
           <div className="md:hidden bg-background border-t border-border shadow-md">
-            <nav className="container flex flex-col space-y-2 py-4">
-              <Link href="/#features" className="block py-2 text-muted-foreground hover:text-primary" onClick={closeMenu}>
+            <nav className="container flex flex-col space-y-1 py-4">
+              <Link href="/#features" className="block py-2 px-3 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground" onClick={closeMenu}>
                 Features
               </Link>
-              <Link href="/#templates" className="block py-2 text-muted-foreground hover:text-primary" onClick={closeMenu}>
+              <Link href="/#templates" className="block py-2 px-3 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground" onClick={closeMenu}>
                 Templates
               </Link>
-              <Link href="/#how-it-works" className="block py-2 text-muted-foreground hover:text-primary" onClick={closeMenu}>
+              <Link href="/#pricing" className="block py-2 px-3 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground" onClick={closeMenu}>
+                Pricing
+              </Link>
+              <Link href="/#how-it-works" className="block py-2 px-3 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground" onClick={closeMenu}>
                 How It Works
               </Link>
               <Separator className="my-2" />
               <Link href="/auth" onClick={closeMenu}>
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start mb-2">
                   <LogIn className="mr-2 h-4 w-4" /> Log In
                 </Button>
               </Link>
-              <Link href="/auth" onClick={closeMenu}>
+              <Link href="/auth?tab=register" onClick={closeMenu}>
                 <Button className="w-full justify-start">
                   Sign Up
                 </Button>
@@ -462,6 +583,7 @@ export default function HomePage() {
         <HeroSection />
         <FeaturesSection />
         <TemplatesSection />
+        <PricingSection />
         <HowItWorksSection />
         <CTASection />
       </main>
@@ -470,3 +592,4 @@ export default function HomePage() {
     </div>
   );
 }
+
