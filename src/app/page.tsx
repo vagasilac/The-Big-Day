@@ -149,7 +149,7 @@ const WEDDING_TEMPLATES = [
     id: 'classic-elegance',
     name: 'Classic Elegance',
     description: 'A timeless design with sophisticated typography and a clean layout.',
-    image: 'https://images.unsplash.com/photo-1587271407953-64589745A065?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjbGFzc2ljJTIwd2VkZGluZyUyMGVudmVsb3BlfGVufDB8fHx8MTc0NzYxMzUwNnww&ixlib=rb-4.0.3&q=80&w=1080',
+    image: 'https://images.unsplash.com/photo-1498771857520-25063edc30c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxOHx8Y2xhc3NpY3xlbnwwfHx8fDE3NDc2MTAwMTV8MA&ixlib=rb-4.1.0&q=80&w=1080',
     aiHint: 'classic wedding invitation'
   },
   {
