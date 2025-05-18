@@ -156,7 +156,7 @@ const WEDDING_TEMPLATES = [
     id: 'modern-romance',
     name: 'Modern Romance',
     description: 'Chic and contemporary, perfect for the modern couple.',
-    image: 'https://images.unsplash.com/photo-1616009991521-0f8803a6c578?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB3ZWRkaW5nJTIwaW52aXRlfGVufDB8fHx8MTc0NzYxMzU1Nnww&ixlib=rb-4.0.3&q=80&w=1080',
+    image: 'https://images.unsplash.com/photo-1518464622742-9aeb03009561?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtb2Rlcm4lMjByb21hbmNlfGVufDB8fHx8MTc0NzYxMDE1NXww&ixlib=rb-4.1.0&q=80&w=1080',
     aiHint: 'modern wedding invitation'
   },
   {
