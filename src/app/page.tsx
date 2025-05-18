@@ -163,7 +163,7 @@ const WEDDING_TEMPLATES = [
     id: 'rustic-charm',
     name: 'Rustic Charm',
     description: 'Warm and inviting, ideal for a countryside or barn wedding.',
-    image: 'https://images.unsplash.com/photo-1560299480-b18000754700?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxydXN0aWMlMjB3ZWRkaW5nJTIwc3RhdGlvbmVyeXxlbnwwfHx8fDE3NDc2MTM2MTF8MA&ixlib=rb-4.0.3&q=80&w=1080',
+    image: 'https://images.unsplash.com/photo-1731128852828-06b745c46c22?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxydXN0aWMlMjBjaGFybXxlbnwwfHx8fDE3NDc2MTAyMzZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
     aiHint: 'rustic wedding invitation'
   },
 ];
