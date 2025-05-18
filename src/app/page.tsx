@@ -149,21 +149,21 @@ const WEDDING_TEMPLATES = [
     id: 'classic-elegance',
     name: 'Classic Elegance',
     description: 'A timeless design with sophisticated typography and a clean layout.',
-    image: 'https://placehold.co/600x400.png', 
+    image: 'https://images.unsplash.com/photo-1587271407953-64589745A065?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjbGFzc2ljJTIwd2VkZGluZyUyMGVudmVsb3BlfGVufDB8fHx8MTc0NzYxMzUwNnww&ixlib=rb-4.0.3&q=80&w=1080',
     aiHint: 'classic wedding invitation'
   },
   {
     id: 'modern-romance',
     name: 'Modern Romance',
     description: 'Chic and contemporary, perfect for the modern couple.',
-    image: 'https://placehold.co/600x400.png', 
+    image: 'https://images.unsplash.com/photo-1616009991521-0f8803a6c578?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB3ZWRkaW5nJTIwaW52aXRlfGVufDB8fHx8MTc0NzYxMzU1Nnww&ixlib=rb-4.0.3&q=80&w=1080',
     aiHint: 'modern wedding invitation'
   },
   {
     id: 'rustic-charm',
     name: 'Rustic Charm',
     description: 'Warm and inviting, ideal for a countryside or barn wedding.',
-    image: 'https://placehold.co/600x400.png', 
+    image: 'https://images.unsplash.com/photo-1560299480-b18000754700?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxydXN0aWMlMjB3ZWRkaW5nJTIwc3RhdGlvbmVyeXxlbnwwfHx8fDE3NDc2MTM2MTF8MA&ixlib=rb-4.0.3&q=80&w=1080',
     aiHint: 'rustic wedding invitation'
   },
 ];
@@ -342,21 +342,21 @@ const testimonialsData = [
     quote: "The Big Day made our wedding planning so much easier! Our guests loved the interactive features, especially the photo sharing during the reception.",
     author: "Sarah & Michael",
     date: "Married June 2024",
-    image: "https://placehold.co/100x100.png",
+    image: "https://images.unsplash.com/photo-1541800033-180008982215?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=400",
     aiHint: "happy couple portrait"
   },
   {
     quote: "The RSVP management saved us so much time and stress. We loved how easy it was to track everything in one place, and our guests found it super convenient.",
     author: "Jessica & David",
     date: "Married August 2024",
-    image: "https://placehold.co/100x100.png",
+    image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzbWlsaW5nJTIwY291cGxlfGVufDB8fHx8MTc0NzYxMzkzNHww&ixlib=rb-4.0.3&q=80&w=400",
     aiHint: "smiling couple"
   },
   {
     quote: "The playlist voting was a hit! Our DJ loved having input from our guests, and it created the perfect atmosphere. The photo gallery is a beautiful keepsake.",
     author: "Emma & James",
     date: "Married October 2024",
-    image: "https://placehold.co/100x100.png",
+    image: "https://images.unsplash.com/photo-1548688844-c23061dc4a12?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxqb3lmdWwlMjBjb3VwbGV8ZW58MHx8fHwxNzQ3NjEzOTc5fDA&ixlib=rb-4.0.3&q=80&w=400",
     aiHint: "joyful couple"
   }
 ];
@@ -469,7 +469,7 @@ const HowItWorksSection = () => {
             </div>
             <div className="md:w-1/2 relative aspect-video md:aspect-auto min-h-[300px] md:min-h-0">
               <Image
-                src="https://placehold.co/800x600.png"
+                src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwd2Vic2l0ZSUyMGxhcHRvcHxlbnwwfHx8fDE3NDc2MTQwNzB8MA&ixlib=rb-4.0.3&q=80&w=1080"
                 alt="Wedding website demo on a laptop"
                 fill
                 style={{ objectFit: 'cover' }}
@@ -763,5 +763,6 @@ export default function HomePage() {
     </div>
   );
 }
+    
 
     
