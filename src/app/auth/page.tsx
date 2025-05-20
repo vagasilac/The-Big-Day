@@ -27,14 +27,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Alert, AlertDescription } from "@/components/ui/alert"; // Added
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase-config';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Info, Loader2 } from 'lucide-react'; // Added Info, Loader2
 
 // Define Zod schemas for validation
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(1, { message: 'Password is required.' }), // Min 1 for presence
+  password: z.string().min(1, { message: 'Password is required.' }),
 });
 
 const registerSchema = z
@@ -51,11 +52,16 @@ const registerSchema = z
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
+const DEMO_EMAIL = "demo@example.com";
+const DEMO_PASSWORD = "demopassword123";
+
 export default function AuthPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isLoginLoading, setIsLoginLoading] = React.useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("login");
+
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -84,7 +90,7 @@ export default function AuthPage() {
         description: `Welcome back!`,
       });
       loginForm.reset();
-      router.push('/');
+      router.push('/'); // Redirect to dashboard or home
     } catch (error: any) {
       console.error("Login Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
@@ -95,7 +101,7 @@ export default function AuthPage() {
             errorMessage = 'No user found with this email address.';
             break;
           case 'auth/wrong-password':
-            errorMessage = 'Incorrect password. Please try again.';
+             errorMessage = 'Incorrect password. Please try again.';
             break;
           case 'auth/invalid-credential':
              errorMessage = 'Invalid email or password. Please check your credentials.';
@@ -122,10 +128,12 @@ export default function AuthPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
+      // Store additional user info in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
         createdAt: Timestamp.fromDate(new Date()),
+        // You can add more fields here like displayName, photoURL later
       });
 
       toast({
@@ -133,11 +141,11 @@ export default function AuthPage() {
         description: `Account created for ${data.email}. You are now logged in.`,
       });
       registerForm.reset();
-      router.push('/');
+      router.push('/'); // Redirect to dashboard or home
     } catch (error: any) {
       console.error("Registration Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
-      if (error.code) {
+       if (error.code) {
         switch (error.code) {
           case 'auth/email-already-in-use':
             errorMessage = 'This email address is already registered.';
@@ -162,6 +170,15 @@ export default function AuthPage() {
     }
   }
 
+  const fillDemoCredentials = () => {
+    loginForm.setValue("email", DEMO_EMAIL);
+    loginForm.setValue("password", DEMO_PASSWORD);
+    toast({
+      title: "Demo Credentials Filled",
+      description: "Ready to log in as the demo user.",
+    });
+  };
+
   return (
     <div className="flex min-h-svh items-center justify-center bg-secondary p-4">
        <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
@@ -170,7 +187,7 @@ export default function AuthPage() {
             Back to Home
           </Button>
       </Link>
-      <Tabs defaultValue="login" className="w-full max-w-md">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-md">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="login">Login</TabsTrigger>
           <TabsTrigger value="register">Register</TabsTrigger>
@@ -188,6 +205,20 @@ export default function AuthPage() {
             <Form {...loginForm}>
               <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
                 <CardContent className="space-y-4">
+                  <Alert className="border-primary/30 bg-primary/5">
+                    <Info className="h-5 w-5 text-primary" />
+                    <AlertDescription className="text-sm text-foreground/80">
+                      Try the demo account:
+                      <Button
+                        type="button"
+                        variant="link"
+                        onClick={fillDemoCredentials}
+                        className="ml-1 p-0 h-auto text-sm text-primary hover:underline"
+                      >
+                        Fill demo credentials
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
                   <FormField
                     control={loginForm.control}
                     name="email"
@@ -208,6 +239,9 @@ export default function AuthPage() {
                       <FormItem>
                          <div className="flex items-center justify-between">
                            <FormLabel>Password</FormLabel>
+                           <Link href="#" className="text-sm text-primary hover:underline"> {/* TODO: Implement forgot password */}
+                            Forgot password?
+                           </Link>
                          </div>
                         <FormControl>
                           <Input type="password" {...field} />
@@ -217,10 +251,17 @@ export default function AuthPage() {
                     )}
                   />
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col items-stretch gap-4">
                   <Button type="submit" className="w-full" disabled={isLoginLoading}>
+                    {isLoginLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoginLoading ? 'Logging in...' : 'Login'}
                   </Button>
+                   <p className="text-center text-sm text-muted-foreground">
+                    Don&apos;t have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto text-primary hover:underline" onClick={() => setActiveTab("register")}>
+                      Create one
+                    </Button>
+                  </p>
                 </CardFooter>
               </form>
             </Form>
@@ -279,10 +320,17 @@ export default function AuthPage() {
                     )}
                   />
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col items-stretch gap-4">
                   <Button type="submit" className="w-full" disabled={isRegisterLoading}>
+                     {isRegisterLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                      {isRegisterLoading ? 'Registering...' : 'Create Account'}
                   </Button>
+                  <p className="text-center text-sm text-muted-foreground">
+                    Already have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto text-primary hover:underline" onClick={() => setActiveTab("login")}>
+                       Log in
+                    </Button>
+                  </p>
                 </CardFooter>
               </form>
             </Form>
