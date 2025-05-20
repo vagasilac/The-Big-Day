@@ -6,8 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import Link from 'next/link';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, Timestamp } from 'firebase/firestore'; // Firestore imports
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +20,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label'; // Keep Label for potential future direct use
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Form,
@@ -30,16 +30,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { firebaseConfig } from '@/lib/firebase-config'; 
+import { auth, db } from '@/lib/firebase-config'; // Import auth and db from centralized config
 import { ArrowLeft } from 'lucide-react';
-
-
-// Initialize Firebase
-if (!getApps().length) {
-  initializeApp(firebaseConfig);
-}
-const auth = getAuth(getApp());
-
 
 // Define Zod schemas for validation
 const loginSchema = z.object({
@@ -63,6 +55,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { toast } = useToast();
+  const router = useRouter();
   const [isLoginLoading, setIsLoginLoading] = React.useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = React.useState(false);
 
@@ -91,9 +84,8 @@ export default function AuthPage() {
         title: 'Login Successful',
         description: `Welcome back, ${data.email}!`,
       });
-      // TODO: Redirect to dashboard or user-specific page
-      // router.push('/dashboard'); 
       loginForm.reset();
+      router.push('/'); // Redirect to home page
     } catch (error: any) {
       console.error("Login Error:", error);
       toast({
@@ -109,15 +101,24 @@ export default function AuthPage() {
   async function onRegisterSubmit(data: RegisterFormValues) {
     setIsRegisterLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+
+      // Create a document for the new user in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email,
+        createdAt: Timestamp.fromDate(new Date()),
+        // You can add more fields here, e.g., displayName, photoURL if collected
+      });
+
       toast({
         title: 'Registration Successful',
         description: `Account created for ${data.email}. You can now log in.`,
       });
-      // TODO: Optionally auto-login or redirect
-      // router.push('/auth?tab=login'); // Redirect to login tab
       registerForm.reset();
-    } catch (error: any) {
+      router.push('/'); // Redirect to home page (or login tab: '/auth?tab=login')
+    } catch (error: any) { // Added missing parenthesis
       console.error("Registration Error:", error);
       toast({
         title: 'Registration Failed',
@@ -175,10 +176,6 @@ export default function AuthPage() {
                       <FormItem>
                          <div className="flex items-center justify-between">
                            <FormLabel>Password</FormLabel>
-                           {/* Optional: Add Forgot Password link */}
-                           {/* <Link href="#" className="text-sm font-medium text-primary hover:underline">
-                             Forgot password?
-                           </Link> */}
                          </div>
                         <FormControl>
                           <Input type="password" {...field} />
