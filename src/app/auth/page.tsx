@@ -90,7 +90,7 @@ export default function AuthPage() {
         description: `Welcome back!`,
       });
       loginForm.reset();
-      router.push('/dashboard'); // Redirect to dashboard
+      router.push('/dashboard'); 
     } catch (error: any) {
       console.error("Login Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
@@ -128,12 +128,10 @@ export default function AuthPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
-      // Store additional user info in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
         createdAt: Timestamp.fromDate(new Date()),
-        // You can add more fields here like displayName, photoURL later
       });
 
       toast({
@@ -141,7 +139,7 @@ export default function AuthPage() {
         description: `Account created for ${data.email}. You are now logged in.`,
       });
       registerForm.reset();
-      router.push('/dashboard'); // Redirect to dashboard
+      router.push('/dashboard');
     } catch (error: any) {
       console.error("Registration Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
