@@ -577,11 +577,11 @@ const SidebarMenuButton = React.forwardRef<
       <>
         {React.Children.toArray(children).find(child => 
           React.isValidElement(child) && 
-          (typeof child.type !== 'string' || child.type === 'svg') && // Check for components or direct SVG
-          (child.props.className?.includes('lucide') || child.type === 'svg') // Lucide icons or direct SVG
+          (typeof child.type !== 'string' || child.type === 'svg') && 
+          (child.props.className?.includes('lucide') || child.type === 'svg') 
         )}
         {(effectiveSidebarState === "expanded" || (isMobile && openMobile)) && (
-          <span className="truncate group-data-[collapsible=icon]:group-data-[state=collapsed]:hidden">
+          <span className="flex-1 min-w-0 truncate group-data-[collapsible=icon]:group-data-[state=collapsed]:hidden">
             {React.Children.toArray(children).filter(child => 
               !(React.isValidElement(child) && 
               (typeof child.type !== 'string' || child.type === 'svg') &&
@@ -605,7 +605,7 @@ const SidebarMenuButton = React.forwardRef<
       </Comp>
     )
 
-    if (!tooltip || (effectiveSidebarState === "expanded" && !isMobile)) { // Hide tooltip if sidebar is expanded on desktop
+    if (!tooltip || (effectiveSidebarState === "expanded" && !isMobile)) { 
       return button
     }
     
@@ -617,7 +617,6 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          // hidden={effectiveSidebarState !== "collapsed" || isMobile} // Re-evaluating this, tooltip should show if collapsed
           {...tooltipContentProps}
         />
       </Tooltip>
@@ -793,5 +792,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
