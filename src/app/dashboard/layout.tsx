@@ -42,6 +42,14 @@ import {
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+// Define NavLinkProps type for clarity
+interface NavLinkProps {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode; // This will be the label
+  tooltip?: string;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -56,6 +64,7 @@ export default function DashboardLayout({
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        // Preload dashboard assets if needed, though Next.js handles prefetching for Links
       } else {
         router.push('/auth');
       }
@@ -86,14 +95,13 @@ export default function DashboardLayout({
     return null; // or a redirect component, though onAuthStateChanged handles it
   }
 
-  const NavLink = ({ href, icon, children: label, tooltip }: { href: string; icon: React.ReactNode; children: React.ReactNode; tooltip?: string }) => (
+  const NavLink = ({ href, icon, children: label, tooltip }: NavLinkProps) => (
     <SidebarMenuItem>
       <Link href={href} asChild>
-        <SidebarMenuButton asChild tooltip={tooltip || String(label)}>
-          <>
-            {icon}
-            {label}
-          </>
+        {/* Removed asChild from SidebarMenuButton */}
+        <SidebarMenuButton tooltip={tooltip || String(label)}>
+          {icon}
+          {label}
         </SidebarMenuButton>
       </Link>
     </SidebarMenuItem>
@@ -152,7 +160,7 @@ export default function DashboardLayout({
         <SidebarFooter className="p-4 border-t">
           <div className="flex items-center gap-3 mb-4 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:items-center group-data-[state=collapsed]:text-center">
             <Avatar className="h-10 w-10 group-data-[state=collapsed]:mb-2">
-              <AvatarImage src={user.photoURL || `https://placehold.co/40x40.png?text=${user.email?.[0]?.toUpperCase() || 'U'}`} alt={user.displayName || user.email || 'User'} />
+              <AvatarImage src={user.photoURL || `https://placehold.co/40x40.png?text=${user.email?.[0]?.toUpperCase() || 'U'}`} alt={user.displayName || user.email || 'User'} data-ai-hint="user profile" />
               <AvatarFallback>{user.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
             <div className="group-data-[state=collapsed]:hidden">
