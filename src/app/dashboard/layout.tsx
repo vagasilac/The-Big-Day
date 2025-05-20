@@ -45,7 +45,7 @@ import {
   ScrollText,
   Menu,
 } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile'; // Assuming you have this hook
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function DashboardLayout({
   children,
@@ -105,14 +105,17 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <Sidebar>
-        <SidebarHeader className="p-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2">
-              <Heart className="w-6 h-6 text-primary" />
-              <h2 className="text-xl font-semibold text-foreground" style={{fontFamily: 'Times New Roman, Times, serif'}}>The Big Day</h2>
+      <Sidebar collapsible={isMobile ? "offcanvas" : "icon"}>
+        <SidebarHeader className="p-4 flex-row items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-3 group-data-[state=collapsed]:px-1.5">
+          <div className="flex flex-grow items-center gap-3 group-data-[state=collapsed]:justify-center">
+            <Link href="/" className="flex items-center gap-2 group-data-[state=collapsed]:hidden">
+              <Heart className="w-6 h-6 text-primary flex-shrink-0" />
+              <h2 className="text-xl font-semibold text-foreground whitespace-nowrap" style={{fontFamily: 'Times New Roman, Times, serif'}}>The Big Day</h2>
             </Link>
-            {!isMobile && <SidebarTrigger className="ml-auto" />}
+            {/* Desktop trigger, only shown when not mobile. Icon will change based on state (handled in SidebarTrigger) */}
+            {!isMobile && (
+              <SidebarTrigger className="ml-auto group-data-[state=collapsed]:ml-0 group-data-[state=collapsed]:mr-0" />
+            )}
           </div>
         </SidebarHeader>
 
@@ -151,19 +154,22 @@ export default function DashboardLayout({
         </SidebarContent>
 
         <SidebarFooter className="p-4 border-t">
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-10 w-10">
+          <div className="flex items-center gap-3 mb-4 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:items-center group-data-[state=collapsed]:text-center">
+            <Avatar className="h-10 w-10 group-data-[state=collapsed]:mb-2">
               <AvatarImage src={user.photoURL || `https://placehold.co/40x40.png?text=${user.email?.[0]?.toUpperCase() || 'U'}`} alt={user.displayName || user.email || 'User'} />
               <AvatarFallback>{user.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
-            <div>
+            <div className="group-data-[state=collapsed]:hidden">
               <p className="text-sm font-medium text-foreground truncate">{user.displayName || user.email}</p>
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
+          <Button variant="outline" size="sm" className="w-full group-data-[state=collapsed]:hidden" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Log Out
+          </Button>
+           <Button variant="ghost" size="icon" className="w-full hidden group-data-[state=collapsed]:flex group-data-[state=collapsed]:justify-center" onClick={handleLogout} aria-label="Log out">
+            <LogOut className="h-5 w-5" />
           </Button>
         </SidebarFooter>
       </Sidebar>
@@ -192,3 +198,5 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+
+    
