@@ -27,10 +27,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Alert, AlertDescription } from "@/components/ui/alert"; // Added
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase-config';
-import { ArrowLeft, Info, Loader2 } from 'lucide-react'; // Added Info, Loader2
+import { ArrowLeft, Info, Loader2 } from 'lucide-react';
 
 // Define Zod schemas for validation
 const loginSchema = z.object({
@@ -90,7 +90,7 @@ export default function AuthPage() {
         description: `Welcome back!`,
       });
       loginForm.reset();
-      router.push('/'); // Redirect to dashboard or home
+      router.push('/dashboard'); // Redirect to dashboard
     } catch (error: any) {
       console.error("Login Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
@@ -141,7 +141,7 @@ export default function AuthPage() {
         description: `Account created for ${data.email}. You are now logged in.`,
       });
       registerForm.reset();
-      router.push('/'); // Redirect to dashboard or home
+      router.push('/dashboard'); // Redirect to dashboard
     } catch (error: any) {
       console.error("Registration Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
