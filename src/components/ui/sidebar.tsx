@@ -4,7 +4,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft, PanelLeftClose, PanelLeftOpen, Menu as MenuIcon } from "lucide-react" 
+import { PanelLeftClose, PanelLeftOpen, Menu as MenuIcon } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -24,7 +24,7 @@ const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3.5rem" 
+const SIDEBAR_WIDTH_ICON = "3.5rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContext = {
@@ -71,7 +71,19 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    const [_open, _setOpen] = React.useState(() => {
+      if (typeof window !== "undefined") {
+        const cookieValue = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+          ?.split("=")[1]
+        if (cookieValue) {
+          return cookieValue === "true"
+        }
+      }
+      return defaultOpen
+    })
+
     const open = openProp ?? _open
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -163,7 +175,7 @@ const Sidebar = React.forwardRef<
     {
       side = "left",
       variant = "sidebar",
-      collapsible = "offcanvas", 
+      collapsible = "offcanvas",
       className,
       children,
       ...props
@@ -209,7 +221,7 @@ const Sidebar = React.forwardRef<
         </Sheet>
       )
     }
-    
+
     return (
       <div
         ref={ref}
@@ -222,7 +234,7 @@ const Sidebar = React.forwardRef<
         <div
           className={cn(
             "duration-200 relative h-svh bg-transparent transition-[width] ease-linear",
-             currentCollapsible === "icon" ? 
+             currentCollapsible === "icon" ?
               (currentState === "expanded" ? "w-[--sidebar-width]" : "w-[--sidebar-width-icon]") :
               (currentState === "expanded" ? "w-[--sidebar-width]" : "w-0"),
             "group-data-[side=right]:rotate-180"
@@ -231,17 +243,17 @@ const Sidebar = React.forwardRef<
         <div
           className={cn(
             "duration-200 fixed inset-y-0 z-10 hidden h-svh transition-[left,right,width] ease-linear md:flex",
-            currentCollapsible === "icon" ? 
+            currentCollapsible === "icon" ?
               (currentState === "expanded" ? "w-[--sidebar-width]" : "w-[--sidebar-width-icon]") :
               (currentState === "expanded" ? "w-[--sidebar-width]" : "w-0"), // For offcanvas
             side === "left"
               ? (currentCollapsible === "offcanvas" && currentState === "collapsed" ? "left-[calc(var(--sidebar-width)*-1)]" : "left-0")
               : (currentCollapsible === "offcanvas" && currentState === "collapsed" ? "right-[calc(var(--sidebar-width)*-1)]" : "right-0"),
             variant === "floating" || variant === "inset"
-              ? "p-2" 
+              ? "p-2"
               : (currentCollapsible === "icon" ? "" : (side === "left" ? "border-r" : "border-l")),
-             (variant === "floating" || variant === "inset") && currentCollapsible === "icon" && currentState === "collapsed" 
-               ? "w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]" 
+             (variant === "floating" || variant === "inset") && currentCollapsible === "icon" && currentState === "collapsed"
+               ? "w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
                : "",
             className
           )}
@@ -271,10 +283,10 @@ const SidebarTrigger = React.forwardRef<
   let IconComponent: React.ElementType | null = null;
   const effectiveState = isMobile ? (openMobile ? "expanded" : "collapsed") : state;
 
-  if (!children) { 
+  if (!children) {
     if (isMobile) {
-      IconComponent = MenuIcon; 
-    } else { 
+      IconComponent = MenuIcon;
+    } else {
       IconComponent = effectiveState === "collapsed" ? PanelLeftOpen : PanelLeftClose;
     }
   }
@@ -374,7 +386,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex shrink-0", className)} 
+      className={cn("flex shrink-0", className)}
       {...props}
     />
   )
@@ -389,7 +401,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex shrink-0 flex-col gap-2", className)} 
+      className={cn("flex shrink-0 flex-col gap-2", className)}
       {...props}
     />
   )
@@ -456,7 +468,7 @@ const SidebarGroupLabel = React.forwardRef<
       data-sidebar="group-label"
       className={cn(
         "duration-200 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opacity] ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-        "group-data-[collapsible=icon]:group-data-[state=collapsed]:hidden", 
+        "group-data-[collapsible=icon]:group-data-[state=collapsed]:hidden",
         className
       )}
       {...props}
@@ -548,42 +560,56 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
+// Props for SidebarMenuButton
+type SidebarMenuButtonProps = (
+  | (React.ButtonHTMLAttributes<HTMLButtonElement> & { href?: never })
+  | (React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) // Allow standard anchor props if href is present
+) & {
+  asChild?: boolean;
+  isActive?: boolean;
+  tooltip?: string | React.ComponentProps<typeof TooltipContent>;
+} & VariantProps<typeof sidebarMenuButtonVariants>;
+
+
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentProps<"button"> & {
-    asChild?: boolean
-    isActive?: boolean
-    tooltip?: string | React.ComponentProps<typeof TooltipContent>
-  } & VariantProps<typeof sidebarMenuButtonVariants>
+  HTMLButtonElement | HTMLAnchorElement, // Ref can be button or anchor
+  SidebarMenuButtonProps
 >(
   (
     {
-      asChild = false,
+      asChild: localAsChild, // Renamed to avoid conflict if 'asChild' is in ...rest
       isActive = false,
       variant = "default",
       size = "default",
       tooltip,
       className,
-      children, 
-      ...props
+      children,
+      href,
+      ...rest // Contains all other props passed, potentially including 'asChild' from a parent like Link
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
-    const { isMobile, state: sidebarState, openMobile } = useSidebar() 
+    const { isMobile, state: sidebarState, openMobile } = useSidebar()
     const effectiveSidebarState = isMobile ? (openMobile ? "expanded" : "collapsed") : sidebarState;
+
+    // Determine the component type: Slot if localAsChild is true, 'a' if href is present and not localAsChild, otherwise 'button'
+    const Comp = localAsChild ? Slot : (href && !localAsChild ? "a" : "button");
+
+    // Filter out 'asChild' from rest if it exists, to prevent it from reaching the DOM element
+    const { asChild: _parentAsChild, ...filteredRestProps } = rest as { asChild?: boolean } & typeof rest;
+
 
     const buttonContent = (
       <>
-        {React.Children.toArray(children).find(child => 
-          React.isValidElement(child) && 
-          (typeof child.type !== 'string' || child.type === 'svg') && 
-          (child.props.className?.includes('lucide') || child.type === 'svg') 
+        {React.Children.toArray(children).find(child =>
+          React.isValidElement(child) &&
+          (typeof child.type !== 'string' || child.type === 'svg') &&
+          (child.props.className?.includes('lucide') || child.type === 'svg')
         )}
         {(effectiveSidebarState === "expanded" || (isMobile && openMobile)) && (
           <span className="flex-1 min-w-0 truncate group-data-[collapsible=icon]:group-data-[state=collapsed]:hidden">
-            {React.Children.toArray(children).filter(child => 
-              !(React.isValidElement(child) && 
+            {React.Children.toArray(children).filter(child =>
+              !(React.isValidElement(child) &&
               (typeof child.type !== 'string' || child.type === 'svg') &&
               (child.props.className?.includes('lucide') || child.type === 'svg'))
             )}
@@ -591,29 +617,33 @@ const SidebarMenuButton = React.forwardRef<
         )}
       </>
     );
-    
-    const button = (
-      <Comp
-        ref={ref}
-        data-sidebar="menu-button"
-        data-size={size}
-        data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
-      >
-        {buttonContent}
-      </Comp>
-    )
 
-    if (!tooltip || (effectiveSidebarState === "expanded" && !isMobile)) { 
-      return button
+    const componentProps: any = {
+      ref,
+      "data-sidebar": "menu-button",
+      "data-size": size,
+      "data-active": isActive,
+      className: cn(sidebarMenuButtonVariants({ variant, size }), className),
+      ...filteredRestProps, // Use filtered props that don't include asChild from parent
+    };
+
+    if (Comp === "a" && href) {
+      componentProps.href = href; // Add href if Comp is an anchor
     }
-    
+
+
+    const buttonElement = React.createElement(Comp, componentProps, buttonContent);
+
+
+    if (!tooltip || (effectiveSidebarState === "expanded" && !isMobile)) {
+      return buttonElement
+    }
+
     const tooltipContentProps = typeof tooltip === "string" ? { children: tooltip } : tooltip;
 
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipTrigger asChild>{buttonElement}</TooltipTrigger>
         <TooltipContent
           side="right"
           align="center"
