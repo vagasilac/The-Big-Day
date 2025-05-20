@@ -565,39 +565,56 @@ type SidebarMenuButtonProps = (
   | (React.ButtonHTMLAttributes<HTMLButtonElement> & { href?: never })
   | (React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) // Allow standard anchor props if href is present
 ) & {
-  asChild?: boolean;
+  asChild?: boolean; // This is SidebarMenuButton's own asChild prop
   isActive?: boolean;
   tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>;
 
 
 const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement | HTMLAnchorElement, // Ref can be button or anchor
+  HTMLButtonElement | HTMLAnchorElement,
   SidebarMenuButtonProps
 >(
   (
     {
-      asChild: localAsChild, // Renamed to avoid conflict if 'asChild' is in ...rest
+      asChild: localAsChild = false, // SidebarMenuButton's own asChild prop
       isActive = false,
       variant = "default",
       size = "default",
       tooltip,
       className,
       children,
-      href,
-      ...rest // Contains all other props passed, potentially including 'asChild' from a parent like Link
+      href: directHref, // href passed directly to <SidebarMenuButton href="..."/>
+      ...restPropsFromParent // Contains props from parent (e.g., Link), including Link's href and potentially Link's asChild
     },
     ref
   ) => {
-    const { isMobile, state: sidebarState, openMobile } = useSidebar()
+    const { isMobile, state: sidebarState, openMobile } = useSidebar();
     const effectiveSidebarState = isMobile ? (openMobile ? "expanded" : "collapsed") : sidebarState;
 
-    // Determine the component type: Slot if localAsChild is true, 'a' if href is present and not localAsChild, otherwise 'button'
-    const Comp = localAsChild ? Slot : (href && !localAsChild ? "a" : "button");
+    const parentHref = (restPropsFromParent as any).href;
+    const Comp = localAsChild ? Slot : (directHref || parentHref) ? "a" : "button";
 
-    // Filter out 'asChild' from rest if it exists, to prevent it from reaching the DOM element
-    const { asChild: _parentAsChild, ...filteredRestProps } = rest as { asChild?: boolean } & typeof rest;
+    // Create a mutable copy of props from parent to safely delete 'asChild' if needed
+    const finalProps: Record<string, any> = { ...restPropsFromParent };
 
+    // If Comp is a string (i.e., a DOM element like "a" or "button"),
+    // we must remove the 'asChild' prop that might have come from the parent (e.g., Link asChild).
+    // This 'asChild' boolean prop is for the parent component's behavior and should not be rendered as a DOM attribute.
+    if (typeof Comp === 'string') {
+      delete finalProps.asChild;
+    }
+
+    // Add SidebarMenuButton's own specific attributes, potentially overriding from parent
+    finalProps.ref = ref;
+    finalProps["data-sidebar"] = "menu-button";
+    finalProps["data-size"] = size;
+    finalProps["data-active"] = isActive;
+    finalProps.className = cn(sidebarMenuButtonVariants({ variant, size, className })); // Ensure local className takes precedence for styling
+
+    if (Comp === "a") {
+      finalProps.href = directHref || parentHref; // Ensure 'a' tag gets an href
+    }
 
     const buttonContent = (
       <>
@@ -618,41 +635,24 @@ const SidebarMenuButton = React.forwardRef<
       </>
     );
 
-    const componentProps: any = {
-      ref,
-      "data-sidebar": "menu-button",
-      "data-size": size,
-      "data-active": isActive,
-      className: cn(sidebarMenuButtonVariants({ variant, size }), className),
-      ...filteredRestProps, // Use filtered props that don't include asChild from parent
-    };
-
-    if (Comp === "a" && href) {
-      componentProps.href = href; // Add href if Comp is an anchor
-    }
-
-
-    const buttonElement = React.createElement(Comp, componentProps, buttonContent);
-
+    const buttonElement = React.createElement(Comp, finalProps, buttonContent);
 
     if (!tooltip || (effectiveSidebarState === "expanded" && !isMobile)) {
-      return buttonElement
+      return buttonElement;
     }
 
     const tooltipContentProps = typeof tooltip === "string" ? { children: tooltip } : tooltip;
 
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{buttonElement}</TooltipTrigger>
-        <TooltipContent
-          side="right"
-          align="center"
-          {...tooltipContentProps}
-        />
+        <TooltipTrigger asChild>
+          {buttonElement}
+        </TooltipTrigger>
+        <TooltipContent side="right" align="center" {...tooltipContentProps} />
       </Tooltip>
-    )
+    );
   }
-)
+);
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
 const SidebarMenuAction = React.forwardRef<
@@ -822,3 +822,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
