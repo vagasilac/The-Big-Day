@@ -7,8 +7,6 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, Timestamp } from 'firebase/firestore'; // Firestore imports
 
 import { Button } from '@/components/ui/button';
 import {
@@ -30,13 +28,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { auth, db } from '@/lib/firebase-config'; // Import auth and db from centralized config
+import { auth, db } from '@/lib/firebase-config'; 
 import { ArrowLeft } from 'lucide-react';
 
 // Define Zod schemas for validation
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  password: z.string().min(1, { message: 'Password is required.' }), // Min 1 for presence
 });
 
 const registerSchema = z
@@ -47,7 +45,7 @@ const registerSchema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match.",
-    path: ['confirmPassword'], // path of error
+    path: ['confirmPassword'], 
   });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -78,19 +76,37 @@ export default function AuthPage() {
 
   async function onLoginSubmit(data: LoginFormValues) {
     setIsLoginLoading(true);
+    const { signInWithEmailAndPassword } = await import('firebase/auth');
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       toast({
         title: 'Login Successful',
-        description: `Welcome back, ${data.email}!`,
+        description: `Welcome back!`,
       });
       loginForm.reset();
-      router.push('/'); // Redirect to home page
+      router.push('/'); 
     } catch (error: any) {
       console.error("Login Error:", error);
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/invalid-email': // Can sometimes be returned for non-existent users too
+            errorMessage = 'No user found with this email address.';
+            break;
+          case 'auth/wrong-password':
+            errorMessage = 'Incorrect password. Please try again.';
+            break;
+          case 'auth/invalid-credential':
+             errorMessage = 'Invalid email or password. Please check your credentials.';
+            break;
+          default:
+            errorMessage = 'Login failed. Please try again later.';
+        }
+      }
       toast({
         title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -100,16 +116,16 @@ export default function AuthPage() {
 
   async function onRegisterSubmit(data: RegisterFormValues) {
     setIsRegisterLoading(true);
+    const { createUserWithEmailAndPassword } = await import('firebase/auth');
+    const { doc, setDoc, Timestamp } = await import('firebase/firestore');
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
-      // Create a document for the new user in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
         createdAt: Timestamp.fromDate(new Date()),
-        // You can add more fields here, e.g., displayName, photoURL if collected
       });
 
       toast({
@@ -117,12 +133,28 @@ export default function AuthPage() {
         description: `Account created for ${data.email}. You can now log in.`,
       });
       registerForm.reset();
-      router.push('/'); // Redirect to home page (or login tab: '/auth?tab=login')
-    } catch (error: any) { // Added missing parenthesis
+      router.push('/'); 
+    } catch (error: any) {
       console.error("Registration Error:", error);
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email address is already registered.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'The email address is not valid.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'The password is too weak. It must be at least 6 characters long.';
+            break;
+          default:
+            errorMessage = 'Registration failed. Please try again later.';
+        }
+      }
       toast({
         title: 'Registration Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
