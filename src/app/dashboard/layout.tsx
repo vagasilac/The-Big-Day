@@ -18,9 +18,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarSeparator,
@@ -33,15 +30,13 @@ import {
   Users,
   ListChecks,
   Gift,
-  Settings,
   LogOut,
   Mail,
-  Image as ImageIcon,
+  ImageIcon,
   CalendarDays,
   Palette,
   Heart,
   Music,
-  Home,
   ScrollText,
   Menu,
 } from 'lucide-react';
@@ -91,12 +86,14 @@ export default function DashboardLayout({
     return null; // or a redirect component, though onAuthStateChanged handles it
   }
 
-  const NavLink = ({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) => (
+  const NavLink = ({ href, icon, children: label, tooltip }: { href: string; icon: React.ReactNode; children: React.ReactNode; tooltip?: string }) => (
     <SidebarMenuItem>
-      <Link href={href} passHref legacyBehavior>
-        <SidebarMenuButton>
-          {icon}
-          {children}
+      <Link href={href} asChild>
+        <SidebarMenuButton asChild tooltip={tooltip || String(label)}>
+          <>
+            {icon}
+            {label}
+          </>
         </SidebarMenuButton>
       </Link>
     </SidebarMenuItem>
@@ -112,7 +109,6 @@ export default function DashboardLayout({
               <Heart className="w-6 h-6 text-primary flex-shrink-0" />
               <h2 className="text-xl font-semibold text-foreground whitespace-nowrap" style={{fontFamily: 'Times New Roman, Times, serif'}}>The Big Day</h2>
             </Link>
-            {/* Desktop trigger, only shown when not mobile. Icon will change based on state (handled in SidebarTrigger) */}
             {!isMobile && (
               <SidebarTrigger className="ml-auto group-data-[state=collapsed]:ml-0 group-data-[state=collapsed]:mr-0" />
             )}
@@ -123,11 +119,11 @@ export default function DashboardLayout({
           <SidebarGroup>
             <SidebarGroupLabel>My Wedding</SidebarGroupLabel>
             <SidebarMenu>
-              <NavLink href="/dashboard" icon={<LayoutDashboard />}>Overview</NavLink>
-              <NavLink href="/dashboard/details" icon={<ScrollText />}>Wedding Details</NavLink>
-              <NavLink href="/dashboard/theme" icon={<Palette />}>Theme & Style</NavLink>
-              <NavLink href="/dashboard/schedule" icon={<CalendarDays />}>Event Schedule</NavLink>
-              <NavLink href="/dashboard/gallery" icon={<ImageIcon />}>Photo Gallery</NavLink>
+              <NavLink href="/dashboard" icon={<LayoutDashboard />} tooltip="Overview">Overview</NavLink>
+              <NavLink href="/dashboard/details" icon={<ScrollText />} tooltip="Wedding Details">Wedding Details</NavLink>
+              <NavLink href="/dashboard/theme" icon={<Palette />} tooltip="Theme & Style">Theme & Style</NavLink>
+              <NavLink href="/dashboard/schedule" icon={<CalendarDays />} tooltip="Event Schedule">Event Schedule</NavLink>
+              <NavLink href="/dashboard/gallery" icon={<ImageIcon />} tooltip="Photo Gallery">Photo Gallery</NavLink>
             </SidebarMenu>
           </SidebarGroup>
 
@@ -136,9 +132,9 @@ export default function DashboardLayout({
           <SidebarGroup>
             <SidebarGroupLabel>Guests</SidebarGroupLabel>
             <SidebarMenu>
-              <NavLink href="/dashboard/guests" icon={<Users />}>Guest List</NavLink>
-              <NavLink href="/dashboard/rsvps" icon={<ListChecks />}>RSVP Management</NavLink>
-              <NavLink href="/dashboard/invitations" icon={<Mail />}>Digital Invitations</NavLink>
+              <NavLink href="/dashboard/guests" icon={<Users />} tooltip="Guest List">Guest List</NavLink>
+              <NavLink href="/dashboard/rsvps" icon={<ListChecks />} tooltip="RSVP Management">RSVP Management</NavLink>
+              <NavLink href="/dashboard/invitations" icon={<Mail />} tooltip="Digital Invitations">Digital Invitations</NavLink>
             </SidebarMenu>
           </SidebarGroup>
 
@@ -147,8 +143,8 @@ export default function DashboardLayout({
            <SidebarGroup>
             <SidebarGroupLabel>Extras</SidebarGroupLabel>
             <SidebarMenu>
-              <NavLink href="/dashboard/registry" icon={<Gift />}>Gift Registry</NavLink>
-              <NavLink href="/dashboard/music" icon={<Music />}>Playlist Voting</NavLink>
+              <NavLink href="/dashboard/registry" icon={<Gift />} tooltip="Gift Registry">Gift Registry</NavLink>
+              <NavLink href="/dashboard/music" icon={<Music />} tooltip="Playlist Voting">Playlist Voting</NavLink>
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
@@ -198,5 +194,3 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
-
-    
