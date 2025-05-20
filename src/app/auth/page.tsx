@@ -28,7 +28,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { auth, db } from '@/lib/firebase-config'; 
+import { auth, db } from '@/lib/firebase-config';
 import { ArrowLeft } from 'lucide-react';
 
 // Define Zod schemas for validation
@@ -45,7 +45,7 @@ const registerSchema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match.",
-    path: ['confirmPassword'], 
+    path: ['confirmPassword'],
   });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -84,14 +84,14 @@ export default function AuthPage() {
         description: `Welcome back!`,
       });
       loginForm.reset();
-      router.push('/'); 
+      router.push('/');
     } catch (error: any) {
       console.error("Login Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
       if (error.code) {
         switch (error.code) {
           case 'auth/user-not-found':
-          case 'auth/invalid-email': // Can sometimes be returned for non-existent users too
+          case 'auth/invalid-email':
             errorMessage = 'No user found with this email address.';
             break;
           case 'auth/wrong-password':
@@ -130,10 +130,10 @@ export default function AuthPage() {
 
       toast({
         title: 'Registration Successful',
-        description: `Account created for ${data.email}. You can now log in.`,
+        description: `Account created for ${data.email}. You are now logged in.`,
       });
       registerForm.reset();
-      router.push('/'); 
+      router.push('/');
     } catch (error: any) {
       console.error("Registration Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
