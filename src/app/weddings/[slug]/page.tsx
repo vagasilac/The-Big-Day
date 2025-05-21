@@ -18,12 +18,20 @@ interface WeddingPageProps {
 
 const transformWeddingDataForTemplate = (data: any): Partial<Wedding> => {
   const transformed: Partial<Wedding> = { ...data };
+  
   if (data.date && data.date instanceof Timestamp) {
     transformed.date = data.date.toDate().toISOString();
   }
   if (data.rsvpDeadline && data.rsvpDeadline instanceof Timestamp) {
     transformed.rsvpDeadline = data.rsvpDeadline.toDate().toISOString();
   }
+  if (data.createdAt && data.createdAt instanceof Timestamp) {
+    transformed.createdAt = data.createdAt.toDate().toISOString();
+  }
+  if (data.updatedAt && data.updatedAt instanceof Timestamp) {
+    transformed.updatedAt = data.updatedAt.toDate().toISOString();
+  }
+  
   // Ensure gallery and schedule are arrays, even if undefined in Firestore
   transformed.gallery = Array.isArray(data.gallery) ? data.gallery : [];
   transformed.schedule = Array.isArray(data.schedule) ? data.schedule : [];
@@ -46,8 +54,9 @@ async function getWeddingData(slug: string): Promise<Partial<Wedding> | null> {
     }
 
     const weddingDoc = querySnapshot.docs[0];
-    const weddingDataFromDb = weddingDoc.data() as Wedding; 
+    const weddingDataFromDb = weddingDoc.data(); 
     
+    // Transform the raw data from Firestore, especially Timestamps
     return transformWeddingDataForTemplate({ id: weddingDoc.id, ...weddingDataFromDb });
 
   } catch (error) {
