@@ -36,7 +36,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon, Loader2, ScrollText } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, Loader2, ScrollText, ImageIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { auth, db } from '@/lib/firebase-config';
@@ -68,6 +68,7 @@ const weddingFormSchema = z.object({
   time: z.string().optional(), // e.g., "14:30"
   location: z.string().optional(),
   description: z.string().optional(),
+  coverPhoto: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   templateId: z.string().min(1, { message: 'Please select a template.' }),
 });
 
@@ -87,7 +88,7 @@ export default function WeddingDetailsPage() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isNewWedding, setIsNewWedding] = useState(true); // Will be updated dynamically
+  const [isNewWedding, setIsNewWedding] = useState(false); 
   const [weddingDocId, setWeddingDocId] = useState<string | null>(null);
 
   const form = useForm<WeddingFormValues>({
@@ -99,6 +100,7 @@ export default function WeddingDetailsPage() {
       time: '',
       location: '',
       description: '',
+      coverPhoto: '',
       templateId: MOCK_TEMPLATES[0].id,
     },
   });
@@ -148,11 +150,21 @@ export default function WeddingDetailsPage() {
             time: formTime,
             location: weddingData.location || '',
             description: weddingData.description || '',
+            coverPhoto: weddingData.coverPhoto || '',
             templateId: weddingData.templateId || MOCK_TEMPLATES[0].id,
           });
         } else {
           setIsNewWedding(true);
-          form.reset(); 
+          form.reset({ // Reset with initial default values for a new wedding
+            title: '',
+            slug: '',
+            date: undefined,
+            time: '',
+            location: '',
+            description: '',
+            coverPhoto: '',
+            templateId: MOCK_TEMPLATES[0].id,
+          }); 
         }
       } catch (error) {
         console.error('Error fetching wedding data:', error);
@@ -196,6 +208,7 @@ export default function WeddingDetailsPage() {
       date: combinedDateTime,
       location: data.location || '',
       description: data.description || '',
+      coverPhoto: data.coverPhoto || '',
       templateId: data.templateId,
       updatedAt: serverTimestamp() as Timestamp,
     };
@@ -250,7 +263,7 @@ export default function WeddingDetailsPage() {
               <Skeleton className="h-4 w-64" />
             </CardHeader>
             <CardContent className="space-y-6">
-              {[...Array(5)].map((_, i) => (
+              {[...Array(6)].map((_, i) => ( // Increased to 6 for cover photo field
                 <div key={i} className="space-y-2">
                   <Skeleton className="h-5 w-24" />
                   <Skeleton className="h-10 w-full" />
@@ -441,6 +454,31 @@ export default function WeddingDetailsPage() {
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="coverPhoto"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cover Photo URL</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                        <Input
+                          placeholder="https://example.com/your-wedding-photo.jpg"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Link to your main wedding photo. This will be displayed on your dashboard and wedding site.
+                      (Actual file upload coming soon!)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
 
               <FormField
                 control={form.control}
@@ -535,3 +573,4 @@ export default function WeddingDetailsPage() {
     </div>
   );
 }
+

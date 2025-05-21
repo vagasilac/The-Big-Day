@@ -158,13 +158,13 @@ export default function DashboardPage() {
         <>
           <Card className="shadow-lg overflow-hidden">
             <div className="grid md:grid-cols-[250px_1fr] lg:grid-cols-[300px_1fr]">
-              <div className="relative aspect-[4/3] md:aspect-auto">
+              <div className="relative aspect-[4/3] md:aspect-auto bg-secondary">
                 <Image
                   src={weddingData.coverPhoto || 'https://placehold.co/600x400.png'}
                   alt={weddingData.title || 'Wedding cover photo'}
                   fill
                   className="object-cover"
-                  data-ai-hint={weddingData.coverPhoto ? "wedding venue" : "placeholder"}
+                  data-ai-hint={weddingData.coverPhoto ? "wedding couple" : "placeholder image"}
                 />
               </div>
               <div className="p-6 flex flex-col justify-between">
