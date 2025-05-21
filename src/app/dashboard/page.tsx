@@ -160,7 +160,7 @@ export default function DashboardPage() {
             <div className="grid md:grid-cols-[250px_1fr] lg:grid-cols-[300px_1fr]">
               <div className="relative aspect-[4/3] md:aspect-auto">
                 <Image
-                  src={weddingData.coverPhoto || 'https://placehold.co/800x600.png'}
+                  src={weddingData.coverPhoto || 'https://placehold.co/600x400.png'}
                   alt={weddingData.title || 'Wedding cover photo'}
                   fill
                   className="object-cover"
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 mt-auto">
                   <Button variant="outline" asChild>
-                    <Link href={`/weddings/${weddingData.slug}`}>
+                    <Link href={weddingData.slug ? `/weddings/${weddingData.slug}` : '#'}>
                       <Eye className="mr-2 h-4 w-4" />
                       View Site
                     </Link>
@@ -260,3 +260,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
