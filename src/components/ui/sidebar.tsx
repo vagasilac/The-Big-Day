@@ -560,12 +560,11 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-// Props for SidebarMenuButton
 type SidebarMenuButtonProps = (
   | (React.ButtonHTMLAttributes<HTMLButtonElement> & { href?: never })
-  | (React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) // Allow standard anchor props if href is present
+  | (React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string })
 ) & {
-  asChild?: boolean; // This is SidebarMenuButton's own asChild prop
+  asChild?: boolean;
   isActive?: boolean;
   tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 } & VariantProps<typeof sidebarMenuButtonVariants>;
@@ -576,45 +575,50 @@ const SidebarMenuButton = React.forwardRef<
   SidebarMenuButtonProps
 >(
   (
-    {
-      asChild: localAsChild = false, // SidebarMenuButton's own asChild prop
+    props, // All props are in 'props'
+    ref
+  ) => {
+    const {
+      asChild: localAsChild = false, // asChild prop for SidebarMenuButton itself
       isActive = false,
       variant = "default",
       size = "default",
       tooltip,
       className,
-      children,
-      href: directHref, // href passed directly to <SidebarMenuButton href="..."/>
-      ...restPropsFromParent // Contains props from parent (e.g., Link), including Link's href and potentially Link's asChild
-    },
-    ref
-  ) => {
+      children, // Children of SidebarMenuButton (e.g. icon and text from NavLink)
+      href: directHref, // href prop for SidebarMenuButton itself
+      ...restProps // Contains all other props, including those from a parent Link (like href and asChild)
+    } = props;
+
     const { isMobile, state: sidebarState, openMobile } = useSidebar();
     const effectiveSidebarState = isMobile ? (openMobile ? "expanded" : "collapsed") : sidebarState;
 
-    const parentHref = (restPropsFromParent as any).href;
-    const Comp = localAsChild ? Slot : (directHref || parentHref) ? "a" : "button";
+    // Explicitly filter out 'asChild' from restProps if it exists
+    // This is the critical step to prevent the parent's asChild from becoming a DOM attribute
+    const { asChild: _discardedAsChildFromParent, ...filteredRestProps } = restProps as { asChild?: boolean } & typeof restProps;
 
-    // Create a mutable copy of props from parent to safely delete 'asChild' if needed
-    const finalProps: Record<string, any> = { ...restPropsFromParent };
+    const effectiveHref = directHref ?? (filteredRestProps as any).href;
+    const Comp = localAsChild ? Slot : effectiveHref ? "a" : "button";
 
-    // If Comp is a string (i.e., a DOM element like "a" or "button"),
-    // we must remove the 'asChild' prop that might have come from the parent (e.g., Link asChild).
-    // This 'asChild' boolean prop is for the parent component's behavior and should not be rendered as a DOM attribute.
-    if (typeof Comp === 'string') {
-      delete finalProps.asChild;
+    const finalElementProps: Record<string, any> = {
+      ref,
+      "data-sidebar": "menu-button",
+      "data-size": size,
+      "data-active": isActive,
+      className: cn(sidebarMenuButtonVariants({ variant, size, className })),
+      ...filteredRestProps, // Use filteredRestProps, which has the parent's asChild removed
+    };
+
+    if (Comp === "a" && effectiveHref) {
+      finalElementProps.href = effectiveHref;
+    } else if (Comp === "button" && finalElementProps.href) {
+      // If it's a button, it shouldn't have an href.
+      // This can happen if Link passes href, localAsChild is false, and directHref is not set.
+      // In this scenario, Comp already became "a", so this else-if might not be strictly needed,
+      // but it's a good safeguard.
+      delete finalElementProps.href;
     }
 
-    // Add SidebarMenuButton's own specific attributes, potentially overriding from parent
-    finalProps.ref = ref;
-    finalProps["data-sidebar"] = "menu-button";
-    finalProps["data-size"] = size;
-    finalProps["data-active"] = isActive;
-    finalProps.className = cn(sidebarMenuButtonVariants({ variant, size, className })); // Ensure local className takes precedence for styling
-
-    if (Comp === "a") {
-      finalProps.href = directHref || parentHref; // Ensure 'a' tag gets an href
-    }
 
     const buttonContent = (
       <>
@@ -634,20 +638,27 @@ const SidebarMenuButton = React.forwardRef<
         )}
       </>
     );
+    
+    // If localAsChild is true, Slot renders its own children (which would be <Link> from NavLink).
+    // Otherwise, the button/anchor renders the icon and text content.
+    const contentToRender = localAsChild ? children : buttonContent;
 
-    const buttonElement = React.createElement(Comp, finalProps, buttonContent);
+    const renderedElement = React.createElement(Comp, finalElementProps, contentToRender);
 
     if (!tooltip || (effectiveSidebarState === "expanded" && !isMobile)) {
-      return buttonElement;
+      return renderedElement;
     }
 
     const tooltipContentProps = typeof tooltip === "string" ? { children: tooltip } : tooltip;
 
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          {buttonElement}
-        </TooltipTrigger>
+        {/* If localAsChild is true, renderedElement is <Slot><Link>...</Link></Slot>.
+            TooltipTrigger asChild will make the <Link> (or its <a>) the trigger.
+            If localAsChild is false, renderedElement is <button> or <a>.
+            TooltipTrigger asChild will make that button/a the trigger.
+        */}
+        <TooltipTrigger asChild>{renderedElement}</TooltipTrigger>
         <TooltipContent side="right" align="center" {...tooltipContentProps} />
       </Tooltip>
     );
@@ -822,5 +833,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
