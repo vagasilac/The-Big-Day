@@ -1,31 +1,24 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Users, ListChecks, PlusCircle, Eye, Edit, Heart } from 'lucide-react';
+import { Clock, Users, ListChecks, PlusCircle, Eye, Edit, Heart, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Mocked data for demonstration
-const mockWedding = {
-  id: 'demo-wedding',
-  slug: 'demo-and-partner',
-  title: "Demo & Partner's Wedding",
-  date: new Date(new Date().setDate(new Date().getDate() + 93)).toISOString(), // Approx 93 days from now
-  location: 'The Grand Venue, Dream City',
-  coverPhoto: 'https://placehold.co/800x600.png', // Placeholder for cover
-  dataAiHint: 'wedding venue',
-};
+import { auth, db } from '@/lib/firebase-config';
+import type { User } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import type { Wedding } from '@/types/wedding';
 
-const mockStats = {
-  guestCount: 0,
-  rsvpCount: 0,
-};
 
-// Simple countdown logic (replace with a more robust library if needed)
-const CountdownTimer = ({ targetDateISO }: { targetDateISO: string | null }) => {
+// Simple countdown logic
+const CountdownTimer = ({ targetDateISO }: { targetDateISO: string | null | undefined }) => {
   const [timeLeft, setTimeLeft] = React.useState('');
 
   React.useEffect(() => {
@@ -60,11 +53,83 @@ const CountdownTimer = ({ targetDateISO }: { targetDateISO: string | null }) => 
 
 
 export default function DashboardPage() {
-  // For now, we'll use the mocked data.
-  // In a real app, you'd fetch this data based on the logged-in user.
-  const weddings = [mockWedding]; // Assume the user has one wedding for now
-  const currentWedding = weddings[0];
-  const stats = mockStats;
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [weddingData, setWeddingData] = useState<Wedding | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUser(user);
+        // Fetch wedding data
+        try {
+          const weddingsRef = collection(db, 'weddings');
+          const q = query(weddingsRef, where('userId', '==', user.uid));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            // Assume one wedding per user for this dashboard
+            const weddingDoc = querySnapshot.docs[0];
+            setWeddingData({ id: weddingDoc.id, ...weddingDoc.data() } as Wedding);
+          } else {
+            setWeddingData(null);
+          }
+        } catch (error) {
+          console.error("Error fetching wedding data:", error);
+          setWeddingData(null); 
+        }
+      } else {
+        setCurrentUser(null);
+        setWeddingData(null);
+        router.push('/auth');
+      }
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6 md:gap-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div>
+            <Skeleton className="h-10 w-48 mb-2" />
+            <Skeleton className="h-5 w-72" />
+          </div>
+        </div>
+        <Card className="shadow-lg overflow-hidden">
+          <div className="grid md:grid-cols-[250px_1fr] lg:grid-cols-[300px_1fr]">
+            <Skeleton className="relative aspect-[4/3] md:aspect-auto h-full w-full" />
+            <div className="p-6 flex flex-col justify-between">
+              <div>
+                <Skeleton className="h-8 w-3/4 mb-2" />
+                <Skeleton className="h-5 w-1/2 mb-3" />
+                <Skeleton className="h-4 w-1/3 mb-4" />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 mt-auto">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-36" />
+              </div>
+            </div>
+          </div>
+        </Card>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="shadow-md">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-1/3 mb-1" />
+                <Skeleton className="h-4 w-1/4" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 md:gap-8">
@@ -75,9 +140,9 @@ export default function DashboardPage() {
             Manage your wedding planning all in one place.
           </p>
         </div>
-        {!currentWedding && ( // Show create button if no wedding exists
+        {!weddingData && (
            <Button asChild className="mt-4 sm:mt-0">
-            <Link href="/dashboard/weddings/new">
+            <Link href="/dashboard/details">
               <PlusCircle className="mr-2 h-4 w-4" />
               Create Wedding Site
             </Link>
@@ -85,26 +150,26 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {currentWedding ? (
+      {weddingData ? (
         <>
           {/* Wedding Details Card */}
           <Card className="shadow-lg overflow-hidden">
             <div className="grid md:grid-cols-[250px_1fr] lg:grid-cols-[300px_1fr]">
               <div className="relative aspect-[4/3] md:aspect-auto">
                 <Image
-                  src={currentWedding.coverPhoto}
-                  alt={currentWedding.title || 'Wedding cover photo'}
+                  src={weddingData.coverPhoto || 'https://placehold.co/800x600.png'}
+                  alt={weddingData.title || 'Wedding cover photo'}
                   fill
                   className="object-cover"
-                  data-ai-hint={currentWedding.dataAiHint}
+                  data-ai-hint={weddingData.coverPhoto ? "wedding venue" : "placeholder"}
                 />
               </div>
               <div className="p-6 flex flex-col justify-between">
                 <div>
-                  <CardTitle className="text-2xl lg:text-3xl mb-1">{currentWedding.title}</CardTitle>
+                  <CardTitle className="text-2xl lg:text-3xl mb-1">{weddingData.title}</CardTitle>
                   <CardDescription className="text-base mb-3">
-                    {currentWedding.date
-                      ? new Date(currentWedding.date).toLocaleDateString('en-US', {
+                    {weddingData.date && weddingData.date instanceof Timestamp
+                      ? weddingData.date.toDate().toLocaleDateString('en-US', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
@@ -112,21 +177,21 @@ export default function DashboardPage() {
                         })
                       : 'Date to be announced'}
                   </CardDescription>
-                  {currentWedding.location && (
+                  {weddingData.location && (
                     <p className="text-sm text-muted-foreground mb-4">
-                      At {currentWedding.location}
+                      At {weddingData.location}
                     </p>
                   )}
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 mt-auto">
                   <Button variant="outline" asChild>
-                    <Link href={`/weddings/${currentWedding.slug}`}>
+                    <Link href={`/weddings/${weddingData.slug}`}>
                       <Eye className="mr-2 h-4 w-4" />
                       View Site
                     </Link>
                   </Button>
                   <Button asChild>
-                    <Link href={`/dashboard/details`}> {/* Simplified to one wedding */}
+                    <Link href={`/dashboard/details`}> 
                       <Edit className="mr-2 h-4 w-4" />
                       Manage Wedding
                     </Link>
@@ -146,7 +211,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <CountdownTimer targetDateISO={currentWedding.date} />
+                <CountdownTimer targetDateISO={weddingData.date instanceof Timestamp ? weddingData.date.toDate().toISOString() : null} />
               </CardContent>
             </Card>
             <Card className="shadow-md">
@@ -157,7 +222,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-foreground">{stats.guestCount}</div>
+                <div className="text-3xl font-bold text-foreground">0</div> {/* Placeholder */}
                 <p className="text-xs text-muted-foreground">invited</p>
               </CardContent>
             </Card>
@@ -169,14 +234,13 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-foreground">{stats.rsvpCount}</div>
+                <div className="text-3xl font-bold text-foreground">0</div> {/* Placeholder */}
                  <p className="text-xs text-muted-foreground">responded</p>
               </CardContent>
             </Card>
           </div>
         </>
       ) : (
-        // This part is for when there are no weddings - simplified from your example for now
         <Card className="border-dashed border-2 p-8 text-center shadow-sm">
            <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
           <CardTitle className="text-xl font-semibold mb-2">No Wedding Site Yet</CardTitle>
@@ -184,7 +248,7 @@ export default function DashboardPage() {
             It looks like you haven&apos;t created your wedding site. Get started to manage all your details!
           </CardDescription>
           <Button asChild>
-            <Link href="/dashboard/weddings/new">
+            <Link href="/dashboard/details">
               <PlusCircle className="mr-2 h-4 w-4" />
               Create Your Wedding Site
             </Link>
@@ -194,3 +258,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
