@@ -70,7 +70,7 @@ const weddingFormSchema = z.object({
   time: z.string().optional(), // e.g., "14:30"
   location: z.string().optional(),
   description: z.string().optional(),
-  coverPhoto: z.string().url({ message: "Invalid URL." }).optional().or(z.literal('')), // Stores the URL
+  coverPhoto: z.string().url({ message: "Invalid URL format for cover photo." }).optional().or(z.literal('')), // Stores the URL
   templateId: z.string().min(1, { message: 'Please select a template.' }),
 });
 
@@ -90,13 +90,13 @@ export default function WeddingDetailsPage() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isNewWedding, setIsNewWedding] = useState(false);
+  const [isNewWedding, setIsNewWedding] = useState(false); // Default to false, will be updated in useEffect
   const [weddingDocId, setWeddingDocId] = useState<string | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [currentCoverPhotoUrl, setCurrentCoverPhotoUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
 
   const form = useForm<WeddingFormValues>({
@@ -165,14 +165,14 @@ export default function WeddingDetailsPage() {
         } else {
           setIsNewWedding(true);
           setCurrentCoverPhotoUrl(null);
-          form.reset({
+          form.reset({ // Reset to empty for new wedding
             title: '', slug: '', date: undefined, time: '', location: '', description: '', coverPhoto: '', templateId: MOCK_TEMPLATES[0].id,
           });
         }
       } catch (error) {
         console.error('Error fetching wedding data:', error);
         toast({ title: 'Error', description: 'Could not load wedding details.', variant: 'destructive' });
-        setIsNewWedding(true);
+        setIsNewWedding(true); // Assume new if fetch fails
       } finally {
         setIsLoadingData(false);
       }
@@ -186,45 +186,116 @@ export default function WeddingDetailsPage() {
     if (file) {
       setSelectedFile(file);
       setFilePreview(URL.createObjectURL(file));
+      form.setValue('coverPhoto', ''); // Clear any URL if a file is selected
     } else {
       setSelectedFile(null);
       setFilePreview(null);
     }
   };
 
+  const handleRemoveCoverPhoto = async () => {
+    if (currentCoverPhotoUrl && weddingDocId && currentUser) {
+        setIsUploading(true); // Use isUploading to disable buttons
+        try {
+            const photoRef = storageRef(storage, currentCoverPhotoUrl);
+            await deleteObject(photoRef);
+            
+            const weddingRef = doc(db, 'weddings', weddingDocId);
+            await setDoc(weddingRef, { coverPhoto: '' }, { merge: true });
+
+            setCurrentCoverPhotoUrl(null);
+            form.setValue('coverPhoto', '');
+            setSelectedFile(null);
+            setFilePreview(null);
+            toast({ title: 'Cover Photo Removed', description: 'Your cover photo has been successfully removed.' });
+        } catch (error: any) {
+            console.error('Error removing cover photo:', error);
+            // Check for specific Firebase Storage error codes if needed
+            if (error.code === 'storage/object-not-found') {
+                 toast({ title: 'Info', description: 'Cover photo already removed or not found in storage. Updated record.', variant: 'default' });
+                 // Still update Firestore record if storage object not found
+                const weddingRef = doc(db, 'weddings', weddingDocId);
+                await setDoc(weddingRef, { coverPhoto: '' }, { merge: true });
+                setCurrentCoverPhotoUrl(null);
+                form.setValue('coverPhoto', '');
+
+            } else {
+                toast({ title: 'Removal Failed', description: 'Could not remove cover photo. ' + error.message, variant: 'destructive' });
+            }
+        } finally {
+            setIsUploading(false);
+        }
+    } else {
+        // If only preview, just clear it
+        setSelectedFile(null);
+        setFilePreview(null);
+        form.setValue('coverPhoto', ''); // Clear URL in form
+    }
+};
+
+
   async function onSubmit(data: WeddingFormValues) {
     if (!currentUser) {
       toast({ title: 'Not Authenticated', description: 'Please log in to save.', variant: 'destructive' });
       return;
     }
+    
     setIsSaving(true);
-
-    let finalCoverPhotoUrl = form.getValues('coverPhoto');
+    let finalCoverPhotoUrl = currentCoverPhotoUrl || ''; // Start with current URL or empty
 
     if (selectedFile) {
       setIsUploading(true);
       try {
-        const filePath = `cover_photos/${currentUser.uid}/${weddingDocId || `new_${Date.now()}`}/${selectedFile.name}`;
-        const fileStorageRef = storageRef(storage, filePath);
-        const uploadTask = uploadBytesResumable(fileStorageRef, selectedFile);
+        // New explicit promise handling for upload
+        finalCoverPhotoUrl = await new Promise<string>((resolve, reject) => {
+          const filePath = `cover_photos/${currentUser.uid}/${weddingDocId || `new_${Date.now()}`}/${Date.now()}-${selectedFile.name}`;
+          const fileStorageRef = storageRef(storage, filePath);
+          const uploadTask = uploadBytesResumable(fileStorageRef, selectedFile);
 
-        await uploadTask;
-        finalCoverPhotoUrl = await getDownloadURL(uploadTask.snapshot.ref);
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              // Optional: update progress
+              // const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              // console.log('Upload is ' + progress + '% done');
+            },
+            (error) => {
+              console.error('Upload Error:', error);
+              reject(error); // Reject the promise on error
+            },
+            async () => {
+              // Handle successful uploads on complete
+              try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(downloadURL); // Resolve the promise with the URL
+              } catch (error) {
+                console.error('Error getting download URL:', error);
+                reject(error); // Reject if getDownloadURL fails
+              }
+            }
+          );
+        });
+
         form.setValue('coverPhoto', finalCoverPhotoUrl);
-        setCurrentCoverPhotoUrl(finalCoverPhotoUrl);
-        setSelectedFile(null);
+        setCurrentCoverPhotoUrl(finalCoverPhotoUrl); // Update current URL display
+        setSelectedFile(null); // Clear selection after successful upload
         setFilePreview(null);
         toast({ title: 'Upload Successful', description: 'Cover photo updated.' });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error uploading cover photo:', error);
-        toast({ title: 'Upload Failed', description: 'Could not upload cover photo.', variant: 'destructive' });
+        toast({ title: 'Upload Failed', description: 'Could not upload cover photo. ' + error.message, variant: 'destructive' });
         setIsUploading(false);
         setIsSaving(false);
-        return;
+        return; // Stop submission if upload fails
       } finally {
         setIsUploading(false);
       }
+    } else if (data.coverPhoto && data.coverPhoto !== currentCoverPhotoUrl) {
+        // This case handles if the user manually typed a URL
+        finalCoverPhotoUrl = data.coverPhoto;
+        setCurrentCoverPhotoUrl(data.coverPhoto);
     }
+
 
     let combinedDateTime: Timestamp | null = null;
     if (data.date) {
@@ -233,7 +304,7 @@ export default function WeddingDetailsPage() {
         const [hours, minutes] = data.time.split(':').map(Number);
         dateObj.setHours(hours, minutes, 0, 0);
       } else {
-        dateObj.setHours(0,0,0,0);
+        dateObj.setHours(0,0,0,0); // Default to midnight if no time specified
       }
       combinedDateTime = Timestamp.fromDate(dateObj);
     }
@@ -245,7 +316,7 @@ export default function WeddingDetailsPage() {
       date: combinedDateTime,
       location: data.location || '',
       description: data.description || '',
-      coverPhoto: finalCoverPhotoUrl || '',
+      coverPhoto: finalCoverPhotoUrl, // Use the determined final URL
       templateId: data.templateId,
       updatedAt: serverTimestamp() as Timestamp,
     };
@@ -254,17 +325,18 @@ export default function WeddingDetailsPage() {
       if (isNewWedding) {
         weddingDataToSave.createdAt = serverTimestamp() as Timestamp;
         const docRef = await addDoc(collection(db, 'weddings'), weddingDataToSave);
-        setWeddingDocId(docRef.id);
-        setIsNewWedding(false);
+        setWeddingDocId(docRef.id); // Important: update docId for subsequent saves/uploads
+        setIsNewWedding(false); // It's no longer a new wedding
         toast({ title: 'Wedding Created!', description: `Your wedding "${data.title}" has been successfully created.` });
+        router.push('/dashboard'); // Redirect to dashboard after creation
       } else if (weddingDocId) {
         const weddingRef = doc(db, 'weddings', weddingDocId);
         await setDoc(weddingRef, weddingDataToSave, { merge: true });
         toast({ title: 'Changes Saved!', description: `Your wedding "${data.title}" has been successfully updated.` });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving wedding data:', error);
-      toast({ title: 'Error Saving', description: 'Could not save wedding details.', variant: 'destructive' });
+      toast({ title: 'Error Saving', description: 'Could not save wedding details. ' + error.message, variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
@@ -290,7 +362,7 @@ export default function WeddingDetailsPage() {
               <Skeleton className="h-4 w-64" />
             </CardHeader>
             <CardContent className="space-y-6">
-              {[...Array(6)].map((_, i) => (
+              {[...Array(6)].map((_, i) => ( // Updated to 6 for cover photo field
                 <div key={i} className="space-y-2">
                   <Skeleton className="h-5 w-24" />
                   <Skeleton className="h-10 w-full" />
@@ -431,7 +503,7 @@ export default function WeddingDetailsPage() {
                             selected={field.value}
                             onSelect={field.onChange}
                             disabled={(date) =>
-                              date < new Date(new Date().setDate(new Date().getDate() -1))
+                              date < new Date(new Date().setDate(new Date().getDate() -1)) // Allow today
                             }
                             initialFocus
                           />
@@ -485,44 +557,45 @@ export default function WeddingDetailsPage() {
               {/* Cover Photo Upload Section */}
               <FormItem>
                 <FormLabel>Upload Cover Photo</FormLabel>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="w-full max-w-sm h-48 relative bg-secondary rounded-md overflow-hidden border border-dashed flex items-center justify-center">
                     {filePreview ? (
                       <Image src={filePreview} alt="Cover photo preview" layout="fill" objectFit="cover" />
                     ) : currentCoverPhotoUrl ? (
                       <Image src={currentCoverPhotoUrl} alt="Current cover photo" layout="fill" objectFit="cover" data-ai-hint="wedding couple" />
                     ) : (
-                      <div className="text-center text-muted-foreground">
+                      <div className="text-center text-muted-foreground p-4">
                         <ImageIcon className="mx-auto h-12 w-12" />
-                        <p>No cover photo selected</p>
+                        <p>No cover photo uploaded yet.</p>
+                        <p className="text-xs">Preview will appear here.</p>
                       </div>
                     )}
                   </div>
-                  <FormControl>
-                    <Input
-                      id="cover-photo-upload"
-                      type="file"
-                      accept="image/*"
-                      className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                      onChange={handleFileChange}
-                      disabled={isUploading}
-                    />
-                  </FormControl>
-                  {filePreview && selectedFile && (
+                  
+                  <Input
+                    id="cover-photo-upload"
+                    type="file"
+                    accept="image/*"
+                    className="block w-full max-w-sm text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    onChange={handleFileChange}
+                    disabled={isUploading}
+                  />
+                
+                  {(filePreview || currentCoverPhotoUrl) && (
                      <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => { setSelectedFile(null); setFilePreview(null); (document.getElementById('cover-photo-upload') as HTMLInputElement).value = ''; }}
-                        className="text-destructive hover:text-destructive"
+                        onClick={handleRemoveCoverPhoto}
+                        className="text-destructive hover:text-destructive disabled:opacity-50"
                         disabled={isUploading}
                     >
-                        <Trash2 className="mr-2 h-4 w-4" /> Clear Selection
+                        <Trash2 className="mr-2 h-4 w-4" /> Remove Cover Photo
                     </Button>
                   )}
                 </div>
                 <FormDescription>
-                  Choose an image to be displayed as the main photo for your wedding.
+                  Choose an image (e.g., .jpg, .png) for your wedding website's main banner.
                 </FormDescription>
                 <FormMessage>{form.formState.errors.coverPhoto?.message}</FormMessage>
               </FormItem>
@@ -584,7 +657,7 @@ export default function WeddingDetailsPage() {
                         {MOCK_TEMPLATES.map((template) => (
                           <label
                             key={template.id}
-                            htmlFor={template.id}
+                            htmlFor={`template-${template.id}`} // Ensure unique IDs for labels/inputs
                             className={cn(
                               "border rounded-md p-4 cursor-pointer hover:border-primary transition-all",
                               field.value === template.id && "border-primary ring-2 ring-primary ring-offset-2"
@@ -592,11 +665,12 @@ export default function WeddingDetailsPage() {
                           >
                             <input
                               type="radio"
-                              id={template.id}
+                              id={`template-${template.id}`} // Unique ID
                               value={template.id}
                               checked={field.value === template.id}
                               onChange={() => field.onChange(template.id)}
                               className="sr-only"
+                              name="templateId" // Ensure radio buttons are grouped
                             />
                             <div className="text-center">
                               <div
@@ -620,9 +694,9 @@ export default function WeddingDetailsPage() {
 
           <div className="flex justify-end">
             <Button type="submit" size="lg" disabled={isSaving || isLoadingUser || isLoadingData || isUploading}>
-              {(isSaving || isUploading) && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {(isUploading) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> :
+               (isSaving) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null
+              }
               {isUploading ? 'Uploading...' : isSaving
                 ? 'Saving...'
                 : isNewWedding
@@ -635,3 +709,4 @@ export default function WeddingDetailsPage() {
     </div>
   );
 }
+
