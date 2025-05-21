@@ -17,11 +17,12 @@ import {
   SidebarTrigger,
   SidebarMenu,
   SidebarMenuItem,
-  SidebarMenuButton,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarSeparator,
   SidebarInset,
+  useSidebar, 
+  sidebarMenuButtonVariants 
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -41,12 +42,19 @@ import {
   Menu,
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-// Define NavLinkProps type for clarity
+
 interface NavLinkProps {
   href: string;
   icon: React.ReactNode;
-  children: React.ReactNode; // This will be the label
+  children: React.ReactNode; 
   tooltip?: string;
 }
 
@@ -64,7 +72,6 @@ export default function DashboardLayout({
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        // Preload dashboard assets if needed, though Next.js handles prefetching for Links
       } else {
         router.push('/auth');
       }
@@ -79,7 +86,6 @@ export default function DashboardLayout({
       router.push('/auth');
     } catch (error) {
       console.error('Logout Error:', error);
-      // Optionally show a toast error
     }
   };
 
@@ -92,20 +98,51 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return null; // or a redirect component, though onAuthStateChanged handles it
+    return null; 
   }
 
-  const NavLink = ({ href, icon, children: label, tooltip }: NavLinkProps) => (
-    <SidebarMenuItem>
-      <Link href={href} asChild>
-        {/* Removed asChild from SidebarMenuButton */}
-        <SidebarMenuButton tooltip={tooltip || String(label)}>
-          {icon}
-          {label}
-        </SidebarMenuButton>
+  const NavLink = ({ href, icon, children: label, tooltip }: NavLinkProps) => {
+    const { isMobile: sidebarIsMobile, state: sidebarState, openMobile } = useSidebar();
+    const effectiveSidebarState = sidebarIsMobile ? (openMobile ? 'expanded' : 'collapsed') : sidebarState;
+    const showLabel = effectiveSidebarState === 'expanded' || (sidebarIsMobile && openMobile);
+
+    const linkContent = (
+      <>
+        {icon}
+        {showLabel && <span className="flex-1 min-w-0 truncate">{label}</span>}
+      </>
+    );
+
+    const linkElement = (
+      <Link
+        href={href}
+        className={cn(
+          sidebarMenuButtonVariants({ variant: 'default', size: 'default' }),
+          'w-full', 
+          !showLabel && 'justify-center' 
+        )}
+      >
+        {linkContent}
       </Link>
-    </SidebarMenuItem>
-  );
+    );
+
+    if (tooltip && (!showLabel || sidebarIsMobile) ) {
+      return (
+        <SidebarMenuItem>
+          <Tooltip>
+            <TooltipTrigger className="w-full"> 
+              {linkElement}
+            </TooltipTrigger>
+            <TooltipContent side="right" align="center">
+              <p>{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </SidebarMenuItem>
+      );
+    }
+
+    return <SidebarMenuItem>{linkElement}</SidebarMenuItem>;
+  };
 
 
   return (
@@ -202,3 +239,5 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+
+    

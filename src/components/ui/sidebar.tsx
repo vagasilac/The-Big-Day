@@ -538,7 +538,8 @@ const SidebarMenuItem = React.forwardRef<
 ))
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
-const sidebarMenuButtonVariants = cva(
+// Export the variants
+export const sidebarMenuButtonVariants = cva(
   "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:group-data-[state=collapsed]:size-8 group-data-[collapsible=icon]:group-data-[state=collapsed]:p-2 group-data-[collapsible=icon]:group-data-[state=collapsed]:justify-center [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
@@ -592,8 +593,8 @@ const SidebarMenuButton = React.forwardRef<
 
     const { isMobile, state: sidebarState, openMobile } = useSidebar();
     const effectiveSidebarState = isMobile ? (openMobile ? "expanded" : "collapsed") : sidebarState;
-
-    // Explicitly filter out 'asChild' from restProps if it came from a parent (like Link asChild)
+    
+    // Explicitly filter out 'asChild' from restProps if it might come from a parent Link component
     const { asChild: _discardedAsChildFromParent, ...filteredRestProps } = restProps as { asChild?: boolean } & typeof restProps;
 
     const finalHref = directHref || (filteredRestProps as any).href;
@@ -605,19 +606,18 @@ const SidebarMenuButton = React.forwardRef<
       "data-size": size,
       "data-active": isActive,
       className: cn(sidebarMenuButtonVariants({ variant, size, className })),
-      ...filteredRestProps, // Use filtered props here
+      ...filteredRestProps, 
     };
-
+    
     if (Comp === "a" && finalHref) {
       componentProps.href = finalHref;
     } else if (componentProps.href && Comp !== Slot && Comp !== "a") {
-      // If Comp is going to be a button, it shouldn't have an href.
       delete componentProps.href;
     }
     
     const iconElement = React.Children.toArray(buttonContentChildren).find(child =>
       React.isValidElement(child) &&
-      (typeof child.type !== 'string' || child.type === 'svg') && // Allows direct SVGs or Lucide icons
+      (typeof child.type !== 'string' || child.type === 'svg') && 
       (child.props.className?.includes('lucide') || child.type === 'svg')
     );
 
@@ -638,26 +638,19 @@ const SidebarMenuButton = React.forwardRef<
       </>
     );
     
-    // If localAsChild is true, Slot renders its own children (which would be <Link> from NavLink).
-    // Otherwise, the button/anchor renders the icon and text content.
     const finalChildren = localAsChild ? buttonContentChildren : contentToRender;
-
     const buttonElement = React.createElement(Comp, componentProps, finalChildren);
     
-    // Temporarily remove Tooltip to diagnose
-    // if (!tooltip || (effectiveSidebarState === "expanded" && !isMobile)) {
-    //   return buttonElement;
-    // }
-    // const tooltipContentProps = typeof tooltip === "string" ? { children: tooltip } : tooltip;
-    // return (
-    //   <TooltipProvider> {/* Ensure provider is here if not globally elsewhere */}
-    //     <Tooltip>
-    //       <TooltipTrigger asChild>{buttonElement}</TooltipTrigger>
-    //       <TooltipContent side="right" align="center" {...tooltipContentProps} />
-    //     </Tooltip>
-    //   </TooltipProvider>
-    // );
-    return buttonElement; // Return buttonElement directly for diagnosis
+    if (!tooltip || (effectiveSidebarState === "expanded" && !isMobile)) {
+      return buttonElement;
+    }
+    const tooltipContentProps = typeof tooltip === "string" ? { children: <p>{tooltip}</p> } : tooltip;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{buttonElement}</TooltipTrigger>
+        <TooltipContent side="right" align="center" {...tooltipContentProps} />
+      </Tooltip>
+    );
   }
 );
 SidebarMenuButton.displayName = "SidebarMenuButton"
@@ -827,7 +820,10 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+  sidebarMenuButtonVariants, // Export variants
   useSidebar,
 }
+
+    
 
     
