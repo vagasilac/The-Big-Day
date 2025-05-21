@@ -39,7 +39,7 @@ const HeroSection = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Button asChild size="lg" className="px-8 py-3 h-auto text-base">
-                <Link href="/auth">Create Your Wedding Site</Link>
+                <Link href="/auth?tab=register">Create Your Wedding Site</Link>
               </Button>
               <Button variant="outline" size="lg" asChild className="px-8 py-3 h-auto text-base">
                 <Link href="/#features">Discover Features</Link>
@@ -557,7 +557,7 @@ const AppFooter = () => {
               </li>
               <li>
                 <Link href="/auth" className="text-muted-foreground hover:text-primary transition-colors">
-                  Log In / Sign Up
+                  Log In
                 </Link>
               </li>
             </ul>
@@ -602,14 +602,14 @@ const sampleWeddingData: Partial<Wedding> = {
   description: "We are so excited to celebrate our special day with all of our amazing friends and family! Join us for a day filled with love, laughter, and unforgettable memories as we begin our new journey together.",
   date: new Date(new Date().getFullYear() + 1, 5, 15, 16, 30, 0).toISOString(), // Example: June 15th next year, 4:30 PM
   location: "The Enchanted Garden, Springsville",
-  coverPhoto: "https://images.unsplash.com/photo-1511795409834-ef04bbdf6171?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwdmVudWUlMjBleHRlcmlvcnxlbnwwfHx8fDE3NDc2MTg0NTF8MA&ixlib=rb-4.0.3&q=80&w=1080", // AI hint: wedding venue exterior
+  coverPhoto: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwYmFucXVldCUyMHJvb218ZW58MHx8fHwxNzQ3NTg4OTg5fDA&ixlib=rb-4.0.3&q=80&w=1080",
   gallery: [
-    { id: '1', url: 'https://images.unsplash.com/photo-1546009531-60520d50c553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9wb3NhbCUyMGNvdXBsZXxlbnwwfHx8fDE3NDc2MTg1MDN8MA&ixlib=rb-4.0.3&q=80&w=800', description: 'The Proposal' }, // AI hint: couple proposal
-    { id: '2', url: 'https://images.unsplash.com/photo-1598809657448-c05b5bf28969?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxlbmdhZ2VtZW50JTIwcmluZ3xlbnwwfHx8fDE3NDc2MTg1MzR8MA&ixlib=rb-4.0.3&q=80&w=800', description: 'The Ring' }, // AI hint: engagement ring
-    { id: '3', url: 'https://images.unsplash.com/photo-1522399138438-895139032554?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwdmVudWUlMjBpbnRlcmlvcnxlbnwwfHx8fDE3NDc2MTg1NzJ8MA&ixlib=rb-4.0.3&q=80&w=800', description: 'Our Future Venue' }, // AI hint: venue interior
-    { id: '4', url: 'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb3VwbGUlMjBsYW5kc2NhcGV8ZW58MHx8fHwxNzQ3NjE4NjA3fDA&ixlib=rb-4.0.3&q=80&w=800', description: 'Dreaming Together' }, // AI hint: couple landscape
-    { id: '5', url: 'https://images.unsplash.com/photo-1519219697029-68c76f705728?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwcGxhbm5pbmd8ZW58MHx8fHwxNzQ3NjE4NjQwfDA&ixlib=rb-4.0.3&q=80&w=800', description: 'Planning Our Day' }, // AI hint: wedding planning
-    { id: '6', url: 'https://images.unsplash.com/photo-1444723121867-7a241cacace9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzY2VuaWMlMjBjaXR5JTIwdmlld3xlbnwwfHx8fDE3NDc2MTg2NzN8MA&ixlib=rb-4.0.3&q=80&w=800', description: "The Place We'll Say 'I Do'" }, // AI hint: city view
+    { id: '1', url: 'https://images.unsplash.com/photo-1546009531-60520d50c553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9wb3NhbCUyMGNvdXBsZXxlbnwwfHx8fDE3NDc2MTg1MDN8MA&ixlib=rb-4.0.3&q=80&w=800', description: 'The Proposal', dataAiHint: 'couple proposal' },
+    { id: '2', url: 'https://images.unsplash.com/photo-1598809657448-c05b5bf28969?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxlbmdhZ2VtZW50JTIwcmluZ3xlbnwwfHx8fDE3NDc2MTg1MzR8MA&ixlib=rb-4.0.3&q=80&w=800', description: 'The Ring', dataAiHint: 'engagement ring' },
+    { id: '3', url: 'https://images.unsplash.com/photo-1522399138438-895139032554?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwdmVudWUlMjBpbnRlcmlvcnxlbnwwfHx8fDE3NDc2MTg1NzJ8MA&ixlib=rb-4.0.3&q=80&w=800', description: 'Our Future Venue', dataAiHint: 'venue interior' },
+    { id: '4', url: 'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb3VwbGUlMjBsYW5kc2NhcGV8ZW58MHx8fHwxNzQ3NjE4NjA3fDA&ixlib=rb-4.0.3&q=80&w=800', description: 'Dreaming Together', dataAiHint: 'couple landscape' },
+    { id: '5', url: 'https://images.unsplash.com/photo-1519219697029-68c76f705728?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwcGxhbm5pbmd8ZW58MHx8fHwxNzQ3NjE4NjQwfDA&ixlib=rb-4.0.3&q=80&w=800', description: 'Planning Our Day', dataAiHint: 'wedding planning' },
+    { id: '6', url: 'https://images.unsplash.com/photo-1444723121867-7a241cacace9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxzY2VuaWMlMjBjaXR5JTIwdmlld3xlbnwwfHx8fDE3NDc2MTg2NzN8MA&ixlib=rb-4.0.3&q=80&w=800', description: "The Place We'll Say 'I Do'", dataAiHint: 'city view' },
   ],
   schedule: [
     { time: '3:00 PM', event: 'Guest Arrival', description: 'Welcome drinks and light refreshments' },
@@ -763,6 +763,3 @@ export default function HomePage() {
     </div>
   );
 }
-    
-
-    
