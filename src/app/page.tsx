@@ -560,6 +560,11 @@ const AppFooter = () => {
                   Log In
                 </Link>
               </li>
+              <li>
+                <Link href="/auth?tab=register" className="text-muted-foreground hover:text-primary transition-colors">
+                  Sign Up
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -763,3 +768,4 @@ export default function HomePage() {
     </div>
   );
 }
+

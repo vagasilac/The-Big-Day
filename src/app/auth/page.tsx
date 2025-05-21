@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation'; // Import useSearchParams
 
 import { Button } from '@/components/ui/button';
 import {
@@ -58,10 +58,20 @@ const DEMO_PASSWORD = "demopassword123";
 export default function AuthPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams(); // Get search params
   const [isLoginLoading, setIsLoginLoading] = React.useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("login");
 
+
+  React.useEffect(() => {
+    const tabQueryParam = searchParams.get('tab');
+    if (tabQueryParam === 'register') {
+      setActiveTab('register');
+    } else {
+      setActiveTab('login'); // Default or if tab=login or invalid
+    }
+  }, [searchParams]); // Re-run if searchParams change
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -128,6 +138,7 @@ export default function AuthPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
+      // Create a user document in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
@@ -140,7 +151,8 @@ export default function AuthPage() {
       });
       registerForm.reset();
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error: any)
+{
       console.error("Registration Error:", error);
       let errorMessage = 'An unexpected error occurred. Please try again.';
        if (error.code) {
@@ -338,3 +350,4 @@ export default function AuthPage() {
     </div>
   );
 }
+
