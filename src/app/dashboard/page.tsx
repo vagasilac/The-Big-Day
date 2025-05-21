@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Users, ListChecks, PlusCircle, Eye, Edit, Heart, Loader2 } from 'lucide-react';
+import { Clock, Users, ListChecks, PlusCircle, Eye, Edit, Heart, Loader2, LayoutDashboard } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { auth, db } from '@/lib/firebase-config';
@@ -62,14 +62,12 @@ export default function DashboardPage() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
-        // Fetch wedding data
         try {
           const weddingsRef = collection(db, 'weddings');
           const q = query(weddingsRef, where('userId', '==', user.uid));
           const querySnapshot = await getDocs(q);
 
           if (!querySnapshot.empty) {
-            // Assume one wedding per user for this dashboard
             const weddingDoc = querySnapshot.docs[0];
             setWeddingData({ id: weddingDoc.id, ...weddingDoc.data() } as Wedding);
           } else {
@@ -93,9 +91,12 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col gap-6 md:gap-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-          <div>
-            <Skeleton className="h-10 w-48 mb-2" />
-            <Skeleton className="h-5 w-72" />
+           <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div>
+              <Skeleton className="h-10 w-48 mb-2" />
+              <Skeleton className="h-5 w-72" />
+            </div>
           </div>
         </div>
         <Card className="shadow-lg overflow-hidden">
@@ -134,11 +135,14 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6 md:gap-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your wedding planning all in one place.
-          </p>
+        <div className="flex items-center gap-3">
+            <LayoutDashboard className="h-8 w-8 text-primary" />
+            <div>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Dashboard</h1>
+                <p className="text-muted-foreground mt-1">
+                Manage your wedding planning all in one place.
+                </p>
+            </div>
         </div>
         {!weddingData && (
            <Button asChild className="mt-4 sm:mt-0">
@@ -152,7 +156,6 @@ export default function DashboardPage() {
 
       {weddingData ? (
         <>
-          {/* Wedding Details Card */}
           <Card className="shadow-lg overflow-hidden">
             <div className="grid md:grid-cols-[250px_1fr] lg:grid-cols-[300px_1fr]">
               <div className="relative aspect-[4/3] md:aspect-auto">
@@ -201,7 +204,6 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          {/* Stats Overview */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card className="shadow-md">
               <CardHeader className="pb-2">
@@ -222,7 +224,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-foreground">0</div> {/* Placeholder */}
+                <div className="text-3xl font-bold text-foreground">0</div> 
                 <p className="text-xs text-muted-foreground">invited</p>
               </CardContent>
             </Card>
@@ -234,7 +236,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-foreground">0</div> {/* Placeholder */}
+                <div className="text-3xl font-bold text-foreground">0</div> 
                  <p className="text-xs text-muted-foreground">responded</p>
               </CardContent>
             </Card>
@@ -258,4 +260,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

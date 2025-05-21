@@ -36,7 +36,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, Loader2, ScrollText } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { auth, db } from '@/lib/firebase-config';
@@ -87,7 +87,7 @@ export default function WeddingDetailsPage() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isNewWedding, setIsNewWedding] = useState(true);
+  const [isNewWedding, setIsNewWedding] = useState(true); // Will be updated dynamically
   const [weddingDocId, setWeddingDocId] = useState<string | null>(null);
 
   const form = useForm<WeddingFormValues>({
@@ -126,7 +126,6 @@ export default function WeddingDetailsPage() {
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-          // Assume one wedding per user for this page's logic
           const weddingDoc = querySnapshot.docs[0];
           const weddingData = weddingDoc.data() as Wedding;
           setWeddingDocId(weddingDoc.id);
@@ -153,7 +152,7 @@ export default function WeddingDetailsPage() {
           });
         } else {
           setIsNewWedding(true);
-          form.reset(); // Reset to default values for new wedding
+          form.reset(); 
         }
       } catch (error) {
         console.error('Error fetching wedding data:', error);
@@ -162,7 +161,7 @@ export default function WeddingDetailsPage() {
           description: 'Could not load wedding details.',
           variant: 'destructive',
         });
-        setIsNewWedding(true); // Fallback to new wedding mode on error
+        setIsNewWedding(true); 
       } finally {
         setIsLoadingData(false);
       }
@@ -185,7 +184,7 @@ export default function WeddingDetailsPage() {
         const [hours, minutes] = data.time.split(':').map(Number);
         dateObj.setHours(hours, minutes, 0, 0);
       } else {
-        dateObj.setHours(0,0,0,0); // Default to midnight if no time provided
+        dateObj.setHours(0,0,0,0); 
       }
       combinedDateTime = Timestamp.fromDate(dateObj);
     }
@@ -198,7 +197,7 @@ export default function WeddingDetailsPage() {
       location: data.location || '',
       description: data.description || '',
       templateId: data.templateId,
-      updatedAt: serverTimestamp() as Timestamp, // Firestore will convert this
+      updatedAt: serverTimestamp() as Timestamp,
     };
 
     try {
@@ -235,10 +234,13 @@ export default function WeddingDetailsPage() {
     return (
       <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 max-w-4xl">
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <Skeleton className="h-10 w-72 mb-2" />
-            <Skeleton className="h-5 w-96" />
-          </div>
+            <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div>
+                    <Skeleton className="h-10 w-72 mb-2" />
+                    <Skeleton className="h-5 w-96" />
+                </div>
+            </div>
           <Skeleton className="h-10 w-36" />
         </div>
         <div className="space-y-8">
@@ -278,15 +280,18 @@ export default function WeddingDetailsPage() {
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 max-w-4xl">
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-            {isNewWedding ? 'Create Your Wedding Site' : 'Edit Wedding Details'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {isNewWedding
-              ? 'Fill in the details below to get your wedding website started.'
-              : 'Update your wedding information and settings.'}
-          </p>
+        <div className="flex items-center gap-3">
+          <ScrollText className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+              {isNewWedding ? 'Create Your Wedding Site' : 'Edit Wedding Details'}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {isNewWedding
+                ? 'Fill in the details below to get your wedding website started.'
+                : 'Update your wedding information and settings.'}
+            </p>
+          </div>
         </div>
         <Button variant="outline" asChild>
           <Link href="/dashboard">
@@ -334,7 +339,7 @@ export default function WeddingDetailsPage() {
                     <FormLabel>Wedding URL Slug</FormLabel>
                     <FormControl>
                       <div className="flex items-center">
-                        <span className="text-sm text-muted-foreground p-2 bg-secondary rounded-l-md border border-r-0 border-input">
+                        <span className="text-sm text-muted-foreground p-2 bg-secondary rounded-l-md border border-r-0 border-input h-10 flex items-center">
                           your-site.com/weddings/
                         </span>
                         <Input
