@@ -37,7 +37,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon, Loader2, ScrollText, ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, Loader2, ScrollText, ImageIcon, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { auth, db, storage } from '@/lib/firebase-config'; // Ensure storage is imported
@@ -91,9 +91,9 @@ export default function WeddingDetailsPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isNewWedding, setIsNewWedding] = useState(false); 
+  const [isNewWedding, setIsNewWedding] = useState(false);
   const [weddingDocId, setWeddingDocId] = useState<string | null>(null);
-  
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [currentCoverPhotoUrl, setCurrentCoverPhotoUrl] = useState<string | null>(null);
@@ -151,7 +151,7 @@ export default function WeddingDetailsPage() {
             const minutes = formDate.getMinutes().toString().padStart(2, '0');
             formTime = `${hours}:${minutes}`;
           }
-          
+
           form.reset({
             title: weddingData.title || '',
             slug: weddingData.slug || '',
@@ -165,14 +165,14 @@ export default function WeddingDetailsPage() {
         } else {
           setIsNewWedding(true);
           setCurrentCoverPhotoUrl(null);
-          form.reset({ 
+          form.reset({
             title: '', slug: '', date: undefined, time: '', location: '', description: '', coverPhoto: '', templateId: MOCK_TEMPLATES[0].id,
-          }); 
+          });
         }
       } catch (error) {
         console.error('Error fetching wedding data:', error);
         toast({ title: 'Error', description: 'Could not load wedding details.', variant: 'destructive' });
-        setIsNewWedding(true); 
+        setIsNewWedding(true);
       } finally {
         setIsLoadingData(false);
       }
@@ -208,10 +208,10 @@ export default function WeddingDetailsPage() {
         const fileStorageRef = storageRef(storage, filePath);
         const uploadTask = uploadBytesResumable(fileStorageRef, selectedFile);
 
-        await uploadTask; 
+        await uploadTask;
         finalCoverPhotoUrl = await getDownloadURL(uploadTask.snapshot.ref);
-        form.setValue('coverPhoto', finalCoverPhotoUrl); // Update form state for Firestore save
-        setCurrentCoverPhotoUrl(finalCoverPhotoUrl); // Update UI display
+        form.setValue('coverPhoto', finalCoverPhotoUrl);
+        setCurrentCoverPhotoUrl(finalCoverPhotoUrl);
         setSelectedFile(null);
         setFilePreview(null);
         toast({ title: 'Upload Successful', description: 'Cover photo updated.' });
@@ -233,7 +233,7 @@ export default function WeddingDetailsPage() {
         const [hours, minutes] = data.time.split(':').map(Number);
         dateObj.setHours(hours, minutes, 0, 0);
       } else {
-        dateObj.setHours(0,0,0,0); 
+        dateObj.setHours(0,0,0,0);
       }
       combinedDateTime = Timestamp.fromDate(dateObj);
     }
@@ -269,7 +269,7 @@ export default function WeddingDetailsPage() {
       setIsSaving(false);
     }
   }
-  
+
   if (isLoadingUser || isLoadingData) {
     return (
       <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 max-w-4xl">
@@ -481,8 +481,8 @@ export default function WeddingDetailsPage() {
                   </FormItem>
                 )}
               />
-              
-              {/* Cover Photo Upload Section - REVISED */}
+
+              {/* Cover Photo Upload Section */}
               <FormItem>
                 <FormLabel>Upload Cover Photo</FormLabel>
                 <div className="space-y-4">
@@ -499,7 +499,7 @@ export default function WeddingDetailsPage() {
                     )}
                   </div>
                   <FormControl>
-                    <Input 
+                    <Input
                       id="cover-photo-upload"
                       type="file"
                       accept="image/*"
@@ -509,10 +509,10 @@ export default function WeddingDetailsPage() {
                     />
                   </FormControl>
                   {filePreview && selectedFile && (
-                     <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm" 
+                     <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => { setSelectedFile(null); setFilePreview(null); (document.getElementById('cover-photo-upload') as HTMLInputElement).value = ''; }}
                         className="text-destructive hover:text-destructive"
                         disabled={isUploading}
@@ -599,7 +599,7 @@ export default function WeddingDetailsPage() {
                               className="sr-only"
                             />
                             <div className="text-center">
-                              <div 
+                              <div
                                 className="w-full h-32 bg-secondary rounded-md mb-2 flex items-center justify-center text-muted-foreground text-sm"
                                 data-ai-hint={template.dataAiHint}
                               >
@@ -635,5 +635,3 @@ export default function WeddingDetailsPage() {
     </div>
   );
 }
-
-    
