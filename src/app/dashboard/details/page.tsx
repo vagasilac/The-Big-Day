@@ -70,7 +70,7 @@ export default function WeddingDetailsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   // For now, we assume creating a new wedding. Editing will be added later.
-  const isNewWedding = true; 
+  const isNewWedding = false; 
 
   const form = useForm<WeddingFormValues>({
     resolver: zodResolver(weddingFormSchema),
@@ -372,5 +372,7 @@ export default function WeddingDetailsPage() {
     </div>
   );
 }
+
+    
 
     
