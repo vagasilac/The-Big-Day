@@ -1,13 +1,13 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,23 @@ import {
 } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, CalendarIcon, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+import { auth, db } from '@/lib/firebase-config';
+import type { User } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import {
+  doc,
+  setDoc,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  collection,
+  Timestamp,
+  serverTimestamp,
+} from 'firebase/firestore';
+import type { Wedding } from '@/types/wedding';
 
 const weddingFormSchema = z.object({
   title: z.string().min(2, { message: 'Title must be at least 2 characters.' }),
@@ -51,26 +68,27 @@ const weddingFormSchema = z.object({
   time: z.string().optional(), // e.g., "14:30"
   location: z.string().optional(),
   description: z.string().optional(),
-  // For now, templateId will be a string. We can expand this later.
   templateId: z.string().min(1, { message: 'Please select a template.' }),
 });
 
 type WeddingFormValues = z.infer<typeof weddingFormSchema>;
 
-// Mock templates for selection
 const MOCK_TEMPLATES = [
-  { id: 'classic-elegance', name: 'Classic Elegance' },
-  { id: 'modern-romance', name: 'Modern Romance' },
-  { id: 'rustic-charm', name: 'Rustic Charm' },
+  { id: 'classic-elegance', name: 'Classic Elegance', dataAiHint: 'template classic' },
+  { id: 'modern-romance', name: 'Modern Romance', dataAiHint: 'template modern' },
+  { id: 'rustic-charm', name: 'Rustic Charm', dataAiHint: 'template rustic' },
 ];
 
 export default function WeddingDetailsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isSaving, setIsSaving] = useState(false);
 
-  // For now, we assume creating a new wedding. Editing will be added later.
-  const isNewWedding = false; 
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isNewWedding, setIsNewWedding] = useState(true);
+  const [weddingDocId, setWeddingDocId] = useState<string | null>(null);
 
   const form = useForm<WeddingFormValues>({
     resolver: zodResolver(weddingFormSchema),
@@ -81,40 +99,181 @@ export default function WeddingDetailsPage() {
       time: '',
       location: '',
       description: '',
-      templateId: MOCK_TEMPLATES[0].id, // Default to the first template
+      templateId: MOCK_TEMPLATES[0].id,
     },
   });
 
-  async function onSubmit(data: WeddingFormValues) {
-    setIsSaving(true);
-    console.log('Wedding Details Submitted:', data);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        router.push('/auth');
+      }
+      setIsLoadingUser(false);
+    });
+    return () => unsubscribe();
+  }, [router]);
 
-    // Combine date and time
-    let combinedDateTime: Date | undefined = undefined;
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchWeddingData = async () => {
+      setIsLoadingData(true);
+      try {
+        const weddingsRef = collection(db, 'weddings');
+        const q = query(weddingsRef, where('userId', '==', currentUser.uid));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          // Assume one wedding per user for this page's logic
+          const weddingDoc = querySnapshot.docs[0];
+          const weddingData = weddingDoc.data() as Wedding;
+          setWeddingDocId(weddingDoc.id);
+          setIsNewWedding(false);
+
+          let formDate: Date | undefined = undefined;
+          let formTime: string = '';
+
+          if (weddingData.date && weddingData.date instanceof Timestamp) {
+            formDate = weddingData.date.toDate();
+            const hours = formDate.getHours().toString().padStart(2, '0');
+            const minutes = formDate.getMinutes().toString().padStart(2, '0');
+            formTime = `${hours}:${minutes}`;
+          }
+          
+          form.reset({
+            title: weddingData.title || '',
+            slug: weddingData.slug || '',
+            date: formDate,
+            time: formTime,
+            location: weddingData.location || '',
+            description: weddingData.description || '',
+            templateId: weddingData.templateId || MOCK_TEMPLATES[0].id,
+          });
+        } else {
+          setIsNewWedding(true);
+          form.reset(); // Reset to default values for new wedding
+        }
+      } catch (error) {
+        console.error('Error fetching wedding data:', error);
+        toast({
+          title: 'Error',
+          description: 'Could not load wedding details.',
+          variant: 'destructive',
+        });
+        setIsNewWedding(true); // Fallback to new wedding mode on error
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchWeddingData();
+  }, [currentUser, form, toast]);
+
+  async function onSubmit(data: WeddingFormValues) {
+    if (!currentUser) {
+      toast({ title: 'Not Authenticated', description: 'Please log in to save.', variant: 'destructive' });
+      return;
+    }
+    setIsSaving(true);
+
+    let combinedDateTime: Timestamp | null = null;
     if (data.date) {
-      combinedDateTime = new Date(data.date);
+      const dateObj = new Date(data.date);
       if (data.time) {
         const [hours, minutes] = data.time.split(':').map(Number);
-        combinedDateTime.setHours(hours, minutes);
+        dateObj.setHours(hours, minutes, 0, 0);
+      } else {
+        dateObj.setHours(0,0,0,0); // Default to midnight if no time provided
       }
+      combinedDateTime = Timestamp.fromDate(dateObj);
     }
-    console.log('Combined DateTime:', combinedDateTime?.toISOString());
 
-    // Mock saving data
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const weddingDataToSave: Omit<Wedding, 'id' | 'createdAt' | 'updatedAt'> & { updatedAt: Timestamp, createdAt?: Timestamp } = {
+      userId: currentUser.uid,
+      title: data.title,
+      slug: data.slug,
+      date: combinedDateTime,
+      location: data.location || '',
+      description: data.description || '',
+      templateId: data.templateId,
+      updatedAt: serverTimestamp() as Timestamp, // Firestore will convert this
+    };
 
-    toast({
-      title: isNewWedding ? 'Wedding Created!' : 'Changes Saved!',
-      description: `Your wedding "${data.title}" has been successfully ${isNewWedding ? 'created' : 'updated'}.`,
-    });
-    setIsSaving(false);
-
-    // For a new wedding, you might redirect to a page showing the new wedding or back to dashboard
-    // For an existing wedding, you might just stay on the page or show a success message.
-    if (isNewWedding) {
-      router.push('/dashboard'); // Or to the newly created wedding's management page
+    try {
+      if (isNewWedding) {
+        weddingDataToSave.createdAt = serverTimestamp() as Timestamp;
+        const docRef = await addDoc(collection(db, 'weddings'), weddingDataToSave);
+        setWeddingDocId(docRef.id);
+        setIsNewWedding(false);
+        toast({
+          title: 'Wedding Created!',
+          description: `Your wedding "${data.title}" has been successfully created.`,
+        });
+      } else if (weddingDocId) {
+        const weddingRef = doc(db, 'weddings', weddingDocId);
+        await setDoc(weddingRef, weddingDataToSave, { merge: true });
+        toast({
+          title: 'Changes Saved!',
+          description: `Your wedding "${data.title}" has been successfully updated.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error saving wedding data:', error);
+      toast({
+        title: 'Error Saving',
+        description: 'Could not save wedding details. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
     }
   }
+  
+  if (isLoadingUser || isLoadingData) {
+    return (
+      <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 max-w-4xl">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <Skeleton className="h-10 w-72 mb-2" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <Skeleton className="h-10 w-36" />
+        </div>
+        <div className="space-y-8">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-8 w-56 mb-2" />
+               <Skeleton className="h-4 w-72" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-36 w-full" />
+            </CardContent>
+          </Card>
+          <div className="flex justify-end">
+            <Skeleton className="h-12 w-48" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 max-w-4xl">
@@ -182,12 +341,13 @@ export default function WeddingDetailsPage() {
                           placeholder="anna-paul"
                           className="rounded-l-none"
                           {...field}
+                          onChange={(e) => field.onChange(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                         />
                       </div>
                     </FormControl>
                     <FormDescription>
                       A unique identifier for your wedding URL (e.g., anna-paul).
-                      Use lowercase letters, numbers, and hyphens.
+                      Use lowercase letters, numbers, and hyphens only.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -226,7 +386,7 @@ export default function WeddingDetailsPage() {
                             selected={field.value}
                             onSelect={field.onChange}
                             disabled={(date) =>
-                              date < new Date(new Date().setDate(new Date().getDate() -1)) // Allow today
+                              date < new Date(new Date().setDate(new Date().getDate() -1))
                             }
                             initialFocus
                           />
@@ -315,7 +475,6 @@ export default function WeddingDetailsPage() {
                   <FormItem className="space-y-3">
                     <FormLabel>Select a Template</FormLabel>
                     <FormControl>
-                       {/* Basic radio group for template selection for now */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {MOCK_TEMPLATES.map((template) => (
                           <label
@@ -332,13 +491,12 @@ export default function WeddingDetailsPage() {
                               value={template.id}
                               checked={field.value === template.id}
                               onChange={() => field.onChange(template.id)}
-                              className="sr-only" // Hide actual radio, style label
+                              className="sr-only"
                             />
                             <div className="text-center">
-                              {/* Placeholder for template image */}
                               <div 
                                 className="w-full h-32 bg-secondary rounded-md mb-2 flex items-center justify-center text-muted-foreground text-sm"
-                                data-ai-hint={`template ${template.name.toLowerCase()}`}
+                                data-ai-hint={template.dataAiHint}
                               >
                                 Image for {template.name}
                               </div>
@@ -356,8 +514,8 @@ export default function WeddingDetailsPage() {
           </Card>
 
           <div className="flex justify-end">
-            <Button type="submit" size="lg" disabled={isSaving}>
-              {isSaving && (
+            <Button type="submit" size="lg" disabled={isSaving || isLoadingUser || isLoadingData}>
+              {(isSaving) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               {isSaving
@@ -372,4 +530,3 @@ export default function WeddingDetailsPage() {
     </div>
   );
 }
-
