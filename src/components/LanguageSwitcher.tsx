@@ -1,8 +1,10 @@
+
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { usePathname, useRouter } from 'next-intl/client';
-import { ChangeEvent, useTransition } from 'react';
+import { usePathname, useRouter } from 'next-intl/navigation'; // Changed from 'next-intl/client'
+import type { ChangeEvent } from 'react';
+import { useTransition } from 'react';
 import {
   Select,
   SelectContent,
