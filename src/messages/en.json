@@ -1,0 +1,32 @@
+{
+  "HomePage": {
+    "heroTitle": "Make your wedding day <primary>truly special</primary>",
+    "heroSubtitle": "Create a stunning wedding website with interactive guest features, RSVP management, photo sharing, and everything you need to plan your perfect day.",
+    "heroButtonCreate": "Create Your Wedding Site",
+    "heroButtonDiscover": "Discover Features",
+    "headerFeatures": "Features",
+    "headerTemplates": "Templates",
+    "headerPricing": "Pricing",
+    "headerHowItWorks": "How It Works",
+    "headerLogin": "Login",
+    "headerSignUp": "Sign Up",
+    "appFooterBrandSlogan": "Create beautiful wedding websites to share your special day with family and friends.",
+    "appFooterQuickLinks": "Quick Links",
+    "appFooterHome": "Home",
+    "appFooterKeyFeatures": "Key Features",
+    "appFooterCustomWebsites": "Custom Websites",
+    "appFooterGuestManagement": "Guest Management",
+    "appFooterRsvpTracking": "RSVP Tracking",
+    "appFooterPhotoGalleries": "Photo Galleries",
+    "appFooterRegistryLinks": "Registry Links",
+    "appFooterContact": "Contact",
+    "appFooterContactIntro": "Have questions? We're here to help!",
+    "appFooterContactEmail": "support@thebigday.app",
+    "appFooterCopyright": "&copy; {currentYear} The Big Day. All rights reserved."
+  },
+  "LanguageSwitcher": {
+    "language": "Language",
+    "english": "English",
+    "spanish": "Spanish"
+  }
+}

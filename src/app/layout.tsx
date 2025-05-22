@@ -1,12 +1,15 @@
-import type {Metadata} from 'next';
-import { GeistSans } from 'geist/font/sans'; // Import GeistSans from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono';   // Import GeistMono from 'geist/font/mono'
+// This is the root layout.
+// Internationalization will be handled by the [locale] segment.
+import type { Metadata } from 'next';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"; // Import Toaster
+import { Toaster } from "@/components/ui/toaster";
 
+// Metadata here can be generic or overridden by [locale]/layout.tsx
 export const metadata: Metadata = {
-  title: 'The Big Day', // Updated App Name
-  description: 'Our Wedding Website', // Updated description
+  title: 'The Big Day', // This can be overridden by locale-specific layouts if needed
+  description: 'Our Wedding Website',
 };
 
 export default function RootLayout({
@@ -15,11 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // The lang attribute will be set dynamically in [locale]/layout.tsx by next-intl
     <html lang="en" suppressHydrationWarning>
-      {/* Apply Geist font variables directly to the html or body tag */}
       <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`} suppressHydrationWarning>
+        {/* Toaster can remain here as it's a global utility */}
         {children}
-        <Toaster /> {/* Add Toaster here */}
+        <Toaster />
       </body>
     </html>
   );

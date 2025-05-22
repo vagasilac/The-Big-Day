@@ -1,0 +1,32 @@
+{
+  "HomePage": {
+    "heroTitle": "Haz que el día de tu boda sea <primary>verdaderamente especial</primary>",
+    "heroSubtitle": "Crea un impresionante sitio web para tu boda con funciones interactivas para invitados, gestión de RSVP, compartición de fotos y todo lo que necesitas para planificar tu día perfecto.",
+    "heroButtonCreate": "Crea el Sitio de Tu Boda",
+    "heroButtonDiscover": "Descubre Características",
+    "headerFeatures": "Características",
+    "headerTemplates": "Plantillas",
+    "headerPricing": "Precios",
+    "headerHowItWorks": "Cómo Funciona",
+    "headerLogin": "Iniciar Sesión",
+    "headerSignUp": "Regístrate",
+    "appFooterBrandSlogan": "Crea hermosos sitios web de bodas para compartir tu día especial con familiares y amigos.",
+    "appFooterQuickLinks": "Enlaces Rápidos",
+    "appFooterHome": "Inicio",
+    "appFooterKeyFeatures": "Características Clave",
+    "appFooterCustomWebsites": "Sitios Web Personalizados",
+    "appFooterGuestManagement": "Gestión de Invitados",
+    "appFooterRsvpTracking": "Seguimiento de RSVP",
+    "appFooterPhotoGalleries": "Galerías de Fotos",
+    "appFooterRegistryLinks": "Enlaces de Registro de Regalos",
+    "appFooterContact": "Contacto",
+    "appFooterContactIntro": "¿Tienes preguntas? ¡Estamos aquí para ayudarte!",
+    "appFooterContactEmail": "soporte@thebigday.app",
+    "appFooterCopyright": "&copy; {currentYear} The Big Day. Todos los derechos reservados."
+  },
+  "LanguageSwitcher": {
+    "language": "Idioma",
+    "english": "Inglés",
+    "spanish": "Español"
+  }
+}
