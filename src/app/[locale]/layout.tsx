@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
-import {NextIntlClientProvider, useMessages} from 'next-intl';
-// import {getMessages} from 'next-intl/server'; // Using useMessages for client components too
+import {NextIntlClientProvider} from 'next-intl';
+import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
-import '../globals.css'; // Adjusted path for globals.css
+import '../globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import {unstable_setRequestLocale} from 'next-intl/server';
 
 
 // Can be dynamic based on locale if needed
@@ -18,7 +17,7 @@ export function generateStaticParams() {
   return [{locale: 'en'}, {locale: 'es'}];
 }
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
   params: {locale}
 }: Readonly<{
@@ -26,9 +25,10 @@ export default function LocaleLayout({
   params: {locale: string};
 }>) {
   unstable_setRequestLocale(locale);
+
   // Providing all messages to the client
   // side is a good default.
-  const messages = useMessages();
+  const messages = await getMessages();
 
   return (
     <html lang={locale} suppressHydrationWarning>
