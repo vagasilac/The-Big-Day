@@ -1,28 +1,28 @@
-
 import type { Metadata } from 'next';
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
+import {notFound} from 'next/navigation'; // Ensure notFound is imported
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import '../globals.css'; // Relative path to src/app/globals.css
 import { Toaster } from "@/components/ui/toaster";
 
-// Ensure this matches the locales in your i18n.ts and middleware.ts
+const locales = ['en', 'es'];
+
 export function generateStaticParams() {
-  return [{locale: 'en'}, {locale: 'es'}];
+  return locales.map((locale) => ({locale}));
 }
 
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}): Promise<Metadata> {
-  // To make a more dynamic title, you could load messages here and use a translator
-  // For example, if i18n.ts is set up to load specific messages:
-  // const messages = await getMessages({locale}); // This might be part of the issue if i18n.ts isn't found
+  if (!locales.includes(locale)) notFound(); // Validate locale
+  // For a dynamic title, you could load messages here.
+  // const messages = await getMessages({locale});
   // const t = createTranslator({locale, messages});
   // return { title: t('LocaleLayout.title') };
   
-  // For now, using static metadata.
   return {
-    title: 'The Big Day', // This can be localized if needed
-    description: 'Our Wedding Website', // This can be localized if needed
+    title: 'The Big Day', 
+    description: 'Our Wedding Website', 
   };
 }
 
@@ -33,11 +33,12 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: {locale: string};
 }>) {
-  // Enable static rendering
-  unstable_setRequestLocale(locale); // MUST be called first
+  // Validate and set the locale for server-side rendering.
+  // This MUST be the first line in the component.
+  if (!locales.includes(locale)) notFound();
+  unstable_setRequestLocale(locale); 
 
-  // Providing all messages to the client
-  // side is a good default.
+  // Providing all messages to the client side is a good default.
   const messages = await getMessages();
 
   return (

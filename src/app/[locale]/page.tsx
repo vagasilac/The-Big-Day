@@ -21,9 +21,9 @@ import {
 } from 'lucide-react';
 
 import type { Wedding } from '@/types/wedding';
-import ElegantTemplate from '@/app/templates/wedding/elegant-template';
-import ModernTemplate from '@/app/templates/wedding/modern-template';
-import RusticTemplate from '@/app/templates/wedding/rustic-template';
+import ElegantTemplate from '../templates/wedding/elegant-template';
+import ModernTemplate from '../templates/wedding/modern-template';
+import RusticTemplate from '../templates/wedding/rustic-template';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const HeroSection = () => {
@@ -83,16 +83,16 @@ const featuresData = [
 
 
 const FeaturesSection = () => {
-  // TODO: Add translations for features titles and descriptions in en.json and es.json
+  const t = useTranslations('HomePage.features'); // Example of deeper translation path
   return (
     <section id="features" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Everything You Need for Your Special Day {/* TODO: Translate */}
+            {t('sectionTitle')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            "The Big Day" offers a suite of tools to make your wedding planning seamless and your celebration unforgettable. {/* TODO: Translate */}
+            {t('sectionSubtitle')}
           </p>
         </div>
 
@@ -107,8 +107,8 @@ const FeaturesSection = () => {
                 <div className="bg-primary/10 p-4 rounded-full mb-6 inline-flex">
                   <IconComponent className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2 text-foreground">{feature.titleKey}</h3> {/* TODO: Replace with t(feature.titleKey) */}
-                <p className="text-muted-foreground text-sm leading-relaxed">{feature.descriptionKey}</p> {/* TODO: Replace with t(feature.descriptionKey) */}
+                <h3 className="text-xl font-semibold mb-2 text-foreground">{t(feature.titleKey.split('.').pop() as any)}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t(feature.descriptionKey.split('.').pop() as any)}</p>
               </div>
             );
           })}
@@ -147,16 +147,17 @@ interface TemplatesSectionProps {
 }
 
 const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
+  const t = useTranslations('HomePage.templates');
   return (
     <section id="templates" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
           <Palette className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Beautiful Wedding Templates
+            {t('sectionTitle')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Choose from our collection of professionally designed templates. Personalize with your photos, colors, and content to create a unique wedding website.
+            {t('sectionSubtitle')}
           </p>
         </div>
 
@@ -169,7 +170,7 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
               <div className="relative aspect-video w-full">
                 <Image
                   src={template.image}
-                  alt={`${template.name} template preview`}
+                  alt={t('templatePreviewAlt', {name: template.name})}
                   fill
                   style={{ objectFit: 'cover' }}
                   className="rounded-t-xl"
@@ -177,14 +178,14 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
                 />
               </div>
               <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-grow">{template.description}</p>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3> {/* Template name isn't usually translated this way */}
+                <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-grow">{template.description}</p> {/* Description too */}
                 <Button
                   variant="outline"
                   className="mt-auto w-full"
                   onClick={() => onPreview(template)}
                 >
-                  Preview Template
+                  {t('previewButton')}
                 </Button>
               </div>
             </div>
@@ -194,7 +195,7 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
         <div className="mt-12 text-center">
           <Button asChild size="lg" className="px-8 py-3 h-auto text-base group">
             <Link href="/#templates"> 
-              Browse All Templates
+              {t('browseAllButton')}
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
@@ -206,59 +207,60 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
 
 const PRICING_PLANS = [
   {
-    name: "Basic", price: "$49", period: "one-time", description: "Perfect for intimate celebrations with core features.",
-    features: [ "Custom wedding website", "RSVP management (up to 50 guests)", "Digital invitations", "Photo gallery (250 photos)", "6 months access" ], popular: false
+    nameKey: "basicPlan.name", priceKey: "basicPlan.price", periodKey: "basicPlan.period", descriptionKey: "basicPlan.description",
+    featuresKeys: [ "basicPlan.features.0", "basicPlan.features.1", "basicPlan.features.2", "basicPlan.features.3", "basicPlan.features.4" ], popular: false
   },
   {
-    name: "Premium", price: "$99", period: "one-time", description: "Comprehensive features for the perfect celebration.",
-    features: [ "Everything in Basic", "RSVP management (up to 150 guests)", "Interactive guest games & polls", "Music playlist voting", "Unlimited photos", "12 months access" ], popular: true
+    nameKey: "premiumPlan.name", priceKey: "premiumPlan.price", periodKey: "premiumPlan.period", descriptionKey: "premiumPlan.description",
+    featuresKeys: [ "premiumPlan.features.0", "premiumPlan.features.1", "premiumPlan.features.2", "premiumPlan.features.3", "premiumPlan.features.4", "premiumPlan.features.5" ], popular: true
   },
   {
-    name: "Deluxe", price: "$149", period: "one-time", description: "For large weddings with all premium features.",
-    features: [ "Everything in Premium", "Unlimited guest count", "Seating planner", "Video & voice guestbook", "Custom domain name", "24 months access" ], popular: false
+    nameKey: "deluxePlan.name", priceKey: "deluxePlan.price", periodKey: "deluxePlan.period", descriptionKey: "deluxePlan.description",
+    featuresKeys: [ "deluxePlan.features.0", "deluxePlan.features.1", "deluxePlan.features.2", "deluxePlan.features.3", "deluxePlan.features.4", "deluxePlan.features.5" ], popular: false
   }
 ];
 
 const PricingSection = () => {
+  const t = useTranslations('HomePage.pricing');
   return (
     <section id="pricing" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
           <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{t('sectionTitle')}</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Choose the plan that works best for your wedding celebration.
+            {t('sectionSubtitle')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {PRICING_PLANS.map((plan) => (
             <div
-              key={plan.name}
+              key={plan.nameKey}
               className={`bg-card rounded-xl overflow-hidden flex flex-col ${
                 plan.popular ? "shadow-2xl border-2 border-primary transform md:-translate-y-4 scale-105 ring-4 ring-primary/20" : "shadow-lg border border-border hover:shadow-xl transition-shadow duration-300"
               }`}
             >
               {plan.popular && (
-                <div className="bg-primary text-primary-foreground text-center py-2 text-sm font-semibold tracking-wider uppercase">Most Popular</div>
+                <div className="bg-primary text-primary-foreground text-center py-2 text-sm font-semibold tracking-wider uppercase">{t('mostPopularBadge')}</div>
               )}
               <div className="p-6 md:p-8 flex-grow flex flex-col">
-                <h3 className="text-2xl font-semibold mb-2 text-foreground">{plan.name}</h3>
+                <h3 className="text-2xl font-semibold mb-2 text-foreground">{t(plan.nameKey)}</h3>
                 <div className="mb-4">
-                  <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                  <span className="text-muted-foreground"> / {plan.period}</span>
+                  <span className="text-4xl font-bold text-foreground">{t(plan.priceKey)}</span>
+                  <span className="text-muted-foreground"> / {t(plan.periodKey)}</span>
                 </div>
-                <p className="text-muted-foreground mb-6 text-sm flex-grow">{plan.description}</p>
+                <p className="text-muted-foreground mb-6 text-sm flex-grow">{t(plan.descriptionKey)}</p>
                 <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, idx) => (
+                  {plan.featuresKeys.map((featureKey, idx) => (
                     <li key={idx} className="flex items-start text-sm">
                       <Check className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                      <span className="text-foreground">{feature}</span>
+                      <span className="text-foreground">{t(featureKey)}</span>
                     </li>
                   ))}
                 </ul>
                 <Button variant={plan.popular ? "default" : "outline"} size="lg" className="w-full mt-auto" asChild>
-                  <Link href="/auth?tab=register">Get Started</Link>
+                  <Link href="/auth?tab=register">{t('getStartedButton')}</Link>
                 </Button>
               </div>
             </div>
@@ -271,34 +273,32 @@ const PricingSection = () => {
 
 const testimonialsData = [
   {
-    quote: "The Big Day made our wedding planning so much easier! Our guests loved the interactive features, especially the photo sharing during the reception.",
-    author: "Sarah & Michael", date: "Married June 2024",
+    quoteKey: "testimonials.0.quote", authorKey: "testimonials.0.author", dateKey: "testimonials.0.date",
     image: "https://images.unsplash.com/photo-1541800033-180008982215?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
     aiHint: "happy couple portrait"
   },
   {
-    quote: "The RSVP management saved us so much time. Our guests found it super convenient.",
-    author: "Jessica & David", date: "Married August 2024",
+    quoteKey: "testimonials.1.quote", authorKey: "testimonials.1.author", dateKey: "testimonials.1.date",
     image: "https://images.unsplash.com/photo-1515628507581-e69258294274?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
     aiHint: "joyful couple outdoors"
   },
   {
-    quote: "Playlist voting was a hit! The photo gallery is a beautiful keepsake.",
-    author: "Emma & James", date: "Married October 2024",
+    quoteKey: "testimonials.2.quote", authorKey: "testimonials.2.author", dateKey: "testimonials.2.date",
     image: "https://images.unsplash.com/photo-1507609413669-f529768f0904?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
     aiHint: "smiling couple wedding"
   },
 ];
 
 const TestimonialsSection = () => {
+  const t = useTranslations('HomePage.testimonials');
   return (
     <section id="testimonials" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
           <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">What Couples Say</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{t('sectionTitle')}</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Hear from couples who created memorable wedding experiences with The Big Day.
+            {t('sectionSubtitle')}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -310,21 +310,21 @@ const TestimonialsSection = () => {
                     <Star key={i} className="h-5 w-5 fill-current" />
                   ))}
                 </div>
-                <p className="text-muted-foreground italic mb-6">"{testimonial.quote}"</p>
+                <p className="text-muted-foreground italic mb-6">"{t(testimonial.quoteKey)}"</p>
               </div>
               <div className="flex items-center mt-auto">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden mr-4">
                   <Image
                     src={testimonial.image}
-                    alt={testimonial.author}
+                    alt={t(testimonial.authorKey)}
                     fill
                     style={{ objectFit: 'cover' }}
                     data-ai-hint={testimonial.aiHint}
                   />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-foreground">{testimonial.author}</h4>
-                  <p className="text-muted-foreground text-sm">{testimonial.date}</p>
+                  <h4 className="font-semibold text-foreground">{t(testimonial.authorKey)}</h4>
+                  <p className="text-muted-foreground text-sm">{t(testimonial.dateKey)}</p>
                 </div>
               </div>
             </div>
@@ -336,19 +336,20 @@ const TestimonialsSection = () => {
 };
 
 const HowItWorksSection = () => {
+  const t = useTranslations('HomePage.howItWorks');
   const steps = [
-    { icon: <Edit3 className="w-10 h-10 text-primary" />, title: "1. Sign Up & Create", description: "Create an account and select your favorite template to customize your wedding website." },
-    { icon: <Palette className="w-10 h-10 text-primary" />, title: "2. Add Your Details", description: "Add your wedding information, photos, and manage your guest list all in one place." },
-    { icon: <Send className="w-10 h-10 text-primary" />, title: "3. Share & Celebrate", description: "Send invitations, collect RSVPs, and enjoy all the interactive features with your guests." }
+    { icon: <Edit3 className="w-10 h-10 text-primary" />, titleKey: "steps.0.title", descriptionKey: "steps.0.description" },
+    { icon: <Palette className="w-10 h-10 text-primary" />, titleKey: "steps.1.title", descriptionKey: "steps.1.description" },
+    { icon: <Send className="w-10 h-10 text-primary" />, titleKey: "steps.2.title", descriptionKey: "steps.2.description" }
   ];
   return (
     <section id="how-it-works" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
            <CheckCircle className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">How It Works</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{t('sectionTitle')}</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Creating your dream wedding website is simple and takes just a few minutes to get started.
+            {t('sectionSubtitle')}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
@@ -357,8 +358,8 @@ const HowItWorksSection = () => {
               <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 {step.icon}
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{step.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{t(step.titleKey)}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{t(step.descriptionKey)}</p>
             </div>
           ))}
         </div>
@@ -366,14 +367,14 @@ const HowItWorksSection = () => {
           <div className="flex flex-col md:flex-row">
             <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center text-center md:text-left">
               <h3 className="text-2xl md:text-3xl font-bold text-primary mb-4" style={{fontFamily: 'Times New Roman, Times, serif'}}>
-                See a Live Demo
+                {t('demo.title')}
               </h3>
               <p className="text-lg text-muted-foreground mb-6">
-                Explore a fully featured demo wedding website. Experience both the guest view and the powerful admin dashboard.
+                {t('demo.description')}
               </p>
               <Button asChild size="lg" className="px-8 py-3 h-auto text-base self-center md:self-start">
-                <Link href="/#how-it-works">
-                  View Demo Website
+                <Link href="/#how-it-works"> 
+                  {t('demo.button')}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -381,7 +382,7 @@ const HowItWorksSection = () => {
             <div className="md:w-1/2 relative aspect-video md:aspect-auto min-h-[300px] md:min-h-0">
               <Image
                 src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwd2Vic2l0ZSUyMGxhcHRvcHxlbnwwfHx8fDE3NDc2MTQwNzB8MA&ixlib=rb-4.0.3&q=80&w=1080"
-                alt="Wedding website demo on a laptop"
+                alt={t('demo.imageAlt')}
                 fill
                 style={{ objectFit: 'cover' }}
                 data-ai-hint="wedding website laptop"
@@ -395,18 +396,18 @@ const HowItWorksSection = () => {
 };
 
 const CTASection = () => {
+  const t = useTranslations('HomePage.cta');
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 text-center">
         <Heart className="w-12 h-12 text-primary mx-auto mb-6" />
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-          Ready to Start Planning <span className="text-primary">The Big Day</span>?
-        </h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6"
+            dangerouslySetInnerHTML={{ __html: t.raw('title')}} />
         <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
-          Sign up today and begin creating the wedding website of your dreams. It's free to get started!
+          {t('subtitle')}
         </p>
         <Button asChild size="lg" className="px-10 py-3 h-auto text-lg">
-          <Link href="/auth?tab=register">Create Your Account</Link>
+          <Link href="/auth?tab=register">{t('button')}</Link>
         </Button>
       </div>
     </section>
@@ -414,7 +415,7 @@ const CTASection = () => {
 };
 
 const AppFooter = () => {
-  const t = useTranslations('HomePage');
+  const t = useTranslations('HomePage'); // Root of HomePage for footer links
   const [currentYear, setCurrentYear] = React.useState(new Date().getFullYear());
 
   React.useEffect(() => {
@@ -476,7 +477,7 @@ const AppFooter = () => {
 const sampleWeddingData: Partial<Wedding> = {
   title: "Anna & Paul's Wedding",
   description: "We are so excited to celebrate our special day with all of our amazing friends and family! Join us for a day filled with love, laughter, and unforgettable memories as we begin our new journey together.",
-  date: "2026-06-15T17:30:00.000Z", // UTC time
+  date: "2026-06-15T17:30:00.000Z", 
   location: "The Enchanted Garden, Springsville",
   coverPhoto: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwYmFucXVldCUyMHJvb218ZW58MHx8fHwxNzQ3NTg4OTg5fDA&ixlib=rb-4.0.3&q=80&w=1080",
   gallery: [
@@ -495,7 +496,7 @@ const sampleWeddingData: Partial<Wedding> = {
     { time: "10:00 PM", event: "Sparkler Send-off", description: "Wish us well as we depart" }
   ],
   dressCode: "Semi-Formal: Suits, gowns, or cocktail dresses.",
-  rsvpDeadline: "2026-04-30T23:59:00.000Z" // End of day
+  rsvpDeadline: "2026-04-30T23:59:00.000Z" 
 };
 
 export default function HomePage() {
@@ -523,7 +524,7 @@ export default function HomePage() {
       case 'rustic-charm':
         return <RusticTemplate {...templateProps} />;
       default:
-        return <p className="p-4">Preview not available for this template.</p>;
+        return <p className="p-4">{t('templates.previewNotAvailable')}</p>;
     }
   };
 
@@ -560,7 +561,7 @@ export default function HomePage() {
               </Link>
             </nav>
             <div className="md:hidden">
-              <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Toggle menu">
+              <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label={t('toggleMenuLabel')}>
                 {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
             </div>
@@ -604,17 +605,17 @@ export default function HomePage() {
       <AppFooter />
       <Sheet open={isPreviewSheetOpen} onOpenChange={setIsPreviewSheetOpen}>
         <SheetContent className="w-full sm:max-w-lg md:max-w-xl lg:w-2/5 xl:w-1/3 p-0 overflow-y-auto">
-          <SheetHeader className="p-6 border-b bg-background sticky top-0 z-20"> {/* Increased z-index */}
-            <SheetTitle>{selectedTemplate?.name || 'Template Preview'}</SheetTitle>
+          <SheetHeader className="p-6 border-b bg-background sticky top-0 z-20">
+            <SheetTitle>{selectedTemplate?.name || t('templates.previewSheetTitleDefault')}</SheetTitle>
             <SheetDescription>
-              This is a preview of the {selectedTemplate?.name || 'selected'} template.
+              {t('templates.previewSheetDescription', { name: selectedTemplate?.name || t('templates.selectedTemplateDefault') })}
             </SheetDescription>
             <SheetClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
               <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{t('closeButton')}</span>
             </SheetClose>
           </SheetHeader>
-          <div className="relative z-0"> {/* Ensure template content is below header */}
+          <div className="relative z-0"> {/* Ensure template content doesn't overlap sticky header */}
             {renderTemplatePreview()}
           </div>
         </SheetContent>
