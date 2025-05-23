@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
 const intlMiddleware = createMiddleware({
   locales: ['en', 'es'],
   defaultLocale: 'en',
-  localePrefix: 'as-needed' // Recommended for SEO and clarity
+  localePrefix: 'as-needed'
 });
 
 export default function middleware(req: NextRequest) {
@@ -21,6 +21,5 @@ export default function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Matcher ignoring `/_next/` and `/api/` and specific static files
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
 };

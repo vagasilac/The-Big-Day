@@ -1,3 +1,4 @@
+
 // This is the root layout.
 // Internationalization will be handled by the [locale] segment.
 import type { Metadata } from 'next';
@@ -8,7 +9,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 // Metadata here can be generic or overridden by [locale]/layout.tsx
 export const metadata: Metadata = {
-  title: 'The Big Day', // This can be overridden by locale-specific layouts if needed
+  title: 'The Big Day',
   description: 'Our Wedding Website',
 };
 

@@ -20,7 +20,7 @@ import {
   CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign, Star
 } from 'lucide-react';
 
-import type { Wedding } from '@/types/wedding'; // Ensure this path is correct
+import type { Wedding } from '@/types/wedding';
 import ElegantTemplate from '@/app/templates/wedding/elegant-template';
 import ModernTemplate from '@/app/templates/wedding/modern-template';
 import RusticTemplate from '@/app/templates/wedding/rustic-template';
@@ -70,7 +70,7 @@ const HeroSection = () => {
   );
 };
 
-const featuresData = [ // Renamed from 'features' to avoid conflict with section name
+const featuresData = [
   { icon: Newspaper, titleKey: "features.customizableWebsite.title", descriptionKey: "features.customizableWebsite.description" },
   { icon: ListChecks, titleKey: "features.rsvpManagement.title", descriptionKey: "features.rsvpManagement.description" },
   { icon: Camera, titleKey: "features.photoSharing.title", descriptionKey: "features.photoSharing.description" },
@@ -84,14 +84,6 @@ const featuresData = [ // Renamed from 'features' to avoid conflict with section
 
 const FeaturesSection = () => {
   // TODO: Add translations for features titles and descriptions in en.json and es.json
-  // For example, in en.json:
-  // "features": {
-  //   "customizableWebsite": {
-  //     "title": "Customizable Website",
-  //     "description": "Choose from elegant templates and personalize every detail of your wedding website."
-  //   }, ...
-  // }
-  // Then use t(feature.titleKey) and t(feature.descriptionKey)
   return (
     <section id="features" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
@@ -129,22 +121,22 @@ const FeaturesSection = () => {
 const WEDDING_TEMPLATES = [
   {
     id: 'classic-elegance',
-    name: 'Classic Elegance', // TODO: Translate
-    description: 'A timeless design with sophisticated typography and a clean layout.', // TODO: Translate
+    name: 'Classic Elegance',
+    description: 'A timeless design with sophisticated typography and a clean layout.',
     image: 'https://images.unsplash.com/photo-1498771857520-25063edc30c9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxOHx8Y2xhc3NpY3xlbnwwfHx8fDE3NDc2MTAwMTV8MA&ixlib=rb-4.1.0&q=80&w=1080',
     aiHint: 'classic wedding invitation'
   },
   {
     id: 'modern-romance',
-    name: 'Modern Romance', // TODO: Translate
-    description: 'Chic and contemporary, perfect for the modern couple.', // TODO: Translate
+    name: 'Modern Romance',
+    description: 'Chic and contemporary, perfect for the modern couple.',
     image: 'https://images.unsplash.com/photo-1518464622742-9aeb03009561?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtb2Rlcm4lMjByb21hbmNlfGVufDB8fHx8MTc0NzYxMDE1NXww&ixlib=rb-4.1.0&q=80&w=1080',
     aiHint: 'modern wedding invitation'
   },
   {
     id: 'rustic-charm',
-    name: 'Rustic Charm', // TODO: Translate
-    description: 'Warm and inviting, ideal for a countryside or barn wedding.', // TODO: Translate
+    name: 'Rustic Charm',
+    description: 'Warm and inviting, ideal for a countryside or barn wedding.',
     image: 'https://images.unsplash.com/photo-1731128852828-06b745c46c22?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxydXN0aWMlMjBjaGFybXxlbnwwfHx8fDE3NDc2MTAyMzZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
     aiHint: 'rustic wedding invitation'
   },
@@ -155,7 +147,6 @@ interface TemplatesSectionProps {
 }
 
 const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
-  // TODO: Translate section title and description, and individual template names/descriptions
   return (
     <section id="templates" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -193,7 +184,7 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
                   className="mt-auto w-full"
                   onClick={() => onPreview(template)}
                 >
-                  Preview Template {/* TODO: Translate */}
+                  Preview Template
                 </Button>
               </div>
             </div>
@@ -202,8 +193,8 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
 
         <div className="mt-12 text-center">
           <Button asChild size="lg" className="px-8 py-3 h-auto text-base group">
-            <Link href="/#templates"> {/* May need locale prefixing here */}
-              Browse All Templates {/* TODO: Translate */}
+            <Link href="/#templates"> 
+              Browse All Templates
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
@@ -215,53 +206,20 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
 
 const PRICING_PLANS = [
   {
-    name: "Basic",
-    price: "$49",
-    period: "one-time",
-    description: "Perfect for intimate celebrations with core features.",
-    features: [
-      "Custom wedding website",
-      "RSVP management (up to 50 guests)",
-      "Digital invitations",
-      "Photo gallery (250 photos)",
-      "6 months access"
-    ],
-    popular: false
+    name: "Basic", price: "$49", period: "one-time", description: "Perfect for intimate celebrations with core features.",
+    features: [ "Custom wedding website", "RSVP management (up to 50 guests)", "Digital invitations", "Photo gallery (250 photos)", "6 months access" ], popular: false
   },
   {
-    name: "Premium",
-    price: "$99",
-    period: "one-time",
-    description: "Comprehensive features for the perfect celebration.",
-    features: [
-      "Everything in Basic",
-      "RSVP management (up to 150 guests)",
-      "Interactive guest games & polls",
-      "Music playlist voting",
-      "Unlimited photos",
-      "12 months access"
-    ],
-    popular: true
+    name: "Premium", price: "$99", period: "one-time", description: "Comprehensive features for the perfect celebration.",
+    features: [ "Everything in Basic", "RSVP management (up to 150 guests)", "Interactive guest games & polls", "Music playlist voting", "Unlimited photos", "12 months access" ], popular: true
   },
   {
-    name: "Deluxe",
-    price: "$149",
-    period: "one-time",
-    description: "For large weddings with all premium features.",
-    features: [
-      "Everything in Premium",
-      "Unlimited guest count",
-      "Seating planner",
-      "Video & voice guestbook",
-      "Custom domain name",
-      "24 months access"
-    ],
-    popular: false
+    name: "Deluxe", price: "$149", period: "one-time", description: "For large weddings with all premium features.",
+    features: [ "Everything in Premium", "Unlimited guest count", "Seating planner", "Video & voice guestbook", "Custom domain name", "24 months access" ], popular: false
   }
 ];
 
 const PricingSection = () => {
-  // TODO: Translate section title, description, plan names, descriptions, features
   return (
     <section id="pricing" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
@@ -278,9 +236,7 @@ const PricingSection = () => {
             <div
               key={plan.name}
               className={`bg-card rounded-xl overflow-hidden flex flex-col ${
-                plan.popular
-                  ? "shadow-2xl border-2 border-primary transform md:-translate-y-4 scale-105 ring-4 ring-primary/20"
-                  : "shadow-lg border border-border hover:shadow-xl transition-shadow duration-300"
+                plan.popular ? "shadow-2xl border-2 border-primary transform md:-translate-y-4 scale-105 ring-4 ring-primary/20" : "shadow-lg border border-border hover:shadow-xl transition-shadow duration-300"
               }`}
             >
               {plan.popular && (
@@ -293,7 +249,6 @@ const PricingSection = () => {
                   <span className="text-muted-foreground"> / {plan.period}</span>
                 </div>
                 <p className="text-muted-foreground mb-6 text-sm flex-grow">{plan.description}</p>
-
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start text-sm">
@@ -302,14 +257,8 @@ const PricingSection = () => {
                     </li>
                   ))}
                 </ul>
-
-                <Button
-                  variant={plan.popular ? "default" : "outline"}
-                  size="lg"
-                  className="w-full mt-auto"
-                  asChild
-                >
-                  <Link href="/auth?tab=register">Get Started</Link> {/* TODO: Translate */}
+                <Button variant={plan.popular ? "default" : "outline"} size="lg" className="w-full mt-auto" asChild>
+                  <Link href="/auth?tab=register">Get Started</Link>
                 </Button>
               </div>
             </div>
@@ -323,16 +272,25 @@ const PricingSection = () => {
 const testimonialsData = [
   {
     quote: "The Big Day made our wedding planning so much easier! Our guests loved the interactive features, especially the photo sharing during the reception.",
-    author: "Sarah & Michael",
-    date: "Married June 2024",
+    author: "Sarah & Michael", date: "Married June 2024",
     image: "https://images.unsplash.com/photo-1541800033-180008982215?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
     aiHint: "happy couple portrait"
   },
-  // ... other testimonials
+  {
+    quote: "The RSVP management saved us so much time. Our guests found it super convenient.",
+    author: "Jessica & David", date: "Married August 2024",
+    image: "https://images.unsplash.com/photo-1515628507581-e69258294274?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
+    aiHint: "joyful couple outdoors"
+  },
+  {
+    quote: "Playlist voting was a hit! The photo gallery is a beautiful keepsake.",
+    author: "Emma & James", date: "Married October 2024",
+    image: "https://images.unsplash.com/photo-1507609413669-f529768f0904?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
+    aiHint: "smiling couple wedding"
+  },
 ];
 
 const TestimonialsSection = () => {
-  // TODO: Translate section title, description, testimonials
   return (
     <section id="testimonials" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -383,7 +341,6 @@ const HowItWorksSection = () => {
     { icon: <Palette className="w-10 h-10 text-primary" />, title: "2. Add Your Details", description: "Add your wedding information, photos, and manage your guest list all in one place." },
     { icon: <Send className="w-10 h-10 text-primary" />, title: "3. Share & Celebrate", description: "Send invitations, collect RSVPs, and enjoy all the interactive features with your guests." }
   ];
-  // TODO: Translate section title, description, steps
   return (
     <section id="how-it-works" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
@@ -409,14 +366,14 @@ const HowItWorksSection = () => {
           <div className="flex flex-col md:flex-row">
             <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center text-center md:text-left">
               <h3 className="text-2xl md:text-3xl font-bold text-primary mb-4" style={{fontFamily: 'Times New Roman, Times, serif'}}>
-                See a Live Demo {/* TODO: Translate */}
+                See a Live Demo
               </h3>
               <p className="text-lg text-muted-foreground mb-6">
-                Explore a fully featured demo wedding website. Experience both the guest view and the powerful admin dashboard. {/* TODO: Translate */}
+                Explore a fully featured demo wedding website. Experience both the guest view and the powerful admin dashboard.
               </p>
               <Button asChild size="lg" className="px-8 py-3 h-auto text-base self-center md:self-start">
                 <Link href="/#how-it-works">
-                  View Demo Website {/* TODO: Translate */}
+                  View Demo Website
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -438,7 +395,6 @@ const HowItWorksSection = () => {
 };
 
 const CTASection = () => {
-  // TODO: Translate title, description, button
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 text-center">
@@ -517,20 +473,58 @@ const AppFooter = () => {
   );
 };
 
-const sampleWeddingData: Partial<Wedding> = { /* ... same as before ... */ };
+const sampleWeddingData: Partial<Wedding> = {
+  title: "Anna & Paul's Wedding",
+  description: "We are so excited to celebrate our special day with all of our amazing friends and family! Join us for a day filled with love, laughter, and unforgettable memories as we begin our new journey together.",
+  date: "2026-06-15T17:30:00.000Z", // UTC time
+  location: "The Enchanted Garden, Springsville",
+  coverPhoto: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwYmFucXVldCUyMHJvb218ZW58MHx8fHwxNzQ3NTg4OTg5fDA&ixlib=rb-4.0.3&q=80&w=1080",
+  gallery: [
+    { id: "1", url: "https://images.unsplash.com/photo-1522346513757-54c352451edb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9wb3NhbCUyMGJlYWNofGVufDB8fHx8MTc0NzY5NTQ0MHww&ixlib=rb-4.0.3&q=80&w=400", description: "The Proposal", dataAiHint: "proposal beach sunset"},
+    { id: "2", url: "https://images.unsplash.com/photo-1591604466107-ec97de527c60?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwcm9wb3NhbCUyMGJlYWNofGVufDB8fHx8MTc0NzY5NTQ0MHww&ixlib=rb-4.0.3&q=80&w=400", description: "She said yes!", dataAiHint: "engagement ring hand"},
+    { id: "3", url: "https://images.unsplash.com/photo-1508808937599-06c4f5855260?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwdmVudWUlMjBnYXJkZW58ZW58MHx8fHwxNzQ3Njk1NTA1fDA&ixlib=rb-4.0.3&q=80&w=400", description: "Our Future Venue", dataAiHint: "wedding venue garden"},
+    { id: "4", url: "https://images.unsplash.com/photo-1589156218404-209c028574b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3ZWRkaW5nJTIwdmVudWUlMjBnYXJkZW58ZW58MHx8fHwxNzQ3Njk1NTA1fDA&ixlib=rb-4.0.3&q=80&w=400", description: "Venue Details", dataAiHint: "outdoor wedding setup"},
+    { id: "5", url: "https://images.unsplash.com/photo-1552873829-78940e407a4c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxlbmdhZ2VtZW50JTIwcGhvdG9zJTIwY291cGxlfGVufDB8fHx8MTc0NzY5NTU1NHww&ixlib=rb-4.0.3&q=80&w=400", description: "Engagement Photos", dataAiHint: "engagement photos couple"},
+    { id: "6", url: "https://images.unsplash.com/photo-1580403390485-499ea959307f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxlbmdhZ2VtZW50JTIwcGhvdG9zJTIwY291cGxlfGVufDB8fHx8MTc0NzY5NTU1NHww&ixlib=rb-4.0.3&q=80&w=400", description: "Save the Date", dataAiHint: "couple holding hands"},
+  ],
+  schedule: [
+    { time: "3:00 PM", event: "Guest Arrival", description: "Welcome drinks and light refreshments" },
+    { time: "4:00 PM", event: "Ceremony", description: "Join us as we say \"I do\"" },
+    { time: "5:00 PM", event: "Cocktail Hour", description: "Enjoy cocktails and appetizers" },
+    { time: "6:30 PM", event: "Reception", description: "Dinner, dancing, and celebrations" },
+    { time: "10:00 PM", event: "Sparkler Send-off", description: "Wish us well as we depart" }
+  ],
+  dressCode: "Semi-Formal: Suits, gowns, or cocktail dresses.",
+  rsvpDeadline: "2026-04-30T23:59:00.000Z" // End of day
+};
 
 export default function HomePage() {
   const t = useTranslations('HomePage');
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const closeMenu = () => setIsMenuOpen(false);
-
   const [isPreviewSheetOpen, setIsPreviewSheetOpen] = React.useState(false);
   const [selectedTemplate, setSelectedTemplate] = React.useState<typeof WEDDING_TEMPLATES[0] | null>(null);
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const closeMenu = () => setIsMenuOpen(false);
 
   const handleOpenPreview = (template: typeof WEDDING_TEMPLATES[0]) => {
     setSelectedTemplate(template);
     setIsPreviewSheetOpen(true);
+  };
+
+  const renderTemplatePreview = () => {
+    if (!selectedTemplate) return null;
+    const templateProps = { wedding: sampleWeddingData, isPreviewMode: true };
+    switch (selectedTemplate.id) {
+      case 'classic-elegance':
+        return <ElegantTemplate {...templateProps} />;
+      case 'modern-romance':
+        return <ModernTemplate {...templateProps} />;
+      case 'rustic-charm':
+        return <RusticTemplate {...templateProps} />;
+      default:
+        return <p className="p-4">Preview not available for this template.</p>;
+    }
   };
 
   return (
@@ -549,7 +543,18 @@ export default function HomePage() {
               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#features">{t('headerFeatures')}</Link>
               </Button>
-              {/* ... other nav links ... */}
+              <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+                <Link href="/#templates">{t('headerTemplates')}</Link>
+              </Button>
+              <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+                <Link href="/#pricing">{t('headerPricing')}</Link>
+              </Button>
+              <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
+                <Link href="/#how-it-works">{t('headerHowItWorks')}</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild className="px-2 sm:px-3">
+                <Link href="/auth">{t('headerLogin')}</Link>
+              </Button>
               <Link href="/auth?tab=register">
                 <Button size="sm" className="px-2 sm:px-3">{t('headerSignUp')}</Button>
               </Link>
@@ -561,7 +566,31 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        {/* Mobile Menu ... */}
+        {isMenuOpen && (
+          <div className="md:hidden border-t border-border">
+            <nav className="flex flex-col px-4 py-2 space-y-1">
+              <Button variant="ghost" asChild className="justify-start text-muted-foreground" onClick={closeMenu}>
+                <Link href="/#features">{t('headerFeatures')}</Link>
+              </Button>
+              <Button variant="ghost" asChild className="justify-start text-muted-foreground" onClick={closeMenu}>
+                <Link href="/#templates">{t('headerTemplates')}</Link>
+              </Button>
+              <Button variant="ghost" asChild className="justify-start text-muted-foreground" onClick={closeMenu}>
+                <Link href="/#pricing">{t('headerPricing')}</Link>
+              </Button>
+              <Button variant="ghost" asChild className="justify-start text-muted-foreground" onClick={closeMenu}>
+                <Link href="/#how-it-works">{t('headerHowItWorks')}</Link>
+              </Button>
+              <Separator className="my-2" />
+              <Button variant="outline" asChild className="w-full" onClick={closeMenu}>
+                <Link href="/auth">{t('headerLogin')}</Link>
+              </Button>
+              <Button asChild className="w-full" onClick={closeMenu}>
+                <Link href="/auth?tab=register">{t('headerSignUp')}</Link>
+              </Button>
+            </nav>
+          </div>
+        )}
       </header>
       <main className="flex-1">
         <HeroSection />
@@ -574,8 +603,23 @@ export default function HomePage() {
       </main>
       <AppFooter />
       <Sheet open={isPreviewSheetOpen} onOpenChange={setIsPreviewSheetOpen}>
-        {/* ... Sheet Content ... */}
+        <SheetContent className="w-full sm:max-w-lg md:max-w-xl lg:w-2/5 xl:w-1/3 p-0 overflow-y-auto">
+          <SheetHeader className="p-6 border-b bg-background sticky top-0 z-20"> {/* Increased z-index */}
+            <SheetTitle>{selectedTemplate?.name || 'Template Preview'}</SheetTitle>
+            <SheetDescription>
+              This is a preview of the {selectedTemplate?.name || 'selected'} template.
+            </SheetDescription>
+            <SheetClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </SheetClose>
+          </SheetHeader>
+          <div className="relative z-0"> {/* Ensure template content is below header */}
+            {renderTemplatePreview()}
+          </div>
+        </SheetContent>
       </Sheet>
     </div>
   );
 }
+

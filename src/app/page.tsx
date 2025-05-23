@@ -1,3 +1,4 @@
+
 // This root page.tsx is mostly a pass-through or not rendered
 // if middleware.ts correctly rewrites to /[locale]
 // The actual homepage content is now in src/app/[locale]/page.tsx.

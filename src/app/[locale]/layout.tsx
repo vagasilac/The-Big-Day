@@ -13,14 +13,16 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}): Promise<Metadata> {
-  // Optionally, load translated metadata if needed.
-  // For now, using static metadata.
-  // const messages = await getMessages({ locale }); // You could use this if your title needs translation
+  // To make a more dynamic title, you could load messages here and use a translator
+  // For example:
+  // const messages = await getMessages({ locale }); // Pass locale if you only want specific messages
   // const t = createTranslator({locale, messages});
   // return { title: t('LocaleLayout.title') };
+
+  // For now, using static metadata.
   return {
-    title: 'The Big Day',
-    description: 'Our Wedding Website',
+    title: 'The Big Day', // This can be localized if needed
+    description: 'Our Wedding Website', // This can be localized if needed
   };
 }
 
