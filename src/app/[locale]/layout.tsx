@@ -4,7 +4,7 @@ import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
-import '../globals.css'; // This path is relative to src/app/[locale]/
+import '../globals.css'; // Relative path to src/app/globals.css
 import { Toaster } from "@/components/ui/toaster";
 
 // Ensure this matches the locales in your i18n.ts and middleware.ts
@@ -14,11 +14,11 @@ export function generateStaticParams() {
 
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}): Promise<Metadata> {
   // To make a more dynamic title, you could load messages here and use a translator
-  // For example:
-  // const messages = await getMessages({ locale }); // Pass locale if you only want specific messages
+  // For example, if i18n.ts is set up to load specific messages:
+  // const messages = await getMessages({locale}); // This might be part of the issue if i18n.ts isn't found
   // const t = createTranslator({locale, messages});
   // return { title: t('LocaleLayout.title') };
-
+  
   // For now, using static metadata.
   return {
     title: 'The Big Day', // This can be localized if needed
@@ -34,7 +34,7 @@ export default async function LocaleLayout({
   params: {locale: string};
 }>) {
   // Enable static rendering
-  unstable_setRequestLocale(locale);
+  unstable_setRequestLocale(locale); // MUST be called first
 
   // Providing all messages to the client
   // side is a good default.

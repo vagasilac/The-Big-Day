@@ -1,25 +1,24 @@
 
 import createMiddleware from 'next-intl/middleware';
-import type { NextRequest } from 'next/server';
 
-const intlMiddleware = createMiddleware({
+export default createMiddleware({
+  // A list of all locales that are supported
   locales: ['en', 'es'],
+
+  // Used when no locale matches
   defaultLocale: 'en',
+
+  // The locale prefix strategy
   localePrefix: 'as-needed'
 });
 
-export default function middleware(req: NextRequest) {
-  // Skip i18n for API routes, static files, etc.
-  if (
-    req.nextUrl.pathname.startsWith('/api') ||
-    req.nextUrl.pathname.startsWith('/_next') ||
-    req.nextUrl.pathname.includes('.') // Generally for static files
-  ) {
-    return; // Do not apply intl middleware to these paths
-  }
-  return intlMiddleware(req);
-}
-
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)']
+  // Match only internationalized pathnames
+  // This pattern covers the root and all locale-prefixed paths.
+  // It excludes API routes, _next/static, _next/image, and files with extensions (like favicon.ico).
+  matcher: [
+    '/', // Match the root for default locale redirection
+    '/(en|es)/:path*', // Match locale-prefixed paths
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)' // A more general matcher to catch other paths that might need i18n, while excluding common static assets. Adjust if too broad.
+  ]
 };
