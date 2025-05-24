@@ -16,13 +16,10 @@ export default getRequestConfig(async ({locale}) => {
     // The path is relative to `src/i18n.ts`
     messages = (await import(`./messages/${locale}.json`)).default;
   } catch (error) {
-    console.error(`Failed to load messages for locale "${locale}":`, error);
+    console.error(`Failed to load messages for locale "${locale}" in i18n.ts:`, error);
     // If messages are critical for the page, trigger a notFound response.
-    // Otherwise, you could provide default empty messages or log the error.
+    // For robustness, we can provide empty messages if preferred, but notFound is safer if they're essential.
     notFound(); 
   }
 
   return {
-    messages
-  };
-});

@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
@@ -19,13 +18,16 @@ export async function generateMetadata({params: {locale}}: {params: {locale: str
   if (!locales.includes(locale)) {
     notFound();
   }
-  // unstable_setRequestLocale(locale); // Not typically needed here if called in layout, but good practice for safety
-
-  // Optionally, load messages to use for dynamic titles, etc.
-  // For example, using a hypothetical 'LocaleLayout.title' key
-  // const messages = await getMessages({locale}); 
-  // const t = createTranslator({locale, messages});
-  // return { title: t('LocaleLayout.title') };
+  // unstable_setRequestLocale(locale); // Not strictly needed here if not using getMessages/getTranslations directly for metadata
+  
+  // Example for dynamic title (if you had translations for it)
+  // try {
+  //   const messages = await getMessages({ locale }); // Fetch messages for this specific locale
+  //   const t = createTranslator({locale, messages}); // You'd need to import createTranslator
+  //   return { title: t('LocaleLayout.title') }; // Example key
+  // } catch (error) {
+  //   console.error(`Failed to load messages for metadata (locale: ${locale}):`, error);
+  // }
   
   return {
     title: 'The Big Day', 
@@ -50,7 +52,7 @@ export default async function LocaleLayout({
   // Providing all messages to the client side is a good default.
   let messages;
   try {
-    messages = await getMessages();
+    messages = await getMessages(); // This should now work correctly after unstable_setRequestLocale
   } catch (error) {
     console.error('Failed to load messages in LocaleLayout:', error);
     // Handle error appropriately, maybe show a fallback or trigger notFound
