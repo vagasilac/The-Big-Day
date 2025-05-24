@@ -1,7 +1,8 @@
+
 import type { Metadata } from 'next';
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
-import {notFound} from 'next/navigation'; // Ensure notFound is imported
+import {notFound} from 'next/navigation'; 
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import '../globals.css'; // Relative path to src/app/globals.css
@@ -14,9 +15,15 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}): Promise<Metadata> {
-  if (!locales.includes(locale)) notFound(); // Validate locale
-  // For a dynamic title, you could load messages here.
-  // const messages = await getMessages({locale});
+  // Validate locale for metadata generation
+  if (!locales.includes(locale)) {
+    notFound();
+  }
+  // unstable_setRequestLocale(locale); // Not typically needed here if called in layout, but good practice for safety
+
+  // Optionally, load messages to use for dynamic titles, etc.
+  // For example, using a hypothetical 'LocaleLayout.title' key
+  // const messages = await getMessages({locale}); 
   // const t = createTranslator({locale, messages});
   // return { title: t('LocaleLayout.title') };
   
@@ -34,12 +41,24 @@ export default async function LocaleLayout({
   params: {locale: string};
 }>) {
   // Validate and set the locale for server-side rendering.
-  // This MUST be the first line in the component.
-  if (!locales.includes(locale)) notFound();
+  // This MUST be the first line in the component if using locale in generateMetadata or elsewhere.
+  if (!locales.includes(locale)) {
+    notFound();
+  }
   unstable_setRequestLocale(locale); 
 
   // Providing all messages to the client side is a good default.
-  const messages = await getMessages();
+  let messages;
+  try {
+    messages = await getMessages();
+  } catch (error) {
+    console.error('Failed to load messages in LocaleLayout:', error);
+    // Handle error appropriately, maybe show a fallback or trigger notFound
+    // For now, we'll let it proceed and potentially error in NextIntlClientProvider if messages are undefined
+    // or provide empty messages as a fallback
+    messages = {}; 
+  }
+  
 
   return (
     <html lang={locale} suppressHydrationWarning>
