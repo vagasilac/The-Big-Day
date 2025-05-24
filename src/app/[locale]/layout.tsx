@@ -14,24 +14,22 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}): Promise<Metadata> {
-  // Validate locale for metadata generation
+  // Validate locale first
   if (!locales.includes(locale)) {
     notFound();
   }
-  // unstable_setRequestLocale(locale); // Not strictly needed here if not using getMessages/getTranslations directly for metadata
+  // It's good practice to also setRequestLocale here if needed by getMessages in metadata context,
+  // though getMessages in the layout component itself is more common for the provider.
+  // For now, we rely on the layout's unstable_setRequestLocale call.
   
-  // Example for dynamic title (if you had translations for it)
-  // try {
-  //   const messages = await getMessages({ locale }); // Fetch messages for this specific locale
-  //   const t = createTranslator({locale, messages}); // You'd need to import createTranslator
-  //   return { title: t('LocaleLayout.title') }; // Example key
-  // } catch (error) {
-  //   console.error(`Failed to load messages for metadata (locale: ${locale}):`, error);
-  // }
-  
+  // Example: If you wanted to use translations in metadata (requires messages)
+  // unstable_setRequestLocale(locale); // Call if getMessages is used here
+  // const messages = await getMessages();
+  // const t = createTranslator({locale, messages}); // Helper if needed, or access directly
+
   return {
-    title: 'The Big Day', 
-    description: 'Our Wedding Website', 
+    title: 'The Big Day', // Static for now, or use t('metadata.title') if translated
+    description: 'Our Wedding Website', // Static for now, or use t('metadata.description')
   };
 }
 
@@ -42,23 +40,28 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: {locale: string};
 }>) {
-  // Validate and set the locale for server-side rendering.
-  // This MUST be the first line in the component if using locale in generateMetadata or elsewhere.
+  // Validate that the incoming `locale` parameter is valid
   if (!locales.includes(locale)) {
     notFound();
   }
+
+  // This MUST be called before an functions from next-intl (e.g. getMessages)
+  // are used in a Server Component.
   unstable_setRequestLocale(locale); 
 
-  // Providing all messages to the client side is a good default.
   let messages;
   try {
-    messages = await getMessages(); // This should now work correctly after unstable_setRequestLocale
+    // Providing all messages to the client side is a good default.
+    // getMessages() will now use the locale set by unstable_setRequestLocale.
+    messages = await getMessages(); 
   } catch (error) {
-    console.error('Failed to load messages in LocaleLayout:', error);
+    console.error(`Failed to load messages for locale "${locale}" in LocaleLayout:`, error);
     // Handle error appropriately, maybe show a fallback or trigger notFound
     // For now, we'll let it proceed and potentially error in NextIntlClientProvider if messages are undefined
     // or provide empty messages as a fallback
     messages = {}; 
+    // Alternatively, to be more strict:
+    // notFound();
   }
   
 

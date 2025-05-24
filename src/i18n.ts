@@ -1,4 +1,3 @@
-
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 
@@ -8,6 +7,7 @@ const locales = ['en', 'es'];
 export default getRequestConfig(async ({locale}) => {
   // Validate that the incoming `locale` parameter is valid
   if (!locales.includes(locale as any)) {
+    console.error(`Invalid locale "${locale}" passed to getRequestConfig in i18n.ts.`);
     notFound();
   }
 
@@ -17,9 +17,11 @@ export default getRequestConfig(async ({locale}) => {
     messages = (await import(`./messages/${locale}.json`)).default;
   } catch (error) {
     console.error(`Failed to load messages for locale "${locale}" in i18n.ts:`, error);
-    // If messages are critical for the page, trigger a notFound response.
-    // For robustness, we can provide empty messages if preferred, but notFound is safer if they're essential.
+    // If messages are critical, trigger a notFound response.
     notFound(); 
   }
 
   return {
+    messages
+  };
+});

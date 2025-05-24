@@ -178,8 +178,8 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
                 />
               </div>
               <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3> {/* Template name isn't usually translated this way */}
-                <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-grow">{template.description}</p> {/* Description too */}
+                <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3> 
+                <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-grow">{template.description}</p>
                 <Button
                   variant="outline"
                   className="mt-auto w-full"
@@ -623,5 +623,4 @@ export default function HomePage() {
     </div>
   );
 }
-
 
