@@ -23,5 +23,9 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
     // Match all pathnames within `/` (e.g. `/`, `/about`)
     // This ensures the root path is also handled by the middleware for default locale redirection
-    '/', 
-    // Match all pathnames within `/en` or `/es` (e.g.
+    '/'
+    // Optional: Explicitly match locale-prefixed paths if needed,
+    // but the rule above usually covers it with localePrefix: 'as-needed'.
+    // '/(en|es)/:path*'
+  ]
+};
