@@ -1,4 +1,3 @@
-
 import createMiddleware from 'next-intl/middleware';
 
 export default createMiddleware({
@@ -9,7 +8,8 @@ export default createMiddleware({
   defaultLocale: 'en',
 
   // Always use a locale prefix (e.g. /en/about, /es/about)
-  // or 'as-needed' to only prefix for non-default locales
+  // 'as-needed' will only prefix for non-default locales.
+  // 'always' is often simpler for consistency.
   localePrefix: 'as-needed' 
 });
 

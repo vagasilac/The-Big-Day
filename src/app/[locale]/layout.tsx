@@ -73,7 +73,7 @@ export default async function LocaleLayout({
     // Handle error appropriately, maybe show a fallback or trigger notFound
     // For now, we'll let it proceed and potentially error in NextIntlClientProvider if messages are undefined
     // or provide empty messages as a fallback
-    messages = {}; 
+    messages = {}; // Providing an empty object is safer than undefined for NextIntlClientProvider
     // Alternatively, to be more strict:
     // notFound();
   }
