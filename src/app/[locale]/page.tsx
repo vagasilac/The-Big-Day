@@ -16,7 +16,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import {
-  LogIn, Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight,
+  Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight,
   CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign, Star
 } from 'lucide-react';
 
@@ -83,7 +83,7 @@ const featuresData = [
 
 
 const FeaturesSection = () => {
-  const t = useTranslations('HomePage.features'); // Example of deeper translation path
+  const t = useTranslations('HomePage.features'); 
   return (
     <section id="features" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">

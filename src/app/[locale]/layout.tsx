@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
-import {notFound} from 'next/navigation'; 
+import {notFound} from 'next/navigation';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import '../globals.css'; // Relative path to src/app/globals.css
@@ -16,6 +16,7 @@ export function generateStaticParams() {
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}): Promise<Metadata> {
   // Validate locale first
   if (!locales.includes(locale)) {
+    console.warn(`[LocaleLayout - generateMetadata] Invalid locale "${locale}" found. Triggering notFound.`);
     notFound();
   }
   // It's good practice to also setRequestLocale here if needed by getMessages in metadata context,
@@ -40,22 +41,35 @@ export default async function LocaleLayout({
   children: React.ReactNode;
   params: {locale: string};
 }>) {
+  console.log(`[LocaleLayout] Rendering for locale: ${locale}`);
+
   // Validate that the incoming `locale` parameter is valid
   if (!locales.includes(locale)) {
+    console.warn(`[LocaleLayout] Invalid locale "${locale}" received in props. Triggering notFound.`);
     notFound();
   }
 
-  // This MUST be called before an functions from next-intl (e.g. getMessages)
+  // This MUST be called before any functions from next-intl (e.g. getMessages)
   // are used in a Server Component.
-  unstable_setRequestLocale(locale); 
+  try {
+    console.log(`[LocaleLayout] Calling unstable_setRequestLocale with: ${locale}`);
+    unstable_setRequestLocale(locale);
+  } catch (error) {
+    console.error(`[LocaleLayout] Error calling unstable_setRequestLocale for locale "${locale}":`, error);
+    // If this fails, it's a critical error for i18n
+    notFound();
+  }
+  
 
   let messages;
   try {
+    console.log(`[LocaleLayout] Attempting to call getMessages() for locale: ${locale}`);
     // Providing all messages to the client side is a good default.
     // getMessages() will now use the locale set by unstable_setRequestLocale.
     messages = await getMessages(); 
+    console.log(`[LocaleLayout] Successfully called getMessages(). Message keys: ${messages ? Object.keys(messages).length : 'undefined/null'}`);
   } catch (error) {
-    console.error(`Failed to load messages for locale "${locale}" in LocaleLayout:`, error);
+    console.error(`[LocaleLayout] Failed to load messages for locale "${locale}" in LocaleLayout:`, error);
     // Handle error appropriately, maybe show a fallback or trigger notFound
     // For now, we'll let it proceed and potentially error in NextIntlClientProvider if messages are undefined
     // or provide empty messages as a fallback

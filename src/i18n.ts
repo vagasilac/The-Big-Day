@@ -1,5 +1,7 @@
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
+import enMessages from './messages/en.json';
+import esMessages from './messages/es.json';
 
 // Can be imported from a shared config
 const locales = ['en', 'es'];
@@ -7,17 +9,24 @@ const locales = ['en', 'es'];
 export default getRequestConfig(async ({locale}) => {
   // Validate that the incoming `locale` parameter is valid
   if (!locales.includes(locale as any)) {
-    console.error(`Invalid locale "${locale}" passed to getRequestConfig in i18n.ts.`);
+    console.warn(`[i18n.ts] Invalid locale "${locale}" provided. Triggering notFound.`);
     notFound();
   }
 
   let messages;
-  try {
-    // The path is relative to `src/i18n.ts`
-    messages = (await import(`./messages/${locale}.json`)).default;
-  } catch (error) {
-    console.error(`Failed to load messages for locale "${locale}" in i18n.ts:`, error);
-    // If messages are critical, trigger a notFound response.
+  if (locale === 'en') {
+    messages = enMessages;
+  } else if (locale === 'es') {
+    messages = esMessages;
+  } else {
+    // Fallback for safety, though validated above
+    console.warn(`[i18n.ts] No specific messages for locale "${locale}", defaulting to 'en'. This shouldn't happen.`);
+    messages = enMessages;
+  }
+  
+  if (!messages) {
+    // This case should ideally not be reached if the logic above is sound and message files exist.
+    console.error(`[i18n.ts] Critical: Messages object is undefined for locale: ${locale} before returning.`);
     notFound(); 
   }
 
