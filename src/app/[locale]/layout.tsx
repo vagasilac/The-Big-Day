@@ -19,18 +19,15 @@ export async function generateMetadata({params: {locale}}: {params: {locale: str
     console.warn(`[LocaleLayout - generateMetadata] Invalid locale "${locale}" found. Triggering notFound.`);
     notFound();
   }
-  // It's good practice to also setRequestLocale here if needed by getMessages in metadata context,
-  // though getMessages in the layout component itself is more common for the provider.
-  // For now, we rely on the layout's unstable_setRequestLocale call.
-  
-  // Example: If you wanted to use translations in metadata (requires messages)
-  // unstable_setRequestLocale(locale); // Call if getMessages is used here
-  // const messages = await getMessages();
-  // const t = createTranslator({locale, messages}); // Helper if needed, or access directly
+  console.log(`[LocaleLayout - generateMetadata] Generating metadata for locale: ${locale}`);
+  // If you were to use translated metadata titles:
+  // unstable_setRequestLocale(locale); // Must be called before getMessages or getTranslations if used here
+  // const t = await getTranslations({locale, namespace: 'Metadata'}); // Example
+  // title: t('title')
 
   return {
-    title: 'The Big Day', // Static for now, or use t('metadata.title') if translated
-    description: 'Our Wedding Website', // Static for now, or use t('metadata.description')
+    title: 'The Big Day', 
+    description: 'Our Wedding Website', 
   };
 }
 
@@ -50,17 +47,15 @@ export default async function LocaleLayout({
   }
 
   // This MUST be called before any functions from next-intl (e.g. getMessages)
-  // are used in a Server Component.
+  // are used in a Server Component for the current request.
   try {
     console.log(`[LocaleLayout] Calling unstable_setRequestLocale with: ${locale}`);
     unstable_setRequestLocale(locale);
   } catch (error) {
     console.error(`[LocaleLayout] Error calling unstable_setRequestLocale for locale "${locale}":`, error);
-    // If this fails, it's a critical error for i18n
     notFound();
   }
   
-
   let messages;
   try {
     console.log(`[LocaleLayout] Attempting to call getMessages() for locale: ${locale}`);
@@ -73,11 +68,16 @@ export default async function LocaleLayout({
     // Handle error appropriately, maybe show a fallback or trigger notFound
     // For now, we'll let it proceed and potentially error in NextIntlClientProvider if messages are undefined
     // or provide empty messages as a fallback
-    messages = {}; // Providing an empty object is safer than undefined for NextIntlClientProvider
-    // Alternatively, to be more strict:
-    // notFound();
+    messages = { Fallback: { message: "Error loading translations for layout."}}; // Provide a minimal fallback
+    // To be stricter and ensure i18n always works or fails clearly:
+    // notFound(); 
   }
   
+  // Final check for messages; if still problematic after try-catch, use a very basic fallback
+  if (!messages || (typeof messages === 'object' && Object.keys(messages).length === 0 && locale !== 'en' && locale !== 'es')) {
+    console.warn(`[LocaleLayout] Messages are empty or undefined for locale "${locale}" before rendering NextIntlClientProvider. This might indicate a problem with message file loading or content.`);
+    messages = { Fallback: { message: "Translations unavailable."}};
+  }
 
   return (
     <html lang={locale} suppressHydrationWarning>

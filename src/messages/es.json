@@ -1,4 +1,7 @@
 {
+  "SimpleTest": {
+    "message": "Este es un mensaje de prueba."
+  },
   "HomePage": {
     "heroTitle": "Haz que el día de tu boda sea <primary>verdaderamente especial</primary>",
     "heroSubtitle": "Crea un impresionante sitio web para tu boda con funciones interactivas para invitados, gestión de RSVP, compartición de fotos y todo lo que necesitas para planificar tu día perfecto.",

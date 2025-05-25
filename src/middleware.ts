@@ -7,21 +7,20 @@ export default createMiddleware({
   // Used when no locale matches
   defaultLocale: 'en',
 
-  // Always use a locale prefix (e.g. /en/about, /es/about)
-  // 'as-needed' will only prefix for non-default locales.
-  // 'always' is often simpler for consistency.
-  localePrefix: 'as-needed' 
+  // Always use a locale prefix. Options: 'always' | 'as-needed' | 'never'
+  // 'as-needed' will not prefix the defaultLocale
+  localePrefix: 'as-needed'
 });
 
 export const config = {
   // Match only internationalized pathnames
-  // Skip all paths that should not be internationalized.
+  // Skip all paths that should not be internationalized (e.g., API routes, static files).
   matcher: [
     // Match all pathnames except for
     // - … if they start with `/api`, `/_next/static`, `/_next/image`, or `favicon.ico`
     // - … the ones containing a dot (e.g. `favicon.ico`)
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)'
-    // The root path '/' is implicitly handled by `localePrefix: 'as-needed'`
-    // and the `defaultLocale` configuration, so it doesn't need to be explicitly listed here.
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
+    // The root path '/' is implicitly handled if `localePrefix: 'as-needed'`
+    // and `defaultLocale` are configured.
   ]
 };
