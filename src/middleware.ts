@@ -20,5 +20,8 @@ export const config = {
     // Match all pathnames except for
     // - … if they start with `/api`, `/_next/static`, `/_next/image`, or `favicon.ico`
     // - … the ones containing a dot (e.g. `favicon.ico`)
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
-    // The root path '/' is implicitly
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)'
+    // The root path '/' is implicitly handled by `localePrefix: 'as-needed'`
+    // and the `defaultLocale` configuration, so it doesn't need to be explicitly listed here.
+  ]
+};
