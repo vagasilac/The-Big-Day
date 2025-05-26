@@ -1,8 +1,8 @@
 // src/components/LanguageSwitcher.tsx
-'use client';
+'use client'; // Ensures this is a Client Component
 
 import { useLocale, useTranslations } from 'next-intl';
-import { usePathname, useRouter } from 'next-intl/navigation';
+import { usePathname, useRouter } from 'next-intl/navigation'; // Correct import for App Router
 import { useTransition } from 'react';
 import {
   Select,
@@ -29,8 +29,8 @@ export default function LanguageSwitcher() {
   return (
     <div className="flex items-center">
       <Select defaultValue={locale} onValueChange={onSelectChange} disabled={isPending}>
-        <SelectTrigger 
-          aria-label={t('language')} 
+        <SelectTrigger
+          aria-label={t('language')}
           className="w-auto h-9 text-xs px-2 py-1 border-none shadow-none bg-transparent hover:bg-accent/50 focus:ring-0 focus:ring-offset-0 data-[state=open]:bg-accent/50"
         >
           <Globe className="h-4 w-4 mr-1.5 text-muted-foreground" />
