@@ -1,51 +1,51 @@
-// src/i18n.ts
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-
-// Statically define supported locales and default locale
-// These are also imported by middleware.ts
-export const locales = ['en', 'es'] as const;
-export const defaultLocale: typeof locales[number] = 'en';
-
-console.log('[i18n.ts] File parsed. Supported locales:', locales, 'Default locale:', defaultLocale);
-
-// Static imports for messages (more robust for some environments)
 import enMessages from './messages/en.json';
 import esMessages from './messages/es.json';
+
+// List of all supported locales
+export const locales = ['en', 'es'];
+export const defaultLocale = 'en';
+
+console.log('[i18n.ts] File parsed. Defined locales:', locales);
 
 export default getRequestConfig(async ({locale}) => {
   console.log(`[i18n.ts] getRequestConfig called with locale: ${locale}`);
 
+  // Validate that the incoming `locale` parameter is valid
   if (!locales.includes(locale as any)) {
-    console.warn(`[i18n.ts] Invalid locale "${locale}" received. Triggering notFound.`);
+    console.warn(`[i18n.ts] Invalid locale "${locale}" provided to getRequestConfig. Triggering notFound.`);
     notFound();
   }
 
   let messages;
-  if (locale === 'en') {
-    console.log('[i18n.ts] Using statically imported English messages.');
-    messages = enMessages;
-  } else if (locale === 'es') {
-    console.log('[i18n.ts] Using statically imported Spanish messages.');
-    messages = esMessages;
-  } else {
-    // This case should ideally not be reached due to the validation above
-    console.warn(`[i18n.ts] Locale "${locale}" not explicitly handled for static import, falling back to English.`);
-    messages = enMessages;
-  }
+  try {
+    if (locale === 'en') {
+      console.log('[i18n.ts] Loading English messages (static import).');
+      messages = enMessages;
+    } else if (locale === 'es') {
+      console.log('[i18n.ts] Loading Spanish messages (static import).');
+      messages = esMessages;
+    } else {
+      console.warn(`[i18n.ts] Locale "${locale}" not explicitly handled in getRequestConfig, this should have been caught by validation. Defaulting to English.`);
+      messages = enMessages; // Fallback, though notFound should have caught this.
+    }
 
-  if (!messages || Object.keys(messages).length === 0) {
-    console.error(`[i18n.ts] Messages object is undefined or empty for locale "${locale}" AFTER static loading attempt.`);
-    // If messages are critical, trigger a 404 or throw an error.
-    // For now, we'll provide a minimal fallback to prevent NextIntlClientProvider from crashing,
-    // but this indicates a serious issue.
-    return {
-      messages: {MinimalFallback: {message: "Critical error: Default messages not available for " + locale + "."}}
-    };
+    if (messages && Object.keys(messages).length > 0) {
+      console.log(`[i18n.ts] Successfully loaded/assigned messages for locale: ${locale}. Keys: ${Object.keys(messages).length}`);
+    } else if (messages && Object.keys(messages).length === 0) {
+      console.warn(`[i18n.ts] Messages object is empty for locale "${locale}" AFTER loading attempt. This might be an issue with the JSON file content.`);
+      // Provide a minimal fallback to prevent NextIntlClientProvider from crashing if messages are an empty object
+      messages = { MinimalFallback: { message: `Minimal fallback for ${locale} - messages were empty.` } };
+    } else { // messages is undefined or null
+      console.error(`[i18n.ts] Messages object is undefined or null for locale "${locale}" AFTER loading attempt.`);
+      notFound();
+    }
+  } catch (error) {
+    console.error(`[i18n.ts] CRITICAL: Error during message loading for locale "${locale}":`, error);
+    notFound();
   }
   
-  console.log(`[i18n.ts] Successfully loaded messages for locale: ${locale}. Number of root keys: ${Object.keys(messages).length}`);
-
   return {
     messages
   };
