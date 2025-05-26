@@ -19,9 +19,9 @@ import {
   Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight,
   CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign, Star, LogIn, UserPlus
 } from 'lucide-react';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import type { Wedding } from '@/types/wedding'; // Assuming this type is defined
-import ElegantTemplate from '../templates/wedding/elegant-template'; // Relative paths
+import LanguageSwitcher from '@/components/LanguageSwitcher'; 
+import type { Wedding } from '@/types/wedding'; 
+import ElegantTemplate from '../templates/wedding/elegant-template'; 
 import ModernTemplate from '../templates/wedding/modern-template';
 import RusticTemplate from '../templates/wedding/rustic-template';
 
@@ -82,7 +82,8 @@ const featuresData = [
 ];
 
 const FeaturesSection = () => {
-  // For a real app, you'd use t(`FeaturesSection.${feature.titleKey}`) etc.
+  // In a real app, you would use t(`FeaturesSection.${feature.titleKey}`) etc.
+  // For now, static text for brevity as this page is already very long
   return (
     <section id="features" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
@@ -146,6 +147,7 @@ interface TemplatesSectionProps {
 }
 
 const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
+  // In a real app, you'd use t(`TemplatesSection.${feature.titleKey}`) etc.
   return (
     <section id="templates" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -192,7 +194,7 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
 
         <div className="mt-12 text-center">
           <Button asChild size="lg" className="px-8 py-3 h-auto text-base group">
-            <Link href="/#templates"> 
+            <Link href="/auth?tab=register"> 
               Browse All Templates
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
@@ -219,6 +221,7 @@ const PRICING_PLANS = [
 ];
 
 const PricingSection = () => {
+  // In a real app, you'd use t(...) for translatable strings
   return (
     <section id="pricing" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
@@ -290,6 +293,7 @@ const testimonialsData = [
 ];
 
 const TestimonialsSection = () => {
+  // In a real app, you'd use t(...) for translatable strings
   return (
     <section id="testimonials" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
@@ -335,6 +339,7 @@ const TestimonialsSection = () => {
 };
 
 const HowItWorksSection = () => {
+  // In a real app, use t(...)
   const steps = [
     { icon: <Edit3 className="w-10 h-10 text-primary" />, title: "1. Sign Up & Create", description: "Create your account, choose a beautiful template, and start personalizing your wedding website in minutes." },
     { icon: <Palette className="w-10 h-10 text-primary" />, title: "2. Add Your Details", description: "Easily add your wedding information, love story, photos, event schedule, and gift registry links." },
