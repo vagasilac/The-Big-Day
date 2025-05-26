@@ -1,34 +1,45 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import {NextIntlClientProvider} from 'next-intl';
-import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
+// Remove getMessages, import messages directly for diagnostics
+import {unstable_setRequestLocale} from 'next-intl/server'; 
 import {notFound} from 'next/navigation';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
-import '../globals.css'; // Relative path to src/app/globals.css
+import '../globals.css'; // Relative path
 import { Toaster } from "@/components/ui/toaster";
 
-const locales = ['en', 'es'];
+// Statically import messages for this diagnostic step
+import enMessages from '../../messages/en.json';
+import esMessages from '../../messages/es.json';
+
+// Locales must be defined here or imported if i18n.ts is still used for them
+const locales = ['en', 'es']; 
+export const defaultLocale = 'en';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({locale}));
 }
 
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}): Promise<Metadata> {
-  // Validate locale first
-  if (!locales.includes(locale)) {
+  console.log(`[LocaleLayout - generateMetadata] Received locale: ${locale}`);
+  if (!locales.includes(locale as any)) {
     console.warn(`[LocaleLayout - generateMetadata] Invalid locale "${locale}" found. Triggering notFound.`);
     notFound();
   }
+  // Note: If using getTranslations for metadata, unstable_setRequestLocale would be needed here too.
+  // For now, keeping metadata static.
   console.log(`[LocaleLayout - generateMetadata] Generating metadata for locale: ${locale}`);
-  // If you were to use translated metadata titles:
-  // unstable_setRequestLocale(locale); // Must be called before getMessages or getTranslations if used here
-  // const t = await getTranslations({locale, namespace: 'Metadata'}); // Example
-  // title: t('title')
-
   return {
     title: 'The Big Day', 
     description: 'Our Wedding Website', 
   };
+}
+
+export const viewport: Viewport = {
+  themeColor: [ 
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: 'black' },
+  ],
 }
 
 export default async function LocaleLayout({
@@ -40,50 +51,47 @@ export default async function LocaleLayout({
 }>) {
   console.log(`[LocaleLayout] Rendering for locale: ${locale}`);
 
-  // Validate that the incoming `locale` parameter is valid
-  if (!locales.includes(locale)) {
+  if (!locales.includes(locale as any)) {
     console.warn(`[LocaleLayout] Invalid locale "${locale}" received in props. Triggering notFound.`);
     notFound();
   }
 
-  // This MUST be called before any functions from next-intl (e.g. getMessages)
-  // are used in a Server Component for the current request.
   try {
     console.log(`[LocaleLayout] Calling unstable_setRequestLocale with: ${locale}`);
     unstable_setRequestLocale(locale);
+    console.log(`[LocaleLayout] unstable_setRequestLocale finished for: ${locale}`);
   } catch (error) {
     console.error(`[LocaleLayout] Error calling unstable_setRequestLocale for locale "${locale}":`, error);
-    notFound();
+    notFound(); 
   }
   
   let messages;
   try {
-    console.log(`[LocaleLayout] Attempting to call getMessages() for locale: ${locale}`);
-    // Providing all messages to the client side is a good default.
-    // getMessages() will now use the locale set by unstable_setRequestLocale.
-    messages = await getMessages(); 
-    console.log(`[LocaleLayout] Successfully called getMessages(). Message keys: ${messages ? Object.keys(messages).length : 'undefined/null'}`);
+    console.log(`[LocaleLayout] Manually selecting messages for locale: ${locale}`);
+    if (locale === 'en') {
+      messages = enMessages;
+    } else if (locale === 'es') {
+      messages = esMessages;
+    } else {
+      // Fallback, though validation above should catch this
+      console.warn(`[LocaleLayout] No direct messages found for locale "${locale}", defaulting to English.`);
+      messages = enMessages;
+    }
+    console.log(`[LocaleLayout] Successfully assigned messages. Message keys: ${messages ? Object.keys(messages).length : 'undefined/null'}`);
   } catch (error) {
-    console.error(`[LocaleLayout] Failed to load messages for locale "${locale}" in LocaleLayout:`, error);
-    // Handle error appropriately, maybe show a fallback or trigger notFound
-    // For now, we'll let it proceed and potentially error in NextIntlClientProvider if messages are undefined
-    // or provide empty messages as a fallback
-    messages = { Fallback: { message: "Error loading translations for layout."}}; // Provide a minimal fallback
-    // To be stricter and ensure i18n always works or fails clearly:
-    // notFound(); 
+    console.error(`[LocaleLayout] Failed to assign messages for locale "${locale}" in LocaleLayout:`, error);
+    messages = { Fallback: { message: "Error loading/assigning translations for layout."}}; 
+    // notFound(); // Potentially trigger notFound if critical
   }
   
-  // Final check for messages; if still problematic after try-catch, use a very basic fallback
-  if (!messages || (typeof messages === 'object' && Object.keys(messages).length === 0 && locale !== 'en' && locale !== 'es')) {
-    console.warn(`[LocaleLayout] Messages are empty or undefined for locale "${locale}" before rendering NextIntlClientProvider. This might indicate a problem with message file loading or content.`);
-    messages = { Fallback: { message: "Translations unavailable."}};
+  if (!messages || (typeof messages === 'object' && Object.keys(messages).length === 0 && !messages.Fallback)) {
+    console.warn(`[LocaleLayout] Messages are empty or undefined for locale "${locale}" before rendering NextIntlClientProvider.`);
+    messages = { Fallback: { message: "Translations unavailable for layout."}};
   }
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <head>
-        {/* Metadata is now generated by generateMetadata */}
-      </head>
+      <head />
       <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}

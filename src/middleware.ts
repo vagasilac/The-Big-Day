@@ -1,14 +1,11 @@
 import createMiddleware from 'next-intl/middleware';
+import { locales, defaultLocale } from './i18n'; // Import from src/i18n.ts
+
+console.log('[middleware.ts] Initializing with locales:', locales, 'Default:', defaultLocale);
 
 export default createMiddleware({
-  // A list of all locales that are supported
-  locales: ['en', 'es'],
-
-  // Used when no locale matches
-  defaultLocale: 'en',
-
-  // Always use a locale prefix. Options: 'always' | 'as-needed' | 'never'
-  // 'as-needed' will not prefix the defaultLocale
+  locales,
+  defaultLocale,
   localePrefix: 'as-needed'
 });
 
@@ -16,11 +13,7 @@ export const config = {
   // Match only internationalized pathnames
   // Skip all paths that should not be internationalized (e.g., API routes, static files).
   matcher: [
-    // Match all pathnames except for
-    // - … if they start with `/api`, `/_next/static`, `/_next/image`, or `favicon.ico`
-    // - … the ones containing a dot (e.g. `favicon.ico`)
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
-    // The root path '/' is implicitly handled if `localePrefix: 'as-needed'`
-    // and `defaultLocale` are configured.
+    // The root path '/' is implicitly handled by localePrefix: 'as-needed'
   ]
 };
