@@ -1,3 +1,4 @@
+
 {
   "HomePage": {
     "heroTitle": "Haz que el día de tu boda sea <primary>verdaderamente especial</primary>",
@@ -32,7 +33,7 @@
   },
   "Common": {
     "templatePreviewTitle": "Vista Previa de Plantilla",
-    "templatePreviewDescription": "Esta es una vista previa de la plantilla {{templateName}}.",
+    "templatePreviewDescription": "Esta es una vista previa de la plantilla {templateName}.",
     "closeButton": "Cerrar"
   }
 }

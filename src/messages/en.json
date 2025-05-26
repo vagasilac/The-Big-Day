@@ -1,3 +1,4 @@
+
 {
   "HomePage": {
     "heroTitle": "Make your wedding day <primary>truly special</primary>",
@@ -32,7 +33,7 @@
   },
   "Common": {
     "templatePreviewTitle": "Template Preview",
-    "templatePreviewDescription": "This is a preview of the {{templateName}} template.",
+    "templatePreviewDescription": "This is a preview of the {templateName} template.",
     "closeButton": "Close"
   }
 }
