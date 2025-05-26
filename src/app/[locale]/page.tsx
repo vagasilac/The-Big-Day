@@ -1,9 +1,10 @@
+// src/app/[locale]/page.tsx
 'use client';
 
 import React from 'react';
 import Image from 'next/image';
-import Link from 'next/link'; // Use Next.js Link for client-side navigation
-import { useTranslations } from 'next-intl'; // For translations
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -18,13 +19,11 @@ import {
   Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight,
   CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign, Star, LogIn, UserPlus
 } from 'lucide-react';
-import LanguageSwitcher from '@/components/LanguageSwitcher'; // For language selection
-
-// Sample data (can be fetched or static)
-import ElegantTemplate from '@/app/templates/wedding/elegant-template';
-import ModernTemplate from '@/app/templates/wedding/modern-template';
-import RusticTemplate from '@/app/templates/wedding/rustic-template';
-import type { Wedding } from '@/types/wedding';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import type { Wedding } from '@/types/wedding'; // Assuming this type is defined
+import ElegantTemplate from '../templates/wedding/elegant-template'; // Relative paths
+import ModernTemplate from '../templates/wedding/modern-template';
+import RusticTemplate from '../templates/wedding/rustic-template';
 
 
 const HeroSection = () => {
@@ -83,10 +82,7 @@ const featuresData = [
 ];
 
 const FeaturesSection = () => {
-  // Assuming a flat structure for feature translations for simplicity
-  // e.g., "Features.feature1Title", "Features.feature1Description"
-  // For this example, we'll use static keys for now, but you'd map them.
-  // const t = useTranslations('FeaturesSection');
+  // For a real app, you'd use t(`FeaturesSection.${feature.titleKey}`) etc.
   return (
     <section id="features" className="py-16 md:py-24 bg-secondary">
       <div className="container mx-auto px-4">
@@ -110,8 +106,8 @@ const FeaturesSection = () => {
                 <div className="bg-primary/10 p-4 rounded-full mb-6 inline-flex">
                   <IconComponent className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2 text-foreground">{feature.titleKey}</h3> {/* Replace with t(feature.titleKey) */}
-                <p className="text-muted-foreground text-sm leading-relaxed">{feature.descriptionKey}</p> {/* Replace with t(feature.descriptionKey) */}
+                <h3 className="text-xl font-semibold mb-2 text-foreground">{feature.titleKey}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{feature.descriptionKey}</p>
               </div>
             );
           })}
@@ -122,7 +118,7 @@ const FeaturesSection = () => {
 };
 
 const WEDDING_TEMPLATES = [
-   {
+  {
     id: 'classic-elegance',
     name: 'Classic Elegance',
     description: 'A timeless design with sophisticated typography and a clean layout.',
@@ -196,7 +192,7 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
 
         <div className="mt-12 text-center">
           <Button asChild size="lg" className="px-8 py-3 h-auto text-base group">
-            <Link href="/#templates"> {/* Update if you create a separate templates page */}
+            <Link href="/#templates"> 
               Browse All Templates
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
@@ -375,7 +371,7 @@ const HowItWorksSection = () => {
                 See a fully featured demo wedding website. Experience both the guest view and the powerful admin dashboard.
               </p>
               <Button asChild size="lg" className="px-8 py-3 h-auto text-base self-center md:self-start">
-                <Link href="/#how-it-works"> {/* Placeholder for demo link */}
+                <Link href="/#how-it-works"> 
                   View Demo Website
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -404,7 +400,7 @@ const CTASection = () => {
       <div className="container mx-auto px-4 text-center">
         <Heart className="w-12 h-12 text-primary mx-auto mb-6" />
         <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6"
-            dangerouslySetInnerHTML={{ __html: t.raw('heroTitle') }} /> {/* Re-using heroTitle key for example */}
+            dangerouslySetInnerHTML={{ __html: t.raw('heroTitle') }} />
         <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
           Sign up today and begin creating the wedding website of your dreams. It's free to get started!
         </p>
@@ -476,6 +472,7 @@ const AppFooter = () => {
   );
 };
 
+
 const sampleWeddingData: Partial<Wedding> = {
   title: "Anna & Paul's Wedding",
   description: "We are so excited to celebrate our special day with all of our amazing friends and family! Join us for a day filled with love, laughter, and unforgettable memories as we begin our new journey together.",
@@ -498,15 +495,16 @@ const sampleWeddingData: Partial<Wedding> = {
     { time: "10:00 PM", event: "Sparkler Send-off", description: "Wish us well as we depart" }
   ],
   dressCode: "Semi-Formal: Suits, gowns, or cocktail dresses.",
-  rsvpDeadline: "2026-04-30T23:59:00.000Z" // Example UTC
+  rsvpDeadline: "2026-04-30T23:59:00.000Z"
 };
-
 
 export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isPreviewSheetOpen, setIsPreviewSheetOpen] = React.useState(false);
   const [selectedTemplate, setSelectedTemplate] = React.useState<typeof WEDDING_TEMPLATES[0] | null>(null);
   const t = useTranslations('HomePage');
+  const tCommon = useTranslations('Common');
+
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -555,7 +553,7 @@ export default function HomePage() {
               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#how-it-works">{t('headerHowItWorks')}</Link>
               </Button>
-               <LanguageSwitcher /> {/* Added Language Switcher */}
+               <LanguageSwitcher /> 
               <Button variant="ghost" size="sm" asChild className="px-2 sm:px-3">
                 <Link href="/auth"><LogIn className="mr-1.5 h-4 w-4"/>{t('headerLogin')}</Link>
               </Button>
@@ -607,21 +605,22 @@ export default function HomePage() {
         <CTASection />
       </main>
       <AppFooter />
+
       <Sheet open={isPreviewSheetOpen} onOpenChange={setIsPreviewSheetOpen}>
         <SheetContent className="w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl p-0 overflow-y-auto data-[state=closed]:duration-300 data-[state=open]:duration-500">
-           <SheetHeader className="p-4 sm:p-6 border-b bg-background sticky top-0 z-20 flex flex-row justify-between items-center">
+          <SheetHeader className="p-4 sm:p-6 border-b bg-background sticky top-0 z-20 flex flex-row justify-between items-center">
             <div>
-              <SheetTitle className="text-lg sm:text-xl">{selectedTemplate?.name || t('Template Preview', { ns: 'common' })}</SheetTitle>
+              <SheetTitle className="text-lg sm:text-xl">{selectedTemplate?.name || tCommon('templatePreviewTitle')}</SheetTitle>
               <SheetDescription className="text-xs sm:text-sm">
-                {t('This is a preview of the {{templateName}} template.', { ns: 'common', templateName: selectedTemplate?.name || 'selected' })}
+                {tCommon('templatePreviewDescription', { templateName: selectedTemplate?.name || 'selected' })}
               </SheetDescription>
             </div>
             <SheetClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
               <X className="h-4 w-4" />
-              <span className="sr-only">{t('closeButton', { ns: 'common' })}</span>
+              <span className="sr-only">{tCommon('closeButton')}</span>
             </SheetClose>
           </SheetHeader>
-          <div className="relative z-0 min-h-[calc(100vh-73px)]"> {/* Adjust min-height if header height changes */}
+          <div className="relative z-0 min-h-[calc(100vh-73px)]"> 
             {renderTemplatePreview()}
           </div>
         </SheetContent>

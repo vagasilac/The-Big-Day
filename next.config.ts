@@ -41,4 +41,7 @@ const nextConfigBase: NextConfig = {
 };
 
 // Tell the plugin where your i18n config lives
-const withNextIntl = next
+// For App Router, this is typically './src/i18n.ts'
+const withNextIntl = nextIntl('./src/i18n.ts');
+
+export default withNextIntl(nextConfigBase);

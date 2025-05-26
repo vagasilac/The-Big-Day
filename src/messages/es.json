@@ -11,7 +11,6 @@
     "headerLogin": "Iniciar Sesión",
     "headerSignUp": "Registrarse",
     "toggleMenuLabel": "Alternar menú",
-    "closeButton": "Cerrar",
     "appFooterBrandSlogan": "Crea hermosos sitios web de bodas para compartir tu día especial con familiares y amigos.",
     "appFooterQuickLinks": "Enlaces Rápidos",
     "appFooterHome": "Inicio",
@@ -31,8 +30,9 @@
     "english": "Inglés",
     "spanish": "Español"
   },
-  "Metadata": {
-    "title": "El Gran Día - Internacionalizado",
-    "description": "¡El sitio web de nuestra boda, ahora en varios idiomas!"
+  "Common": {
+    "templatePreviewTitle": "Vista Previa de Plantilla",
+    "templatePreviewDescription": "Esta es una vista previa de la plantilla {{templateName}}.",
+    "closeButton": "Cerrar"
   }
 }
