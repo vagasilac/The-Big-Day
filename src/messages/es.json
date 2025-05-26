@@ -1,18 +1,15 @@
 {
-  "SimpleTest": {
-    "message": "Este es un mensaje de prueba de es.json."
-  },
   "HomePage": {
     "heroTitle": "Haz que el día de tu boda sea <primary>verdaderamente especial</primary>",
     "heroSubtitle": "Crea un impresionante sitio web para tu boda con funciones interactivas para invitados, gestión de RSVP, compartición de fotos y todo lo que necesitas para planificar tu día perfecto.",
     "heroButtonCreate": "Crea el Sitio de Tu Boda",
     "heroButtonDiscover": "Descubre Características",
-    "headerFeatures": "Características",
+    "headerFeatures": "Funcionalidades",
     "headerTemplates": "Plantillas",
     "headerPricing": "Precios",
     "headerHowItWorks": "Cómo Funciona",
     "headerLogin": "Iniciar Sesión",
-    "headerSignUp": "Regístrate",
+    "headerSignUp": "Registrarse",
     "toggleMenuLabel": "Alternar menú",
     "closeButton": "Cerrar",
     "appFooterBrandSlogan": "Crea hermosos sitios web de bodas para compartir tu día especial con familiares y amigos.",
@@ -23,9 +20,9 @@
     "appFooterGuestManagement": "Gestión de Invitados",
     "appFooterRsvpTracking": "Seguimiento de RSVP",
     "appFooterPhotoGalleries": "Galerías de Fotos",
-    "appFooterRegistryLinks": "Enlaces de Lista de Regalos",
+    "appFooterRegistryLinks": "Listas de Regalos",
     "appFooterContact": "Contacto",
-    "appFooterContactIntro": "¿Tienes preguntas? ¡Estamos aquí para ayudarte!",
+    "appFooterContactIntro": "¿Tienes preguntas? ¡Estamos aquí para ayudar!",
     "appFooterContactEmail": "soporte@thebigday.app",
     "appFooterCopyright": "&copy; {currentYear} The Big Day. Todos los derechos reservados."
   },
@@ -33,5 +30,9 @@
     "language": "Idioma",
     "english": "Inglés",
     "spanish": "Español"
+  },
+  "Metadata": {
+    "title": "El Gran Día - Internacionalizado",
+    "description": "¡El sitio web de nuestra boda, ahora en varios idiomas!"
   }
 }

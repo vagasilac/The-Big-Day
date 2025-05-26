@@ -1,7 +1,4 @@
 {
-  "SimpleTest": {
-    "message": "This is a test message from en.json."
-  },
   "HomePage": {
     "heroTitle": "Make your wedding day <primary>truly special</primary>",
     "heroSubtitle": "Create a stunning wedding website with interactive guest features, RSVP management, photo sharing, and everything you need to plan your perfect day.",
@@ -33,5 +30,7 @@
     "language": "Language",
     "english": "English",
     "spanish": "Spanish"
-  }
-}
+  },
+  "Metadata": {
+    "title": "The Big Day - Internationalized",
+    "description": "Our Wedding Website, now in multiple languages!"

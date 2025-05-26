@@ -3,7 +3,7 @@ import {notFound} from 'next/navigation';
 import enMessages from './messages/en.json';
 import esMessages from './messages/es.json';
 
-// List of all supported locales
+// Can be imported from a shared config
 export const locales = ['en', 'es'];
 export const defaultLocale = 'en';
 
@@ -21,28 +21,29 @@ export default getRequestConfig(async ({locale}) => {
   let messages;
   try {
     if (locale === 'en') {
-      console.log('[i18n.ts] Loading English messages (static import).');
+      console.log('[i18n.ts] Assigning English messages (statically imported).');
       messages = enMessages;
     } else if (locale === 'es') {
-      console.log('[i18n.ts] Loading Spanish messages (static import).');
+      console.log('[i18n.ts] Assigning Spanish messages (statically imported).');
       messages = esMessages;
     } else {
-      console.warn(`[i18n.ts] Locale "${locale}" not explicitly handled in getRequestConfig, this should have been caught by validation. Defaulting to English.`);
-      messages = enMessages; // Fallback, though notFound should have caught this.
+      // Fallback for safety, though validation should catch this.
+      console.warn(`[i18n.ts] Locale "${locale}" not explicitly handled, defaulting to English.`);
+      messages = enMessages;
     }
 
-    if (messages && Object.keys(messages).length > 0) {
-      console.log(`[i18n.ts] Successfully loaded/assigned messages for locale: ${locale}. Keys: ${Object.keys(messages).length}`);
-    } else if (messages && Object.keys(messages).length === 0) {
-      console.warn(`[i18n.ts] Messages object is empty for locale "${locale}" AFTER loading attempt. This might be an issue with the JSON file content.`);
-      // Provide a minimal fallback to prevent NextIntlClientProvider from crashing if messages are an empty object
-      messages = { MinimalFallback: { message: `Minimal fallback for ${locale} - messages were empty.` } };
-    } else { // messages is undefined or null
-      console.error(`[i18n.ts] Messages object is undefined or null for locale "${locale}" AFTER loading attempt.`);
-      notFound();
+    if (messages && typeof messages === 'object' && Object.keys(messages).length > 0) {
+      console.log(`[i18n.ts] Successfully assigned messages for locale: ${locale}. Number of top-level keys: ${Object.keys(messages).length}`);
+    } else {
+      console.error(`[i18n.ts] Messages object is empty or undefined for locale "${locale}" AFTER assignment attempt.`);
+      // Potentially trigger notFound() here if empty messages are not acceptable
+      // For now, we'll let it proceed and see if NextIntlClientProvider handles empty messages.
     }
   } catch (error) {
-    console.error(`[i18n.ts] CRITICAL: Error during message loading for locale "${locale}":`, error);
+    console.error(`[i18n.ts] CRITICAL: Error during message assignment for locale "${locale}":`, error);
+    // This catch might not be hit if the static imports themselves fail,
+    // as that would be a module resolution error at build time.
+    // This is more for if the JSON files were somehow malformed post-import.
     notFound();
   }
   

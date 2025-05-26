@@ -1,36 +1,31 @@
 import createMiddleware from 'next-intl/middleware';
-// ✅ Corrected import — must be relative from the project root to src/i18n.ts
-// Since middleware.ts is in src/, and i18n.ts is in src/, the path from a root-like context is './src/i18n'.
-// However, the expert's final summary used '../src/i18n' for a middleware.ts in src/ and i18n.ts in src/.
-// Let's try the most direct relative path from src/middleware.ts to src/i18n.ts first if the above is problematic.
-// The error "Can't resolve './i18n' in ./src/middleware.ts" confirms that Next.js attempts to resolve it relative to src/middleware.ts.
-// Thus, if i18n.ts is also in src/, then './i18n' *should* be correct.
-// Let's adhere to the expert's explicit code snippet which resolved to 'src/i18n.ts'.
-// If middleware is at src/middleware.ts and i18n.ts is at src/i18n.ts, then '../src/i18n' makes sense if middleware's CWD is root.
-
-// The expert's "Summary: Fix in Code" was:
-// import { locales, defaultLocale } from '../src/i18n';
-// This path from src/middleware.ts points to project_root/src/i18n.ts.
-
-// If i18n.ts is in src/ and middleware.ts is in src/, and middleware is treated as root for pathing:
-import { locales, defaultLocale } from './i18n'; // This should work.
+// Assuming i18n.ts is in src/, and middleware.ts is in src/
+// The path must be relative from project root to the file if Next.js resolves middleware from root context.
+// If Next.js resolves middleware from its own location (src/), then './i18n' is correct.
+// The expert advice indicated middleware is often treated as root for resolution.
+// However, a previous successful fix used './i18n' when both were in src/.
+// Let's stick to './i18n' first, as it's simpler if it works.
+import { locales, defaultLocale } from './i18n';
 
 console.log('[middleware.ts] Initializing with locales:', locales, 'Default:', defaultLocale);
 
 export default createMiddleware({
   locales,
   defaultLocale,
-  localePrefix: 'as-needed',
-  debug: true, // Keep debug true for more logs
+  localePrefix: 'as-needed', // Redirects root to defaultLocale, e.g. / -> /en
+  debug: true // Enable verbose logging from next-intl
 });
 
 export const config = {
+  // Match only internationalized pathnames
+  // Skip all paths that should not be internationalized. This example skips the
+  // folders "api", "_next" and all files with an extension (e.g. favicon.ico)
   matcher: [
     // Match all pathnames except for
-    // - …the ones containing a dot (e.g. `favicon.ico`)
-    // - …the ones starting with `/api/`
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
-    // Match the root path explicitly for default locale redirection
-    '/' 
-  ]
-};
+    // - … if they start with `/api`, `/_next` or `/_vercel`
+    // - … the ones containing a dot (e.g. `favicon.ico`)
+    '/((?!api|_next|_vercel|.*\\..*).*)',
+    // Match all pathnames within `/en` or `/es` (e.g. /en/about)
+    // This is an example, adjust to your locales if they change from ['en', 'es']
+    '/([\\w-]+)?/api/(.+)', // Exclude API routes under locales as well
+    '/(en|es)/
