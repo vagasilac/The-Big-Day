@@ -13,7 +13,7 @@ import createMiddleware from 'next-intl/middleware';
 // This path from src/middleware.ts points to project_root/src/i18n.ts.
 
 // If i18n.ts is in src/ and middleware.ts is in src/, and middleware is treated as root for pathing:
-import { locales, defaultLocale } from './src/i18n'; // This should work.
+import { locales, defaultLocale } from './i18n'; // This should work.
 
 console.log('[middleware.ts] Initializing with locales:', locales, 'Default:', defaultLocale);
 

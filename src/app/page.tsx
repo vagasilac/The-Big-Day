@@ -1,9 +1,9 @@
+
 'use client';
 
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-// import { useTranslations } from 'next-intl'; // Removed
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -23,18 +23,15 @@ import type { Wedding } from '@/types/wedding';
 import ElegantTemplate from './templates/wedding/elegant-template';
 import ModernTemplate from './templates/wedding/modern-template';
 import RusticTemplate from './templates/wedding/rustic-template';
-// import LanguageSwitcher from '@/components/LanguageSwitcher'; // Removed
 
 const HeroSection = () => {
-  // const t = useTranslations('HomePage'); // Removed
   return (
     <section className="py-16 md:py-24 bg-background text-center md:text-left">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row md:items-center">
           <div className="md:w-1/2 mb-10 md:mb-0 md:pr-12">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-              Make your wedding day <span className="text-primary">truly special</span>
-            </h1>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight"
+                dangerouslySetInnerHTML={{ __html: "Make your wedding day <span class=\"text-primary\">truly special</span>" }} />
             <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl mx-auto md:mx-0">
               Create a stunning wedding website with interactive guest features, RSVP management, photo sharing, and everything you need to plan your perfect day.
             </p>
@@ -81,6 +78,7 @@ const featuresData = [
   { icon: Share2, title: "Easy Sharing", description: "Share your wedding website link with guests via email, social media, or printed invitations." },
 ];
 
+
 const FeaturesSection = () => {
   return (
     <section id="features" className="py-16 md:py-24 bg-secondary">
@@ -93,6 +91,7 @@ const FeaturesSection = () => {
             "The Big Day" offers a suite of tools to make your wedding planning seamless and your celebration unforgettable.
           </p>
         </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {featuresData.map((feature, index) => {
             const IconComponent = feature.icon;
@@ -156,6 +155,7 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
             Choose from our collection of professionally designed templates. Personalize with your photos, colors, and content to create a unique wedding website.
           </p>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {WEDDING_TEMPLATES.map((template) => (
             <div
@@ -173,7 +173,7 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
                 />
               </div>
               <div className="p-6 flex flex-col flex-grow">
-                <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">{template.name}</h3> 
                 <p className="text-muted-foreground text-sm leading-relaxed mb-4 flex-grow">{template.description}</p>
                 <Button
                   variant="outline"
@@ -186,9 +186,10 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
             </div>
           ))}
         </div>
+
         <div className="mt-12 text-center">
           <Button asChild size="lg" className="px-8 py-3 h-auto text-base group">
-            <Link href="/#templates"> {/* Placeholder, can link to a dedicated templates page */}
+            <Link href="/#templates"> 
               Browse All Templates
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
@@ -201,16 +202,16 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
 
 const PRICING_PLANS = [
   {
-    name: "Basic", price: "$49", period: "one-time", description: "Perfect for intimate celebrations with core features.",
-    features: [ "Custom wedding website", "RSVP management (up to 50 guests)", "Digital invitations", "Photo gallery (250 photos)", "6 months access" ], popular: false
+    name: "Basic Plan", price: "$49", period: "one-time", description: "Perfect for intimate celebrations with core features to get you started.",
+    features: [ "Customizable wedding website", "RSVP management (up to 50 guests)", "Standard photo gallery", "Digital invitations", "3 Template choices" ], popular: false
   },
   {
-    name: "Premium", price: "$99", period: "one-time", description: "Comprehensive features for the perfect celebration.",
-    features: [ "Everything in Basic", "RSVP management (up to 150 guests)", "Interactive guest games & polls", "Music playlist voting", "Unlimited photos", "12 months access" ], popular: true
+    name: "Premium Plan", price: "$99", period: "one-time", description: "Our most popular plan with comprehensive features for the perfect celebration.",
+    features: [ "Everything in Basic Plan", "RSVP management (up to 150 guests)", "Advanced photo gallery with albums", "Guest messaging tools", "All Templates access", "Playlist collaboration" ], popular: true
   },
   {
-    name: "Deluxe", price: "$149", period: "one-time", description: "For large weddings with all premium features.",
-    features: [ "Everything in Premium", "Unlimited guest count", "Seating planner", "Video & voice guestbook", "Custom domain name", "24 months access" ], popular: false
+    name: "Deluxe Plan", price: "$149", period: "one-time", description: "All-inclusive features for large weddings and those who want it all.",
+    features: [ "Everything in Premium Plan", "Unlimited guest count", "Custom domain name support", "Video guestbook feature", "Priority support" ], popular: false
   }
 ];
 
@@ -222,9 +223,10 @@ const PricingSection = () => {
           <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Choose the plan that works best for your wedding celebration.
+            Choose the plan that best fits your needs. No hidden fees, just straightforward pricing for your special day.
           </p>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {PRICING_PLANS.map((plan) => (
             <div
@@ -244,10 +246,10 @@ const PricingSection = () => {
                 </div>
                 <p className="text-muted-foreground mb-6 text-sm flex-grow">{plan.description}</p>
                 <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, idx) => (
+                  {plan.features.map((featureKey, idx) => (
                     <li key={idx} className="flex items-start text-sm">
                       <Check className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                      <span className="text-foreground">{feature}</span>
+                      <span className="text-foreground">{featureKey}</span>
                     </li>
                   ))}
                 </ul>
@@ -265,20 +267,20 @@ const PricingSection = () => {
 
 const testimonialsData = [
   {
-    quote: "The Big Day made our wedding planning so much easier! Our guests loved the interactive features, especially the photo sharing during the reception.",
-    author: "Sarah & Michael", date: "Married June 2024",
+    quote: "The Big Day made our wedding planning so much easier! Our guests loved the interactive features, especially the photo sharing during the reception. Highly recommend!",
+    author: "Sarah & Michael L.", date: "Married June 2024",
     image: "https://images.unsplash.com/photo-1541800033-180008982215?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
     aiHint: "happy couple portrait"
   },
   {
-    quote: "The RSVP management saved us so much time. Our guests found it super convenient.",
-    author: "Jessica & David", date: "Married August 2024",
+    quote: "The RSVP management saved us so much time. Our guests found it super convenient, and the theme editor helped us match our website to our wedding style perfectly!",
+    author: "Jessica & David P.", date: "Married August 2024",
     image: "https://images.unsplash.com/photo-1515628507581-e69258294274?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
     aiHint: "joyful couple outdoors"
   },
   {
-    quote: "Playlist voting was a hit! The photo gallery is a beautiful keepsake.",
-    author: "Emma & James", date: "Married October 2024",
+    quote: "Absolutely loved the playlist collaboration feature! It made our reception so much more personal. The photo gallery is a beautiful keepsake. Five stars!",
+    author: "Emma & James K.", date: "Married October 2024",
     image: "https://images.unsplash.com/photo-1507609413669-f529768f0904?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxoYXBweSUyMGNvdXBsZSUyMHBvcnRyYWl0fGVufDB8fHx8MTc0NzYxMzg3N3ww&ixlib=rb-4.0.3&q=80&w=100",
     aiHint: "smiling couple wedding"
   },
@@ -292,7 +294,7 @@ const TestimonialsSection = () => {
           <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">What Couples Say</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Hear from couples who created memorable wedding experiences with The Big Day.
+            Hear from happy couples who created memorable and beautiful wedding experiences with The Big Day.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -331,9 +333,9 @@ const TestimonialsSection = () => {
 
 const HowItWorksSection = () => {
   const steps = [
-    { icon: <Edit3 className="w-10 h-10 text-primary" />, title: "1. Sign Up & Create", description: "Create an account and select your favorite template to customize your wedding website." },
-    { icon: <Palette className="w-10 h-10 text-primary" />, title: "2. Add Your Details", description: "Add your wedding information, photos, and manage your guest list all in one place." },
-    { icon: <Send className="w-10 h-10 text-primary" />, title: "3. Share & Celebrate", description: "Send invitations, collect RSVPs, and enjoy all the interactive features with your guests." }
+    { icon: <Edit3 className="w-10 h-10 text-primary" />, title: "1. Sign Up & Create", description: "Create your account, choose a beautiful template, and start personalizing your wedding website in minutes." },
+    { icon: <Palette className="w-10 h-10 text-primary" />, title: "2. Add Your Details", description: "Easily add your wedding information, love story, photos, event schedule, and gift registry links." },
+    { icon: <Send className="w-10 h-10 text-primary" />, title: "3. Share & Celebrate", description: "Share your unique website link, manage RSVPs, and engage with your guests through interactive features." }
   ];
   return (
     <section id="how-it-works" className="py-16 md:py-24 bg-secondary">
@@ -342,7 +344,7 @@ const HowItWorksSection = () => {
            <CheckCircle className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">How It Works</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Creating your dream wedding website is simple and takes just a few minutes to get started.
+            Creating your dream wedding website is simple and intuitive with our easy-to-use platform.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
@@ -360,13 +362,13 @@ const HowItWorksSection = () => {
           <div className="flex flex-col md:flex-row">
             <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center text-center md:text-left">
               <h3 className="text-2xl md:text-3xl font-bold text-primary mb-4" style={{fontFamily: 'Times New Roman, Times, serif'}}>
-                See a Live Demo
+                Explore a Live Demo
               </h3>
               <p className="text-lg text-muted-foreground mb-6">
-                Explore a fully featured demo wedding website. Experience both the guest view and the powerful admin dashboard.
+                See a fully featured demo wedding website. Experience both the guest view and the powerful admin dashboard.
               </p>
               <Button asChild size="lg" className="px-8 py-3 h-auto text-base self-center md:self-start">
-                <Link href="/#how-it-works"> 
+                <Link href="/#how-it-works"> {/* Placeholder for demo link */}
                   View Demo Website
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -393,9 +395,8 @@ const CTASection = () => {
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 text-center">
         <Heart className="w-12 h-12 text-primary mx-auto mb-6" />
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-          Ready to Start Planning <span className="text-primary">The Big Day</span>?
-        </h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6"
+            dangerouslySetInnerHTML={{ __html: "Ready to Start Planning <span class=\"text-primary\">The Big Day</span>?" }} />
         <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
           Sign up today and begin creating the wedding website of your dreams. It's free to get started!
         </p>
@@ -408,7 +409,6 @@ const CTASection = () => {
 };
 
 const AppFooter = () => {
-  // const t = useTranslations('HomePage'); // Removed
   const [currentYear, setCurrentYear] = React.useState(new Date().getFullYear());
 
   React.useEffect(() => {
@@ -460,9 +460,7 @@ const AppFooter = () => {
         </div>
         <Separator className="my-8 bg-border/50" />
         <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} The Big Day. All rights reserved.
-          </p>
+          <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: `&copy; ${currentYear} The Big Day. All rights reserved.` }} />
         </div>
       </div>
     </footer>
@@ -472,7 +470,7 @@ const AppFooter = () => {
 const sampleWeddingData: Partial<Wedding> = {
   title: "Anna & Paul's Wedding",
   description: "We are so excited to celebrate our special day with all of our amazing friends and family! Join us for a day filled with love, laughter, and unforgettable memories as we begin our new journey together.",
-  date: "2026-06-15T17:30:00.000Z", // UTC time
+  date: "2026-06-15T17:30:00.000Z", 
   location: "The Enchanted Garden, Springsville",
   coverPhoto: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwYmFucXVldCUyMHJvb218ZW58MHx8fHwxNzQ3NTg4OTg5fDA&ixlib=rb-4.0.3&q=80&w=1080",
   gallery: [
@@ -491,11 +489,10 @@ const sampleWeddingData: Partial<Wedding> = {
     { time: "10:00 PM", event: "Sparkler Send-off", description: "Wish us well as we depart" }
   ],
   dressCode: "Semi-Formal: Suits, gowns, or cocktail dresses.",
-  rsvpDeadline: "2026-04-30T23:59:00.000Z" // End of day
+  rsvpDeadline: "2026-04-30T23:59:00.000Z" 
 };
 
 export default function HomePage() {
-  // const t = useTranslations('HomePage'); // Removed
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isPreviewSheetOpen, setIsPreviewSheetOpen] = React.useState(false);
   const [selectedTemplate, setSelectedTemplate] = React.useState<typeof WEDDING_TEMPLATES[0] | null>(null);
@@ -534,7 +531,6 @@ export default function HomePage() {
             </span>
           </Link>
           <div className="flex items-center space-x-1">
-            {/* <LanguageSwitcher /> Removed */}
             <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary px-2 sm:px-3">
                 <Link href="/#features">Features</Link>
@@ -601,16 +597,16 @@ export default function HomePage() {
       <Sheet open={isPreviewSheetOpen} onOpenChange={setIsPreviewSheetOpen}>
         <SheetContent className="w-full sm:max-w-lg md:max-w-xl lg:w-2/5 xl:w-1/3 p-0 overflow-y-auto">
           <SheetHeader className="p-6 border-b bg-background sticky top-0 z-20">
-            <SheetTitle>{selectedTemplate?.name || 'Template Preview'}</SheetTitle>
+            <SheetTitle>{selectedTemplate?.name || "Template Preview"}</SheetTitle>
             <SheetDescription>
-              This is a preview of the {selectedTemplate?.name || 'selected'} template.
+              This is a preview of the {selectedTemplate?.name || "selected"} template.
             </SheetDescription>
             <SheetClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </SheetClose>
           </SheetHeader>
-          <div className="relative z-0">
+          <div className="relative z-0"> 
             {renderTemplatePreview()}
           </div>
         </SheetContent>
@@ -618,3 +614,4 @@ export default function HomePage() {
     </div>
   );
 }
+
