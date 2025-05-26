@@ -1,5 +1,5 @@
 // src/components/LanguageSwitcher.tsx
-'use client'; // Ensures this is a Client Component
+'use client'; 
 
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname, useRouter } from 'next-intl/navigation'; // Correct import for App Router

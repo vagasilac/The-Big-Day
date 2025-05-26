@@ -4,7 +4,7 @@ import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
 import {notFound} from 'next/navigation';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
-import '../globals.css'; // Correct relative path if globals.css is in src/app
+import '../globals.css'; // Correct relative path from src/app/[locale]/layout.tsx to src/app/globals.css
 import { Toaster } from "@/components/ui/toaster";
 import { locales as i18nLocales } from '../../i18n'; // Path from src/app/[locale]/layout.tsx to src/i18n.ts
 
