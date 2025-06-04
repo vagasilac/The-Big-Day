@@ -1,5 +1,3 @@
-// This is the root layout that wraps everything, including the [locale] segments.
-// It should be minimal. The actual content layout is in src/app/[locale]/layout.tsx.
 
 import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
@@ -8,8 +6,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'The Big Day', // This can be overridden by [locale]/layout.tsx
-  description: 'Our Wedding Website', // This can be overridden
+  title: 'The Big Day',
+  description: 'Our Wedding Website',
 };
 
 export const viewport: Viewport = {
@@ -25,8 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // The lang attribute will be set in the [locale]/layout.tsx
-    <html lang="en" suppressHydrationWarning> 
+    <html lang="en" suppressHydrationWarning>
       <head />
       <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`} suppressHydrationWarning>
         {children}

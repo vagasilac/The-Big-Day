@@ -1,6 +1,5 @@
 
 import type {NextConfig} from 'next';
-import nextIntl from 'next-intl/plugin'; // Import the plugin
 
 const nextConfigBase: NextConfig = {
   /* config options here */
@@ -40,8 +39,4 @@ const nextConfigBase: NextConfig = {
   },
 };
 
-// Tell the plugin where your i18n config lives
-// For App Router, this is typically './src/i18n.ts'
-const withNextIntl = nextIntl('./src/i18n.ts');
-
-export default withNextIntl(nextConfigBase);
+export default nextConfigBase;
