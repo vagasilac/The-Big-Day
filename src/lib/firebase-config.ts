@@ -11,7 +11,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyA9F3nRJhZfndpPat2LPfSXCyBVV41n2qw",
   authDomain: "the-big-day-31aox.firebaseapp.com",
   projectId: "the-big-day-31aox",
-  storageBucket: "the-big-day-31aox.firebasestorage.app", // Ensure this is correct and your bucket exists
+  storageBucket: "the-big-day-31aox.firebasestorage.app", // Correct Firebase Storage bucket name
   messagingSenderId: "957243914920",
   appId: "1:957243914920:web:4bb45e0b92667ebf7b609d"
 };
