@@ -218,12 +218,7 @@ export default function DashboardLayout({
       <SidebarInset className="flex flex-col">
          {isMobile && (
           <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-            <SidebarTrigger asChild>
-                <Button size="icon" variant="outline" className="sm:hidden">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle Menu</span>
-                </Button>
-              </SidebarTrigger>
+            <SidebarTrigger asChild><Button size="icon" variant="outline" className="sm:hidden"><Menu className="h-5 w-5" /><span className="sr-only">Toggle Menu</span></Button></SidebarTrigger>
             <div className="flex-1">
                <Link href="/" className="flex items-center gap-2">
                 <Heart className="w-5 h-5 text-primary" />
