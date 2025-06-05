@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/table';
 import {
   AlertDialog,
+  AlertDialogTrigger, // Added AlertDialogTrigger here
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -51,7 +52,7 @@ import {
   AlertDialogTitle,
   AlertDialogAction,
   AlertDialogCancel,
-} from '@/components/ui/alert-dialog'; // AlertDialogTrigger is not typically used asChild directly with Button for this purpose
+} from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Heart, PlusCircle, Users, Edit, Trash, Loader2 } from 'lucide-react';
@@ -80,7 +81,7 @@ const guestFormSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   category: z.enum(["bride's", "bridegroom's", 'shared', 'service']).default("bride's"),
-  relationship: z.enum(['family', 'friend', 'colleague', 'service', 'plus-one']).default('friend'), // Added 'plus-one'
+  relationship: z.enum(['family', 'friend', 'colleague', 'service', 'plus-one']).default('friend'),
   familyGroup: z.string().optional().or(z.literal('')),
   headOfFamily: z.boolean().default(false),
   plusOneAllowed: z.boolean().default(false),
@@ -102,7 +103,7 @@ export default function GuestsPage() {
   const [guestMap, setGuestMap] = useState<Map<string, string>>(new Map());
   const [loadingGuests, setLoadingGuests] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingGuest, setEditingGuest] = useState<Guest | null>(null); // This will always be the primary guest being edited
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -181,8 +182,10 @@ export default function GuestsPage() {
   };
 
   useEffect(() => {
-    loadGuests();
-  }, [weddingData]);
+    if (weddingData?.id) {
+      loadGuests();
+    }
+  }, [weddingData, toast]); // Added toast to dependencies as it's used in loadGuests
 
   const resetForm = () => {
     form.reset({
@@ -209,26 +212,25 @@ export default function GuestsPage() {
       let primaryGuestId = editingGuest?.id;
       const batch = writeBatch(db);
 
-      if (editingGuest && primaryGuestId) { // Editing existing primary guest
+      if (editingGuest && primaryGuestId) {
         const guestRef = doc(db, 'weddings', weddingData.id, 'guests', primaryGuestId);
         batch.update(guestRef, {
           ...values,
           weddingId: weddingData.id,
           updatedAt: serverTimestamp(),
         });
-      } else { // Adding new primary guest
+      } else {
         const newGuestRef = doc(collection(db, 'weddings', weddingData.id, 'guests'));
         primaryGuestId = newGuestRef.id;
         batch.set(newGuestRef, {
           ...values,
           weddingId: weddingData.id,
-          isPlusOneFor: undefined, // Ensure this is not set for primary guest
+          isPlusOneFor: undefined, 
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
       }
 
-      // Manage Plus One
       if (primaryGuestId) {
         const plusOneQuery = query(
           collection(db, 'weddings', weddingData.id, 'guests'),
@@ -241,17 +243,17 @@ export default function GuestsPage() {
           const plusOneGuestData: Omit<Guest, 'id' | 'createdAt' | 'updatedAt'> = {
             name: values.plusOneName,
             weddingId: weddingData.id,
-            email: '', // Plus ones might not have individual contact
+            email: '', 
             phone: '',
-            category: values.category, // Inherit from primary
+            category: values.category, 
             relationship: 'plus-one',
-            familyGroup: values.familyGroup, // Inherit from primary
+            familyGroup: values.familyGroup, 
             headOfFamily: false,
-            plusOneAllowed: false, // Plus ones cannot have their own plus ones
+            plusOneAllowed: false, 
             plusOneName: '',
-            invitedTo: values.invitedTo, // Inherit from primary
-            invitationCode: '', // Or generate a new one / leave blank
-            rsvpStatus: existingPlusOneDoc?.data().rsvpStatus || 'pending', // Preserve RSVP if exists, else pending
+            invitedTo: values.invitedTo, 
+            invitationCode: '', 
+            rsvpStatus: existingPlusOneDoc?.data().rsvpStatus || 'pending', 
             isPlusOneFor: primaryGuestId,
           };
 
@@ -263,7 +265,6 @@ export default function GuestsPage() {
             batch.set(newPlusOneRef, { ...plusOneGuestData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
           }
         } else if (existingPlusOneDoc) {
-          // Plus one was removed or name cleared
           batch.delete(doc(db, 'weddings', weddingData.id, 'guests', existingPlusOneDoc.id));
         }
       }
@@ -272,7 +273,7 @@ export default function GuestsPage() {
       toast({ title: editingGuest ? 'Guest updated' : 'Guest added' });
       setDialogOpen(false);
       resetForm();
-      await loadGuests(); // Reload guests to reflect changes
+      await loadGuests();
 
     } catch (error: any) {
       console.error('Error saving guest:', error);
@@ -284,13 +285,12 @@ export default function GuestsPage() {
 
   const handleDelete = async (guestToDelete: Guest) => {
     if (!weddingData?.id || !guestToDelete.id) return;
-    setSaving(true); // Use saving state to disable buttons during delete
+    setSaving(true); 
     try {
       const batch = writeBatch(db);
       const guestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.id);
       batch.delete(guestRef);
 
-      // If deleting a primary guest, also delete their plus-one
       if (!guestToDelete.isPlusOneFor) {
         const plusOneQuery = query(
           collection(db, 'weddings', weddingData.id, 'guests'),
@@ -301,7 +301,6 @@ export default function GuestsPage() {
           batch.delete(doc(db, 'weddings', weddingData.id, 'guests', plusOneDoc.id));
         });
       } 
-      // If deleting a plus-one, update the primary guest to remove plus-one details
       else if (guestToDelete.isPlusOneFor) {
         const primaryGuestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.isPlusOneFor);
         batch.update(primaryGuestRef, {
@@ -324,7 +323,6 @@ export default function GuestsPage() {
   
   const startEdit = (guestToEdit: Guest) => {
     let targetGuestForForm = guestToEdit;
-    // If editing a plus-one, load the primary guest's data into the form
     if (guestToEdit.isPlusOneFor) {
       const primary = guests.find(g => g.id === guestToEdit.isPlusOneFor);
       if (primary) {
@@ -340,7 +338,7 @@ export default function GuestsPage() {
       email: targetGuestForForm.email || '',
       phone: targetGuestForForm.phone || '',
       category: targetGuestForForm.category || "bride's",
-      relationship: targetGuestForForm.relationship === 'plus-one' ? 'friend' : targetGuestForForm.relationship || 'friend', // Default relationship if it was 'plus-one'
+      relationship: targetGuestForForm.relationship === 'plus-one' ? 'friend' : targetGuestForForm.relationship || 'friend',
       familyGroup: targetGuestForForm.familyGroup || '',
       headOfFamily: !!targetGuestForForm.headOfFamily,
       plusOneAllowed: !!targetGuestForForm.plusOneAllowed,
@@ -349,7 +347,7 @@ export default function GuestsPage() {
       invitationCode: targetGuestForForm.invitationCode || '',
       rsvpStatus: targetGuestForForm.rsvpStatus || 'pending',
     });
-    setEditingGuest(targetGuestForForm); // This is the guest whose record (and plus-one) will be managed
+    setEditingGuest(targetGuestForForm);
     setDialogOpen(true);
   };
 
@@ -361,7 +359,6 @@ export default function GuestsPage() {
       
       let categoryMatch = filters.category === 'all' || guest.category === filters.category;
       if (guest.isPlusOneFor && filters.category !== 'all') {
-        // For plus-one, check if primary guest's category matches, if filter is applied
          const primaryGuest = guests.find(g => g.id === guest.isPlusOneFor);
          categoryMatch = primaryGuest?.category === filters.category;
       }
@@ -371,7 +368,7 @@ export default function GuestsPage() {
        if (guest.isPlusOneFor && filters.relationship === 'plus-one') {
         relationshipMatch = true;
       } else if (guest.isPlusOneFor && filters.relationship !== 'all' && filters.relationship !== 'plus-one') {
-        relationshipMatch = false; // Don't match plus-ones if filtering by other specific relationships
+        relationshipMatch = false; 
       }
 
 
@@ -803,3 +800,5 @@ export default function GuestsPage() {
     </div>
   );
 }
+
+    
