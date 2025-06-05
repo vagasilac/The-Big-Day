@@ -29,7 +29,6 @@ import {
 } from '@/components/ui/form';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
-import { auth, db } from '@/lib/firebase-config';
 import { ArrowLeft, Info, Loader2 } from 'lucide-react';
 
 // Define Zod schemas for validation
@@ -92,6 +91,7 @@ export default function AuthPage() {
 
   async function onLoginSubmit(data: LoginFormValues) {
     setIsLoginLoading(true);
+    const { auth } = await import('@/lib/firebase-config');
     const { signInWithEmailAndPassword } = await import('firebase/auth');
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
@@ -132,6 +132,7 @@ export default function AuthPage() {
 
   async function onRegisterSubmit(data: RegisterFormValues) {
     setIsRegisterLoading(true);
+    const { auth, db } = await import('@/lib/firebase-config');
     const { createUserWithEmailAndPassword } = await import('firebase/auth');
     const { doc, setDoc, Timestamp } = await import('firebase/firestore');
     try {
