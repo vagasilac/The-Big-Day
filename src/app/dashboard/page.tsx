@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, Users, ListChecks, PlusCircle, Eye, Edit, Heart, Loader2, LayoutDashboard } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
@@ -56,18 +56,33 @@ const CountdownTimer = ({ targetDateISO }: { targetDateISO: string | null | unde
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [weddingData, setWeddingData] = useState<Wedding | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const [totalGuestCount, setTotalGuestCount] = useState(0);
   const [rsvpsReceivedCount, setRsvpsReceivedCount] = useState(0);
+  
   const [brideGuestCount, setBrideGuestCount] = useState(0);
   const [groomGuestCount, setGroomGuestCount] = useState(0);
   const [sharedGuestCount, setSharedGuestCount] = useState(0);
   const [serviceGuestCount, setServiceGuestCount] = useState(0);
   const [otherCategoryGuestCount, setOtherCategoryGuestCount] = useState(0);
+
+  const [totalAcceptedCount, setTotalAcceptedCount] = useState(0);
+  const [totalDeclinedCount, setTotalDeclinedCount] = useState(0);
+  const [acceptedBrideGuestCount, setAcceptedBrideGuestCount] = useState(0);
+  const [acceptedGroomGuestCount, setAcceptedGroomGuestCount] = useState(0);
+  const [acceptedSharedGuestCount, setAcceptedSharedGuestCount] = useState(0);
+  const [acceptedServiceGuestCount, setAcceptedServiceGuestCount] = useState(0);
+  const [acceptedOtherGuestCount, setAcceptedOtherGuestCount] = useState(0);
+  const [declinedBrideGuestCount, setDeclinedBrideGuestCount] = useState(0);
+  const [declinedGroomGuestCount, setDeclinedGroomGuestCount] = useState(0);
+  const [declinedSharedGuestCount, setDeclinedSharedGuestCount] = useState(0);
+  const [declinedServiceGuestCount, setDeclinedServiceGuestCount] = useState(0);
+  const [declinedOtherGuestCount, setDeclinedOtherGuestCount] = useState(0);
+
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   const fetchWeddingAndGuestData = useCallback(async (user: User) => {
@@ -91,39 +106,71 @@ export default function DashboardPage() {
             let localGroomCount = 0;
             let localSharedCount = 0;
             let localServiceCount = 0;
-            let localOtherCount = 0;
+            
+            let localTotalAccepted = 0;
+            let localTotalDeclined = 0;
+            let localAcceptedBride = 0, localAcceptedGroom = 0, localAcceptedShared = 0, localAcceptedService = 0, localAcceptedOther = 0;
+            let localDeclinedBride = 0, localDeclinedGroom = 0, localDeclinedShared = 0, localDeclinedService = 0, localDeclinedOther = 0;
+
 
             guestSnapshot.forEach((doc) => {
               const guest = { id: doc.id, ...doc.data() } as Guest;
               guestsList.push(guest);
+
+              // Total guests by category
               switch (guest.category) {
-                case "bride's":
-                  localBrideCount++;
-                  break;
-                case "bridegroom's":
-                  localGroomCount++;
-                  break;
-                case 'shared':
-                  localSharedCount++;
-                  break;
-                case 'service':
-                  localServiceCount++;
-                  break;
-                default:
-                  localOtherCount++;
+                case "bride's": localBrideCount++; break;
+                case "bridegroom's": localGroomCount++; break;
+                case 'shared': localSharedCount++; break;
+                case 'service': localServiceCount++; break;
+                // 'other' will be calculated later
+              }
+
+              // RSVPs by category
+              if (guest.rsvpStatus === 'accepted') {
+                localTotalAccepted++;
+                switch (guest.category) {
+                  case "bride's": localAcceptedBride++; break;
+                  case "bridegroom's": localAcceptedGroom++; break;
+                  case 'shared': localAcceptedShared++; break;
+                  case 'service': localAcceptedService++; break;
+                  default: localAcceptedOther++;
+                }
+              } else if (guest.rsvpStatus === 'declined') {
+                localTotalDeclined++;
+                switch (guest.category) {
+                  case "bride's": localDeclinedBride++; break;
+                  case "bridegroom's": localDeclinedGroom++; break;
+                  case 'shared': localDeclinedShared++; break;
+                  case 'service': localDeclinedService++; break;
+                  default: localDeclinedOther++;
+                }
               }
             });
             
             setTotalGuestCount(guestsList.length);
-            const respondedCount = guestsList.filter(g => g.rsvpStatus === 'accepted' || g.rsvpStatus === 'declined').length;
-            setRsvpsReceivedCount(respondedCount);
-            
             setBrideGuestCount(localBrideCount);
             setGroomGuestCount(localGroomCount);
             setSharedGuestCount(localSharedCount);
             setServiceGuestCount(localServiceCount);
-            setOtherCategoryGuestCount(localOtherCount);
+            const localOtherTotal = guestsList.length - (localBrideCount + localGroomCount + localSharedCount + localServiceCount);
+            setOtherCategoryGuestCount(localOtherTotal > 0 ? localOtherTotal : 0);
 
+            setTotalAcceptedCount(localTotalAccepted);
+            setAcceptedBrideGuestCount(localAcceptedBride);
+            setAcceptedGroomGuestCount(localAcceptedGroom);
+            setAcceptedSharedGuestCount(localAcceptedShared);
+            setAcceptedServiceGuestCount(localAcceptedService);
+            setAcceptedOtherGuestCount(localAcceptedOther);
+
+            setTotalDeclinedCount(localTotalDeclined);
+            setDeclinedBrideGuestCount(localDeclinedBride);
+            setDeclinedGroomGuestCount(localDeclinedGroom);
+            setDeclinedSharedGuestCount(localDeclinedShared);
+            setDeclinedServiceGuestCount(localDeclinedService);
+            setDeclinedOtherGuestCount(localDeclinedOther);
+            
+            setRsvpsReceivedCount(localTotalAccepted + localTotalDeclined);
             setIsLoadingStats(false);
           }, (error) => {
             console.error("Error fetching guest stats:", error);
@@ -141,6 +188,11 @@ export default function DashboardPage() {
         setSharedGuestCount(0);
         setServiceGuestCount(0);
         setOtherCategoryGuestCount(0);
+        // Reset RSVP stats too
+        setTotalAcceptedCount(0); setAcceptedBrideGuestCount(0); setAcceptedGroomGuestCount(0); setAcceptedSharedGuestCount(0); setAcceptedServiceGuestCount(0); setAcceptedOtherGuestCount(0);
+        setTotalDeclinedCount(0); setDeclinedBrideGuestCount(0); setDeclinedGroomGuestCount(0); setDeclinedSharedGuestCount(0); setDeclinedServiceGuestCount(0); setDeclinedOtherGuestCount(0);
+        setRsvpsReceivedCount(0);
+
         setIsLoadingStats(false);
       }
     } catch (error: any) {
@@ -348,8 +400,44 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                 {isLoadingStats ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-3xl font-bold text-foreground">{rsvpsReceivedCount}</div> }
-                 <p className="text-xs text-muted-foreground">responded</p>
+                 {isLoadingStats ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+                    <>
+                        <div className="text-3xl font-bold text-foreground">{rsvpsReceivedCount}</div>
+                        <p className="text-xs text-muted-foreground">responded</p>
+                        {rsvpsReceivedCount > 0 && (
+                        <>
+                            <div className="mt-2 text-xs text-muted-foreground">
+                            Accepted: {totalAcceptedCount}
+                            {totalAcceptedCount > 0 && (
+                                <div className="ml-2 flex flex-wrap gap-x-2 gap-y-1">
+                                <span>Bride: {acceptedBrideGuestCount}</span>
+                                <span className="hidden sm:inline">|</span>
+                                <span>Groom: {acceptedGroomGuestCount}</span>
+                                <span className="hidden sm:inline">|</span>
+                                <span>Shared: {acceptedSharedGuestCount}</span>
+                                {acceptedServiceGuestCount > 0 && (<><span className="hidden sm:inline">|</span><span>Service: {acceptedServiceGuestCount}</span></>)}
+                                {acceptedOtherGuestCount > 0 && (<><span className="hidden sm:inline">|</span><span>Other: {acceptedOtherGuestCount}</span></>)}
+                                </div>
+                            )}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                            Declined: {totalDeclinedCount}
+                            {totalDeclinedCount > 0 && (
+                                <div className="ml-2 flex flex-wrap gap-x-2 gap-y-1">
+                                <span>Bride: {declinedBrideGuestCount}</span>
+                                <span className="hidden sm:inline">|</span>
+                                <span>Groom: {declinedGroomGuestCount}</span>
+                                <span className="hidden sm:inline">|</span>
+                                <span>Shared: {declinedSharedGuestCount}</span>
+                                {declinedServiceGuestCount > 0 && (<><span className="hidden sm:inline">|</span><span>Service: {declinedServiceGuestCount}</span></>)}
+                                {declinedOtherGuestCount > 0 && (<><span className="hidden sm:inline">|</span><span>Other: {declinedOtherGuestCount}</span></>)}
+                                </div>
+                            )}
+                            </div>
+                        </>
+                        )}
+                    </>
+                 )}
               </CardContent>
             </Card>
           </div>
