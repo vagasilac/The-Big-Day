@@ -473,7 +473,7 @@ export default function GuestsPage() {
 
           {/* Add/Edit dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}> 
-            <DialogContent className="sm:max-w-xl md:max-w-2xl">
+            <DialogContent className="sm:max-w-2xl md:max-w-3xl"> {/* Increased width */}
               <DialogHeader>
                 <DialogTitle>{editingGuest ? 'Edit Guest' : 'Add Guest'}</DialogTitle>
                 <DialogDescription>
@@ -481,187 +481,220 @@ export default function GuestsPage() {
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Guest name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Email (optional)" {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Phone (optional)" {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                          <select className="w-full h-10 rounded-md border border-input px-3" {...field}>
-                            <option value="bride's">Bride's Guest</option>
-                            <option value="bridegroom's">Bridegroom's Guest</option>
-                            <option value="shared">Shared Guest</option>
-                            <option value="service">Service Provider</option>
-                          </select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="relationship"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Relationship</FormLabel>
-                        <FormControl>
-                          <select className="w-full h-10 rounded-md border border-input px-3" {...field}>
-                            <option value="family">Family</option>
-                            <option value="friend">Friend</option>
-                            <option value="colleague">Colleague</option>
-                            <option value="service">Service</option>
-                          </select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="familyGroup"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Family Group</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Smith Family" {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="headOfFamily"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <input type="checkbox" className="mr-2" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
-                        </FormControl>
-                        <FormLabel>Head of Family</FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="plusOneAllowed"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <input type="checkbox" className="mr-2" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
-                        </FormControl>
-                        <FormLabel>Allow plus one</FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                  {watchPlusOne && (
+                <form onSubmit={form.handleSubmit(handleSubmit)}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 max-h-[70vh] overflow-y-auto p-1 pr-3"> {/* Added p-1 and pr-3 for padding around scrollbar */}
+                    
+                    <div className="md:col-span-2">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Guest name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  
                     <FormField
                       control={form.control}
-                      name="plusOneName"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Plus-One Name</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input placeholder="Plus one name" {...field} value={field.value || ''} />
+                            <Input placeholder="Email (optional)" {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">Invited To</p>
-                    <div className="flex flex-col space-y-1 pl-1 mt-1">
-                      {['ceremony', 'reception', 'welcome_dinner'].map((type) => (
-                        <label key={type} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={form.getValues('invitedTo').includes(type)}
-                            onChange={() => {
-                              const current = form.getValues('invitedTo');
-                              if (current.includes(type)) {
-                                form.setValue('invitedTo', current.filter((t) => t !== type));
-                              } else {
-                                form.setValue('invitedTo', [...current, type]);
-                              }
-                            }}
-                          />
-                          <span className="capitalize">{type.replace('_', ' ')}</span>
-                        </label>
-                      ))}
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Phone (optional)" {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <FormControl>
+                            <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" {...field}>
+                              <option value="bride's">Bride's Guest</option>
+                              <option value="bridegroom's">Bridegroom's Guest</option>
+                              <option value="shared">Shared Guest</option>
+                              <option value="service">Service Provider</option>
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="relationship"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Relationship</FormLabel>
+                          <FormControl>
+                            <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" {...field}>
+                              <option value="family">Family</option>
+                              <option value="friend">Friend</option>
+                              <option value="colleague">Colleague</option>
+                              <option value="service">Service</option>
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="familyGroup"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Family Group</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., Smith Family" {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="invitationCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Invitation Code</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Auto-generated if blank" {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Checkboxes side-by-side in their own grid cells now */}
+                    <FormField
+                      control={form.control}
+                      name="headOfFamily"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 shadow-sm h-10">
+                          <FormControl>
+                             <input type="checkbox" className="h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
+                          </FormControl>
+                          <FormLabel className="font-normal text-sm">
+                            Head of Family
+                          </FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="plusOneAllowed"
+                      render={({ field }) => (
+                         <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 shadow-sm h-10">
+                          <FormControl>
+                            <input type="checkbox" className="h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
+                          </FormControl>
+                          <FormLabel className="font-normal text-sm">
+                            Allow plus one
+                          </FormLabel>
+                        </FormItem>
+                      )}
+                    />
+
+                    {watchPlusOne && (
+                      <div className="md:col-span-2">
+                        <FormField
+                          control={form.control}
+                          name="plusOneName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Plus-One Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Plus one name" {...field} value={field.value || ''} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    <div className="md:col-span-2">
+                       <FormField
+                          control={form.control}
+                          name="invitedTo"
+                          render={({ field }) => ( // field is passed but not directly used for this custom multi-checkbox
+                            <FormItem>
+                              <FormLabel>Invited To</FormLabel>
+                              <FormControl>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 p-2 border rounded-md shadow-sm">
+                                  {['ceremony', 'reception', 'welcome_dinner'].map((type) => (
+                                    <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        checked={form.getValues('invitedTo').includes(type)}
+                                        onChange={() => {
+                                          const current = form.getValues('invitedTo');
+                                          if (current.includes(type)) {
+                                            form.setValue('invitedTo', current.filter((t) => t !== type));
+                                          } else {
+                                            form.setValue('invitedTo', [...current, type]);
+                                          }
+                                        }}
+                                      />
+                                      <span className="capitalize text-sm font-normal">{type.replace('_', ' ')}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                     </div>
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="invitationCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Invitation Code</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Auto-generated if blank" {...field} value={field.value || ''} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="rsvpStatus"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>RSVP Status</FormLabel>
-                        <FormControl>
-                          <select className="w-full h-10 rounded-md border border-input px-3" {...field}>
-                            <option value="pending">Pending</option>
-                            <option value="accepted">Accepted</option>
-                            <option value="declined">Declined</option>
-                          </select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <DialogFooter className="pt-2">
+                   
+                    <div className="md:col-span-2">
+                      <FormField
+                        control={form.control}
+                        name="rsvpStatus"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>RSVP Status</FormLabel>
+                            <FormControl>
+                              <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" {...field}>
+                                <option value="pending">Pending</option>
+                                <option value="accepted">Accepted</option>
+                                <option value="declined">Declined</option>
+                              </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div> {/* End of grid */}
+                  
+                  <DialogFooter className="pt-4"> {/* Increased top padding for separation */}
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
                       Cancel
                     </Button>
