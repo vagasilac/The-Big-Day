@@ -15,7 +15,8 @@ export interface Guest {
   plusOneName?: string; // For primary guest: name of their plus one
   invitedTo?: string[];
   invitationStatus?: 'sent' | 'not_sent';
-  rsvpStatus?: 'pending' | 'accepted' | 'declined';
+  rsvpStatus?: 'pending' | 'accepted' | 'declined' | 'maybe';
+  personalMessage?: string;
   mealChoice?: string | null;
   invitationCode?: string;
   createdAt?: Timestamp;
