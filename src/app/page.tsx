@@ -74,7 +74,7 @@ const featuresData = [
   { icon: ListChecks, titleKey: "RSVP Management", descriptionKey: "Easily track guest responses, meal preferences, and plus-ones in real-time." },
   { icon: Camera, titleKey: "Photo Sharing", descriptionKey: "Allow guests to upload photos and create a beautiful shared gallery of memories." },
   { icon: Gift, titleKey: "Gift Registry Links", descriptionKey: "Integrate your gift registries and make it easy for guests to find your wish list." },
-  { icon: Users, titleKey: "Guest List Tools", descriptionKey: "Manage your guest list, seating arrangements, and communication effortlessly." },
+  { icon: Users, titleKey: "Guest Management Tools", descriptionKey: "Manage your guest list, seating arrangements, and communication effortlessly." },
   { icon: Palette, titleKey: "Theme Editor", descriptionKey: "Match your website to your wedding's color scheme and style with our intuitive editor." },
   { icon: Music, titleKey: "Playlist Collaboration", descriptionKey: "Let guests suggest songs and help create the perfect soundtrack for your celebration." },
   { icon: Share2, titleKey: "Easy Sharing", descriptionKey: "Share your wedding website link with guests via email, social media, or printed invitations." },
