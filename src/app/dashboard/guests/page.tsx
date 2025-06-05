@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/table';
 import {
   AlertDialog,
-  AlertDialogTrigger, // Added AlertDialogTrigger here
+  AlertDialogTrigger,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -72,6 +72,7 @@ import {
   deleteDoc,
   serverTimestamp,
   writeBatch,
+  Timestamp,
 } from 'firebase/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { Guest } from '@/types/guest';
@@ -185,7 +186,8 @@ export default function GuestsPage() {
     if (weddingData?.id) {
       loadGuests();
     }
-  }, [weddingData, toast]); // Added toast to dependencies as it's used in loadGuests
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weddingData]); 
 
   const resetForm = () => {
     form.reset({
@@ -212,25 +214,28 @@ export default function GuestsPage() {
       let primaryGuestId = editingGuest?.id;
       const batch = writeBatch(db);
 
-      if (editingGuest && primaryGuestId) {
+      const primaryGuestData: Partial<Guest> & { weddingId: string, updatedAt: Timestamp, createdAt?: Timestamp } = {
+        ...values, // Values from the form for the primary guest
+        weddingId: weddingData.id,
+        updatedAt: serverTimestamp() as Timestamp,
+      };
+      
+      // Remove isPlusOneFor from primary guest data if it somehow got there
+      // (values from guestFormSchema should not contain it)
+      delete primaryGuestData.isPlusOneFor;
+
+
+      if (editingGuest && primaryGuestId) { // Update existing primary guest
         const guestRef = doc(db, 'weddings', weddingData.id, 'guests', primaryGuestId);
-        batch.update(guestRef, {
-          ...values,
-          weddingId: weddingData.id,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
+        batch.update(guestRef, primaryGuestData);
+      } else { // Create new primary guest
+        primaryGuestData.createdAt = serverTimestamp() as Timestamp;
         const newGuestRef = doc(collection(db, 'weddings', weddingData.id, 'guests'));
-        primaryGuestId = newGuestRef.id;
-        batch.set(newGuestRef, {
-          ...values,
-          weddingId: weddingData.id,
-          isPlusOneFor: undefined, 
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+        primaryGuestId = newGuestRef.id; // Capture ID for plus-one logic
+        batch.set(newGuestRef, primaryGuestData);
       }
 
+      // Handle Plus One
       if (primaryGuestId) {
         const plusOneQuery = query(
           collection(db, 'weddings', weddingData.id, 'guests'),
@@ -240,31 +245,33 @@ export default function GuestsPage() {
         const existingPlusOneDoc = existingPlusOnesSnapshot.docs.length > 0 ? existingPlusOnesSnapshot.docs[0] : null;
 
         if (values.plusOneAllowed && values.plusOneName) {
-          const plusOneGuestData: Omit<Guest, 'id' | 'createdAt' | 'updatedAt'> = {
+          const plusOneGuestData: Omit<Guest, 'id'> & { updatedAt: Timestamp, createdAt?: Timestamp } = {
             name: values.plusOneName,
             weddingId: weddingData.id,
             email: '', 
             phone: '',
             category: values.category, 
             relationship: 'plus-one',
-            familyGroup: values.familyGroup, 
+            familyGroup: values.familyGroup || '', 
             headOfFamily: false,
             plusOneAllowed: false, 
             plusOneName: '',
-            invitedTo: values.invitedTo, 
+            invitedTo: values.invitedTo || [], 
             invitationCode: '', 
             rsvpStatus: existingPlusOneDoc?.data().rsvpStatus || 'pending', 
-            isPlusOneFor: primaryGuestId,
+            isPlusOneFor: primaryGuestId, // Link to primary guest
+            updatedAt: serverTimestamp() as Timestamp,
           };
 
           if (existingPlusOneDoc) {
             const plusOneRef = doc(db, 'weddings', weddingData.id, 'guests', existingPlusOneDoc.id);
-            batch.update(plusOneRef, { ...plusOneGuestData, updatedAt: serverTimestamp() });
+            batch.update(plusOneRef, plusOneGuestData);
           } else {
+            plusOneGuestData.createdAt = serverTimestamp() as Timestamp;
             const newPlusOneRef = doc(collection(db, 'weddings', weddingData.id, 'guests'));
-            batch.set(newPlusOneRef, { ...plusOneGuestData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+            batch.set(newPlusOneRef, plusOneGuestData);
           }
-        } else if (existingPlusOneDoc) {
+        } else if (existingPlusOneDoc) { // plusOneAllowed is false or plusOneName is empty, so remove existing plus-one
           batch.delete(doc(db, 'weddings', weddingData.id, 'guests', existingPlusOneDoc.id));
         }
       }
@@ -291,6 +298,7 @@ export default function GuestsPage() {
       const guestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.id);
       batch.delete(guestRef);
 
+      // If deleting a primary guest, also delete their plus-one
       if (!guestToDelete.isPlusOneFor) {
         const plusOneQuery = query(
           collection(db, 'weddings', weddingData.id, 'guests'),
@@ -301,11 +309,12 @@ export default function GuestsPage() {
           batch.delete(doc(db, 'weddings', weddingData.id, 'guests', plusOneDoc.id));
         });
       } 
+      // If deleting a plus-one, update the primary guest to remove plus-one details
       else if (guestToDelete.isPlusOneFor) {
         const primaryGuestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.isPlusOneFor);
         batch.update(primaryGuestRef, {
           plusOneAllowed: false,
-          plusOneName: '',
+          plusOneName: '', // Clear the plusOneName field
           updatedAt: serverTimestamp()
         });
       }
@@ -323,11 +332,13 @@ export default function GuestsPage() {
   
   const startEdit = (guestToEdit: Guest) => {
     let targetGuestForForm = guestToEdit;
+    // If editing a plus-one, load the primary guest's data into the form instead.
     if (guestToEdit.isPlusOneFor) {
       const primary = guests.find(g => g.id === guestToEdit.isPlusOneFor);
       if (primary) {
         targetGuestForForm = primary;
       } else {
+        // This case should ideally not happen if data is consistent
         toast({ title: "Error", description: `Primary guest for ${guestToEdit.name} not found. Please edit the primary guest directly.`, variant: "destructive" });
         return;
       }
@@ -338,16 +349,19 @@ export default function GuestsPage() {
       email: targetGuestForForm.email || '',
       phone: targetGuestForForm.phone || '',
       category: targetGuestForForm.category || "bride's",
+      // If the original guest being targeted for edit was a plus-one,
+      // their relationship field in the DB is 'plus-one'. We don't want to set the form to 'plus-one'
+      // as it's not a selectable relationship for a primary guest. Default to 'friend' or use original if not 'plus-one'.
       relationship: targetGuestForForm.relationship === 'plus-one' ? 'friend' : targetGuestForForm.relationship || 'friend',
       familyGroup: targetGuestForForm.familyGroup || '',
       headOfFamily: !!targetGuestForForm.headOfFamily,
       plusOneAllowed: !!targetGuestForForm.plusOneAllowed,
-      plusOneName: targetGuestForForm.plusOneName || '',
+      plusOneName: targetGuestForForm.plusOneName || '', // This will be the plus-one's name if editing primary
       invitedTo: targetGuestForForm.invitedTo || [],
       invitationCode: targetGuestForForm.invitationCode || '',
       rsvpStatus: targetGuestForForm.rsvpStatus || 'pending',
     });
-    setEditingGuest(targetGuestForForm);
+    setEditingGuest(targetGuestForForm); // Keep track of the primary guest being edited
     setDialogOpen(true);
   };
 
@@ -358,6 +372,7 @@ export default function GuestsPage() {
         (guest.isPlusOneFor && guestMap.get(guest.isPlusOneFor || '')?.toLowerCase().includes(searchTerm.toLowerCase()));
       
       let categoryMatch = filters.category === 'all' || guest.category === filters.category;
+      // If guest is a plus-one, match based on primary guest's category for filtering
       if (guest.isPlusOneFor && filters.category !== 'all') {
          const primaryGuest = guests.find(g => g.id === guest.isPlusOneFor);
          categoryMatch = primaryGuest?.category === filters.category;
@@ -365,9 +380,11 @@ export default function GuestsPage() {
 
 
       let relationshipMatch = filters.relationship === 'all' || guest.relationship === filters.relationship;
+      // Special handling for 'plus-one' filter
        if (guest.isPlusOneFor && filters.relationship === 'plus-one') {
-        relationshipMatch = true;
+        relationshipMatch = true; // If filtering for plus-ones, and this guest is one, it's a match.
       } else if (guest.isPlusOneFor && filters.relationship !== 'all' && filters.relationship !== 'plus-one') {
+        // If filtering for something specific (e.g. 'family') and this guest is a plus-one, it's not a direct match for relationship.
         relationshipMatch = false; 
       }
 
@@ -506,10 +523,12 @@ export default function GuestsPage() {
                           {guest.isPlusOneFor && <Badge variant="outline" className="ml-2 text-xs">Plus One</Badge>}
                         </TableCell>
                         <TableCell className="capitalize">
-                          {guest.isPlusOneFor ? guestMap.get(guests.find(g => g.id === guest.isPlusOneFor)?.category || '') || guest.category : guest.category?.replace("'", '’') || '-'}
+                          {/* For plus-ones, show category of their primary guest */}
+                          {guest.isPlusOneFor ? (guests.find(g => g.id === guest.isPlusOneFor)?.category?.replace("'", '’') || '-') : (guest.category?.replace("'", '’') || '-')}
                         </TableCell>
                         <TableCell className="capitalize">
-                          {guest.isPlusOneFor ? `For ${guestMap.get(guest.isPlusOneFor) || 'Primary Guest'}` : guest.relationship || '-'}
+                           {/* For plus-ones, show who they are for */}
+                          {guest.isPlusOneFor ? `For ${guestMap.get(guest.isPlusOneFor) || 'Primary Guest'}` : (guest.relationship || '-')}
                         </TableCell>
                         <TableCell className="capitalize">{guest.invitedTo?.join(', ').replace(/_/g, ' ') || '-'}</TableCell>
                         <TableCell>
@@ -543,7 +562,7 @@ export default function GuestsPage() {
                                 <AlertDialogDescription>
                                   Are you sure you want to remove {guest.name}? 
                                   {!guest.isPlusOneFor && ' This will also remove their plus one, if any.'}
-                                  {guest.isPlusOneFor && ' This will also update the primary guest.'}
+                                  {guest.isPlusOneFor && ' This will also update the primary guest to no longer have a plus one.'}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
