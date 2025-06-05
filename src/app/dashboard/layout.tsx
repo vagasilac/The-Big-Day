@@ -29,7 +29,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   LayoutDashboard,
   Users,
-  ListChecks,
   Gift,
   LogOut,
   Mail,
@@ -178,7 +177,6 @@ export default function DashboardLayout({
             <SidebarGroupLabel>Guests</SidebarGroupLabel>
             <SidebarMenu>
               <NavLink href="/dashboard/guests" icon={<Users />} tooltip="Guest Management">Guest Management</NavLink>
-              <NavLink href="/dashboard/rsvps" icon={<ListChecks />} tooltip="RSVP Management">RSVP Management</NavLink>
               <NavLink href="/dashboard/invitations" icon={<Mail />} tooltip="Digital Invitations">Digital Invitations</NavLink>
             </SidebarMenu>
           </SidebarGroup>

@@ -55,6 +55,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { Heart, PlusCircle, Users, Edit, Trash, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -89,7 +90,8 @@ const guestFormSchema = z.object({
   plusOneName: z.string().optional().or(z.literal('')),
   invitedTo: z.array(z.string()).default([]),
   invitationCode: z.string().optional().or(z.literal('')),
-  rsvpStatus: z.enum(['pending', 'accepted', 'declined']).default('pending'),
+  rsvpStatus: z.enum(['pending', 'accepted', 'declined', 'maybe']).default('pending'),
+  personalMessage: z.string().optional().or(z.literal('')),
 });
 
 type GuestFormValues = z.infer<typeof guestFormSchema>;
@@ -128,6 +130,7 @@ export default function GuestsPage() {
       invitedTo: [],
       invitationCode: '',
       rsvpStatus: 'pending',
+      personalMessage: '',
     },
   });
 
@@ -203,6 +206,7 @@ export default function GuestsPage() {
       invitedTo: [],
       invitationCode: '',
       rsvpStatus: 'pending',
+      personalMessage: '',
     });
     setEditingGuest(null);
   };
@@ -360,6 +364,7 @@ export default function GuestsPage() {
       invitedTo: targetGuestForForm.invitedTo || [],
       invitationCode: targetGuestForForm.invitationCode || '',
       rsvpStatus: targetGuestForForm.rsvpStatus || 'pending',
+      personalMessage: targetGuestForForm.personalMessage || '',
     });
     setEditingGuest(targetGuestForForm); // Keep track of the primary guest being edited
     setDialogOpen(true);
@@ -495,6 +500,7 @@ export default function GuestsPage() {
                   <option value="pending">Pending</option>
                   <option value="accepted">Accepted</option>
                   <option value="declined">Declined</option>
+                  <option value="maybe">Maybe</option>
                 </select>
               </div>
               {loadingGuests ? (
@@ -538,6 +544,8 @@ export default function GuestsPage() {
                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
                                 : guest.rsvpStatus === 'declined'
                                 ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
+                                : guest.rsvpStatus === 'maybe'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
                                 : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300'
                             }`}
                           >
@@ -747,6 +755,13 @@ export default function GuestsPage() {
                       </div>
                     )}
 
+                    <div className="md:col-span-2 mt-2">
+                      <Separator className="my-2" />
+                      <h3 className="text-base font-medium">Invitation Details</h3>
+                      <p className="text-sm text-muted-foreground">Location: {weddingData?.location || '-'}</p>
+                      <p className="text-sm text-muted-foreground mb-2">Date: {weddingData?.date instanceof Timestamp ? weddingData.date.toDate().toLocaleDateString() : '-'}</p>
+                    </div>
+
                     <div className="md:col-span-2">
                        <FormField
                           control={form.control}
@@ -793,7 +808,24 @@ export default function GuestsPage() {
                                 <option value="pending">Pending</option>
                                 <option value="accepted">Accepted</option>
                                 <option value="declined">Declined</option>
+                                <option value="maybe">Maybe</option>
                               </select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <FormField
+                        control={form.control}
+                        name="personalMessage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Personal Message</FormLabel>
+                            <FormControl>
+                              <textarea className="w-full h-24 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
