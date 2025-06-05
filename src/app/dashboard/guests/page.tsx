@@ -51,9 +51,9 @@ import {
   AlertDialogTitle,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/components/ui/alert-dialog'; // AlertDialogTrigger is not typically used asChild directly with Button for this purpose
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { Heart, PlusCircle, Users, Edit, Trash, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -70,6 +70,7 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { Guest } from '@/types/guest';
@@ -79,7 +80,7 @@ const guestFormSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   category: z.enum(["bride's", "bridegroom's", 'shared', 'service']).default("bride's"),
-  relationship: z.enum(['family', 'friend', 'colleague', 'service']).default('friend'),
+  relationship: z.enum(['family', 'friend', 'colleague', 'service', 'plus-one']).default('friend'), // Added 'plus-one'
   familyGroup: z.string().optional().or(z.literal('')),
   headOfFamily: z.boolean().default(false),
   plusOneAllowed: z.boolean().default(false),
@@ -98,9 +99,10 @@ export default function GuestsPage() {
   const [weddingData, setWeddingData] = useState<Wedding | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [guestMap, setGuestMap] = useState<Map<string, string>>(new Map());
   const [loadingGuests, setLoadingGuests] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null); // This will always be the primary guest being edited
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -129,7 +131,6 @@ export default function GuestsPage() {
 
   const watchPlusOne = form.watch('plusOneAllowed');
 
-  // Fetch user and wedding
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -158,22 +159,28 @@ export default function GuestsPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // Load guests when wedding data available
+  const loadGuests = async () => {
+    if (!weddingData?.id) return;
+    setLoadingGuests(true);
+    try {
+      const guestsRef = collection(db, 'weddings', weddingData.id, 'guests');
+      const snapshot = await getDocs(guestsRef);
+      const list: Guest[] = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Guest, 'id'>) }));
+      setGuests(list);
+      const newGuestMap = new Map<string, string>();
+      list.forEach(g => {
+        if (g.id) newGuestMap.set(g.id, g.name);
+      });
+      setGuestMap(newGuestMap);
+    } catch (error) {
+      console.error('Error loading guests:', error);
+      toast({ title: 'Error', description: 'Could not load guest list.', variant: 'destructive' });
+    } finally {
+      setLoadingGuests(false);
+    }
+  };
+
   useEffect(() => {
-    const loadGuests = async () => {
-      if (!weddingData?.id) return;
-      setLoadingGuests(true);
-      try {
-        const guestsRef = collection(db, 'weddings', weddingData.id, 'guests');
-        const snapshot = await getDocs(guestsRef);
-        const list: Guest[] = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Guest) }));
-        setGuests(list);
-      } catch (error) {
-        console.error('Error loading guests:', error);
-      } finally {
-        setLoadingGuests(false);
-      }
-    };
     loadGuests();
   }, [weddingData]);
 
@@ -196,106 +203,184 @@ export default function GuestsPage() {
   };
 
   const handleSubmit = async (values: GuestFormValues) => {
-    if (!weddingData?.id) return;
+    if (!weddingData?.id || !currentUser) return;
     setSaving(true);
     try {
-      if (editingGuest && editingGuest.id) {
-        const ref = doc(db, 'weddings', weddingData.id, 'guests', editingGuest.id);
-        await updateDoc(ref, {
-          name: values.name,
-          email: values.email || '',
-          phone: values.phone || '',
-          category: values.category,
-          relationship: values.relationship,
-          familyGroup: values.familyGroup || '',
-          headOfFamily: values.headOfFamily,
-          plusOneAllowed: values.plusOneAllowed,
-          plusOneName: values.plusOneName || '',
-          invitedTo: values.invitedTo || [],
-          invitationCode: values.invitationCode || '',
-          rsvpStatus: values.rsvpStatus,
+      let primaryGuestId = editingGuest?.id;
+      const batch = writeBatch(db);
+
+      if (editingGuest && primaryGuestId) { // Editing existing primary guest
+        const guestRef = doc(db, 'weddings', weddingData.id, 'guests', primaryGuestId);
+        batch.update(guestRef, {
+          ...values,
+          weddingId: weddingData.id,
           updatedAt: serverTimestamp(),
         });
-        toast({ title: 'Guest updated' });
-      } else {
-        const ref = collection(db, 'weddings', weddingData.id, 'guests');
-        await addDoc(ref, {
-          name: values.name,
-          email: values.email || '',
-          phone: values.phone || '',
-          category: values.category,
-          relationship: values.relationship,
-          familyGroup: values.familyGroup || '',
-          headOfFamily: values.headOfFamily,
-          plusOneAllowed: values.plusOneAllowed,
-          plusOneName: values.plusOneName || '',
-          invitedTo: values.invitedTo || [],
-          invitationCode: values.invitationCode || '',
-          rsvpStatus: values.rsvpStatus,
+      } else { // Adding new primary guest
+        const newGuestRef = doc(collection(db, 'weddings', weddingData.id, 'guests'));
+        primaryGuestId = newGuestRef.id;
+        batch.set(newGuestRef, {
+          ...values,
+          weddingId: weddingData.id,
+          isPlusOneFor: undefined, // Ensure this is not set for primary guest
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        toast({ title: 'Guest added' });
       }
-      // reload guests
-      const guestsRef = collection(db, 'weddings', weddingData.id, 'guests');
-      const snapshot = await getDocs(guestsRef);
-      const list: Guest[] = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Guest) }));
-      setGuests(list);
+
+      // Manage Plus One
+      if (primaryGuestId) {
+        const plusOneQuery = query(
+          collection(db, 'weddings', weddingData.id, 'guests'),
+          where('isPlusOneFor', '==', primaryGuestId)
+        );
+        const existingPlusOnesSnapshot = await getDocs(plusOneQuery);
+        const existingPlusOneDoc = existingPlusOnesSnapshot.docs.length > 0 ? existingPlusOnesSnapshot.docs[0] : null;
+
+        if (values.plusOneAllowed && values.plusOneName) {
+          const plusOneGuestData: Omit<Guest, 'id' | 'createdAt' | 'updatedAt'> = {
+            name: values.plusOneName,
+            weddingId: weddingData.id,
+            email: '', // Plus ones might not have individual contact
+            phone: '',
+            category: values.category, // Inherit from primary
+            relationship: 'plus-one',
+            familyGroup: values.familyGroup, // Inherit from primary
+            headOfFamily: false,
+            plusOneAllowed: false, // Plus ones cannot have their own plus ones
+            plusOneName: '',
+            invitedTo: values.invitedTo, // Inherit from primary
+            invitationCode: '', // Or generate a new one / leave blank
+            rsvpStatus: existingPlusOneDoc?.data().rsvpStatus || 'pending', // Preserve RSVP if exists, else pending
+            isPlusOneFor: primaryGuestId,
+          };
+
+          if (existingPlusOneDoc) {
+            const plusOneRef = doc(db, 'weddings', weddingData.id, 'guests', existingPlusOneDoc.id);
+            batch.update(plusOneRef, { ...plusOneGuestData, updatedAt: serverTimestamp() });
+          } else {
+            const newPlusOneRef = doc(collection(db, 'weddings', weddingData.id, 'guests'));
+            batch.set(newPlusOneRef, { ...plusOneGuestData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+          }
+        } else if (existingPlusOneDoc) {
+          // Plus one was removed or name cleared
+          batch.delete(doc(db, 'weddings', weddingData.id, 'guests', existingPlusOneDoc.id));
+        }
+      }
+      
+      await batch.commit();
+      toast({ title: editingGuest ? 'Guest updated' : 'Guest added' });
       setDialogOpen(false);
       resetForm();
-    } catch (error) {
+      await loadGuests(); // Reload guests to reflect changes
+
+    } catch (error: any) {
       console.error('Error saving guest:', error);
-      toast({ title: 'Error', description: 'Could not save guest', variant: 'destructive' });
+      toast({ title: 'Error Saving Guest', description: error.message || 'Could not save guest details.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (guest: Guest) => {
-    if (!weddingData?.id || !guest.id) return;
+  const handleDelete = async (guestToDelete: Guest) => {
+    if (!weddingData?.id || !guestToDelete.id) return;
+    setSaving(true); // Use saving state to disable buttons during delete
     try {
-      const ref = doc(db, 'weddings', weddingData.id, 'guests', guest.id);
-      await deleteDoc(ref);
-      setGuests((prev) => prev.filter((g) => g.id !== guest.id));
-      toast({ title: 'Guest removed' });
-    } catch (error) {
+      const batch = writeBatch(db);
+      const guestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.id);
+      batch.delete(guestRef);
+
+      // If deleting a primary guest, also delete their plus-one
+      if (!guestToDelete.isPlusOneFor) {
+        const plusOneQuery = query(
+          collection(db, 'weddings', weddingData.id, 'guests'),
+          where('isPlusOneFor', '==', guestToDelete.id)
+        );
+        const plusOnesSnapshot = await getDocs(plusOneQuery);
+        plusOnesSnapshot.forEach((plusOneDoc) => {
+          batch.delete(doc(db, 'weddings', weddingData.id, 'guests', plusOneDoc.id));
+        });
+      } 
+      // If deleting a plus-one, update the primary guest to remove plus-one details
+      else if (guestToDelete.isPlusOneFor) {
+        const primaryGuestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.isPlusOneFor);
+        batch.update(primaryGuestRef, {
+          plusOneAllowed: false,
+          plusOneName: '',
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      await batch.commit();
+      toast({ title: 'Guest Removed', description: `${guestToDelete.name} and any linked plus-one have been removed.` });
+      await loadGuests();
+    } catch (error: any) {
       console.error('Error deleting guest:', error);
-      toast({ title: 'Error', description: 'Could not delete guest', variant: 'destructive' });
+      toast({ title: 'Deletion Failed', description: error.message || 'Could not remove guest.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
-
-  const startEdit = (guest: Guest) => {
+  
+  const startEdit = (guestToEdit: Guest) => {
+    let targetGuestForForm = guestToEdit;
+    // If editing a plus-one, load the primary guest's data into the form
+    if (guestToEdit.isPlusOneFor) {
+      const primary = guests.find(g => g.id === guestToEdit.isPlusOneFor);
+      if (primary) {
+        targetGuestForForm = primary;
+      } else {
+        toast({ title: "Error", description: `Primary guest for ${guestToEdit.name} not found. Please edit the primary guest directly.`, variant: "destructive" });
+        return;
+      }
+    }
+  
     form.reset({
-      name: guest.name || '',
-      email: guest.email || '',
-      phone: guest.phone || '',
-      category: guest.category || "bride's",
-      relationship: guest.relationship || 'friend',
-      familyGroup: guest.familyGroup || '',
-      headOfFamily: !!guest.headOfFamily,
-      plusOneAllowed: !!guest.plusOneAllowed,
-      plusOneName: guest.plusOneName || '',
-      invitedTo: guest.invitedTo || [],
-      invitationCode: guest.invitationCode || '',
-      rsvpStatus: guest.rsvpStatus || 'pending',
+      name: targetGuestForForm.name || '',
+      email: targetGuestForForm.email || '',
+      phone: targetGuestForForm.phone || '',
+      category: targetGuestForForm.category || "bride's",
+      relationship: targetGuestForForm.relationship === 'plus-one' ? 'friend' : targetGuestForForm.relationship || 'friend', // Default relationship if it was 'plus-one'
+      familyGroup: targetGuestForForm.familyGroup || '',
+      headOfFamily: !!targetGuestForForm.headOfFamily,
+      plusOneAllowed: !!targetGuestForForm.plusOneAllowed,
+      plusOneName: targetGuestForForm.plusOneName || '',
+      invitedTo: targetGuestForForm.invitedTo || [],
+      invitationCode: targetGuestForForm.invitationCode || '',
+      rsvpStatus: targetGuestForForm.rsvpStatus || 'pending',
     });
-    setEditingGuest(guest);
+    setEditingGuest(targetGuestForForm); // This is the guest whose record (and plus-one) will be managed
     setDialogOpen(true);
   };
 
-  const filteredGuests = useMemo(
-    () =>
-      guests.filter((guest) => {
-        return (
-          guest.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          (filters.category === 'all' || guest.category === filters.category) &&
-          (filters.relationship === 'all' || guest.relationship === filters.relationship) &&
-          (filters.rsvpStatus === 'all' || guest.rsvpStatus === filters.rsvpStatus)
-        );
-      }),
-    [guests, searchTerm, filters]
-  );
+
+  const filteredGuests = useMemo(() => {
+    return guests.filter((guest) => {
+      const nameMatch = guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (guest.isPlusOneFor && guestMap.get(guest.isPlusOneFor || '')?.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      let categoryMatch = filters.category === 'all' || guest.category === filters.category;
+      if (guest.isPlusOneFor && filters.category !== 'all') {
+        // For plus-one, check if primary guest's category matches, if filter is applied
+         const primaryGuest = guests.find(g => g.id === guest.isPlusOneFor);
+         categoryMatch = primaryGuest?.category === filters.category;
+      }
+
+
+      let relationshipMatch = filters.relationship === 'all' || guest.relationship === filters.relationship;
+       if (guest.isPlusOneFor && filters.relationship === 'plus-one') {
+        relationshipMatch = true;
+      } else if (guest.isPlusOneFor && filters.relationship !== 'all' && filters.relationship !== 'plus-one') {
+        relationshipMatch = false; // Don't match plus-ones if filtering by other specific relationships
+      }
+
+
+      const rsvpMatch = filters.rsvpStatus === 'all' || guest.rsvpStatus === filters.rsvpStatus;
+
+      return nameMatch && categoryMatch && relationshipMatch && rsvpMatch;
+    });
+  }, [guests, searchTerm, filters, guestMap]);
+
 
   if (isLoading) {
     return (
@@ -342,7 +427,7 @@ export default function GuestsPage() {
             <Users className="h-8 w-8 text-primary" />
             <div>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Guest Management</h1>
-              <p className="text-muted-foreground mt-1">Manage your wedding guests and their details.</p>
+              <p className="text-muted-foreground mt-1">Manage your wedding guests and their details. Total listed: {guests.length}</p>
             </div>
           </div>
 
@@ -350,10 +435,10 @@ export default function GuestsPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Guests</CardTitle>
-                <CardDescription>{guests.length} total</CardDescription>
+                <CardDescription>{guests.length} total individuals (including plus-ones)</CardDescription>
               </div>
-              <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Guest
+              <Button onClick={() => { resetForm(); setEditingGuest(null); setDialogOpen(true); }}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Primary Guest
               </Button>
             </CardHeader>
             <CardContent>
@@ -385,6 +470,7 @@ export default function GuestsPage() {
                   <option value="friend">Friend</option>
                   <option value="colleague">Colleague</option>
                   <option value="service">Service</option>
+                  <option value="plus-one">Plus One</option>
                 </select>
                 <select
                   className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -417,32 +503,39 @@ export default function GuestsPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredGuests.map((guest) => (
-                      <TableRow key={guest.id}>
-                        <TableCell>{guest.name}</TableCell>
-                        <TableCell className="capitalize">{guest.category?.replace("'", '’') || '-'}</TableCell>
-                        <TableCell className="capitalize">{guest.relationship || '-'}</TableCell>
+                      <TableRow key={guest.id} className={guest.isPlusOneFor ? 'bg-muted/30 hover:bg-muted/50' : ''}>
+                        <TableCell>
+                          {guest.name}
+                          {guest.isPlusOneFor && <Badge variant="outline" className="ml-2 text-xs">Plus One</Badge>}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {guest.isPlusOneFor ? guestMap.get(guests.find(g => g.id === guest.isPlusOneFor)?.category || '') || guest.category : guest.category?.replace("'", '’') || '-'}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {guest.isPlusOneFor ? `For ${guestMap.get(guest.isPlusOneFor) || 'Primary Guest'}` : guest.relationship || '-'}
+                        </TableCell>
                         <TableCell className="capitalize">{guest.invitedTo?.join(', ').replace(/_/g, ' ') || '-'}</TableCell>
                         <TableCell>
                           <span
                             className={`px-2 py-1 text-xs font-medium rounded-full ${
                               guest.rsvpStatus === 'accepted'
-                                ? 'bg-green-100 text-green-800'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300'
                                 : guest.rsvpStatus === 'declined'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300'
                             }`}
                           >
                             {guest.rsvpStatus || 'pending'}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button size="icon" variant="ghost" onClick={() => startEdit(guest)}>
+                           <Button size="icon" variant="ghost" onClick={() => startEdit(guest)} disabled={saving}>
                             <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
+                            <span className="sr-only">Edit {guest.isPlusOneFor ? 'Primary Guest' : 'Guest'}</span>
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="ghost">
+                              <Button size="icon" variant="ghost" disabled={saving}>
                                 <Trash className="h-4 w-4" />
                                 <span className="sr-only">Delete</span>
                               </Button>
@@ -451,7 +544,9 @@ export default function GuestsPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Remove Guest</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to remove {guest.name}?
+                                  Are you sure you want to remove {guest.name}? 
+                                  {!guest.isPlusOneFor && ' This will also remove their plus one, if any.'}
+                                  {guest.isPlusOneFor && ' This will also update the primary guest.'}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -471,18 +566,17 @@ export default function GuestsPage() {
             </CardContent>
           </Card>
 
-          {/* Add/Edit dialog */}
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}> 
-            <DialogContent className="sm:max-w-2xl md:max-w-3xl"> {/* Increased width */}
+          <Dialog open={dialogOpen} onOpenChange={(isOpen) => { if (!isOpen) { resetForm(); } setDialogOpen(isOpen); }}> 
+            <DialogContent className="sm:max-w-2xl md:max-w-3xl">
               <DialogHeader>
-                <DialogTitle>{editingGuest ? 'Edit Guest' : 'Add Guest'}</DialogTitle>
+                <DialogTitle>{editingGuest?.id ? 'Edit Guest' : 'Add Primary Guest'}</DialogTitle>
                 <DialogDescription>
-                  {editingGuest ? 'Update guest information.' : 'Enter guest details below.'}
+                  {editingGuest?.id ? 'Update guest information and their plus one.' : 'Enter primary guest details below.'}
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleSubmit)}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 max-h-[70vh] overflow-y-auto p-1 pr-3"> {/* Added p-1 and pr-3 for padding around scrollbar */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 max-h-[70vh] overflow-y-auto p-1 pr-3">
                     
                     <div className="md:col-span-2">
                       <FormField
@@ -590,7 +684,6 @@ export default function GuestsPage() {
                       )}
                     />
 
-                    {/* Checkboxes side-by-side in their own grid cells now */}
                     <FormField
                       control={form.control}
                       name="headOfFamily"
@@ -629,7 +722,7 @@ export default function GuestsPage() {
                             <FormItem>
                               <FormLabel>Plus-One Name</FormLabel>
                               <FormControl>
-                                <Input placeholder="Plus one name" {...field} value={field.value || ''} />
+                                <Input placeholder="Enter plus one's name" {...field} value={field.value || ''} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -642,9 +735,9 @@ export default function GuestsPage() {
                        <FormField
                           control={form.control}
                           name="invitedTo"
-                          render={({ field }) => ( // field is passed but not directly used for this custom multi-checkbox
+                          render={() => (
                             <FormItem>
-                              <FormLabel>Invited To</FormLabel>
+                              <FormLabel>Invited To Events</FormLabel>
                               <FormControl>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 p-2 border rounded-md shadow-sm">
                                   {['ceremony', 'reception', 'welcome_dinner'].map((type) => (
@@ -654,12 +747,11 @@ export default function GuestsPage() {
                                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                         checked={form.getValues('invitedTo').includes(type)}
                                         onChange={() => {
-                                          const current = form.getValues('invitedTo');
-                                          if (current.includes(type)) {
-                                            form.setValue('invitedTo', current.filter((t) => t !== type));
-                                          } else {
-                                            form.setValue('invitedTo', [...current, type]);
-                                          }
+                                          const currentInvitedTo = form.getValues('invitedTo');
+                                          const newInvitedTo = currentInvitedTo.includes(type)
+                                            ? currentInvitedTo.filter((t) => t !== type)
+                                            : [...currentInvitedTo, type];
+                                          form.setValue('invitedTo', newInvitedTo, { shouldDirty: true, shouldValidate: true });
                                         }}
                                       />
                                       <span className="capitalize text-sm font-normal">{type.replace('_', ' ')}</span>
@@ -679,7 +771,7 @@ export default function GuestsPage() {
                         name="rsvpStatus"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>RSVP Status</FormLabel>
+                            <FormLabel>RSVP Status (Primary Guest)</FormLabel>
                             <FormControl>
                               <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" {...field}>
                                 <option value="pending">Pending</option>
@@ -692,14 +784,14 @@ export default function GuestsPage() {
                         )}
                       />
                     </div>
-                  </div> {/* End of grid */}
+                  </div>
                   
-                  <DialogFooter className="pt-4"> {/* Increased top padding for separation */}
+                  <DialogFooter className="pt-4">
                     <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
                       Cancel
                     </Button>
                     <Button type="submit" disabled={saving}>
-                      {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {editingGuest ? 'Save Changes' : 'Add Guest'}
+                      {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {editingGuest?.id ? 'Save Changes' : 'Add Guest'}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -711,4 +803,3 @@ export default function GuestsPage() {
     </div>
   );
 }
-

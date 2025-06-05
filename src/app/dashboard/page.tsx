@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -13,8 +13,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from 'firebase/firestore'; // Added onSnapshot
 import type { Wedding } from '@/types/wedding';
+import type { Guest } from '@/types/guest';
 
 
 // Simple countdown logic
@@ -57,35 +58,87 @@ export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [weddingData, setWeddingData] = useState<Wedding | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [totalGuestCount, setTotalGuestCount] = useState(0);
+  const [rsvpsReceivedCount, setRsvpsReceivedCount] = useState(0);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  const fetchWeddingAndGuestData = useCallback(async (user: User) => {
+    setIsLoading(true);
+    setIsLoadingStats(true);
+    try {
+      const weddingsRef = collection(db, 'weddings');
+      const qWedding = query(weddingsRef, where('userId', '==', user.uid));
+      const weddingQuerySnapshot = await getDocs(qWedding);
+
+      if (!weddingQuerySnapshot.empty) {
+        const weddingDoc = weddingQuerySnapshot.docs[0];
+        const currentWeddingData = { id: weddingDoc.id, ...weddingDoc.data() } as Wedding;
+        setWeddingData(currentWeddingData);
+
+        // Set up listener for guests
+        if (currentWeddingData.id) {
+          const guestsRef = collection(db, 'weddings', currentWeddingData.id, 'guests');
+          const unsubscribeGuests = onSnapshot(guestsRef, (guestSnapshot) => {
+            const guestsList: Guest[] = [];
+            guestSnapshot.forEach((doc) => {
+              guestsList.push({ id: doc.id, ...doc.data() } as Guest);
+            });
+            
+            setTotalGuestCount(guestsList.length); // Each doc is an individual, including plus-ones
+            const respondedCount = guestsList.filter(g => g.rsvpStatus === 'accepted' || g.rsvpStatus === 'declined').length;
+            setRsvpsReceivedCount(respondedCount);
+            setIsLoadingStats(false);
+          }, (error) => {
+            console.error("Error fetching guest stats:", error);
+            toast({ title: "Error loading guest stats", description: error.message, variant: "destructive" });
+            setIsLoadingStats(false);
+          });
+          // Return the unsubscribe function to be called on cleanup
+          return unsubscribeGuests;
+        } else {
+          setIsLoadingStats(false);
+        }
+      } else {
+        setWeddingData(null);
+        setIsLoadingStats(false);
+      }
+    } catch (error: any) {
+      console.error("Error fetching wedding data:", error);
+      toast({ title: "Error loading wedding data", description: error.message, variant: "destructive" });
+      setWeddingData(null);
+      setIsLoadingStats(false);
+    } finally {
+      setIsLoading(false);
+    }
+    return () => {}; // Default unsubscribe
+  }, []);
+
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      let unsubscribeGuests = () => {};
       if (user) {
         setCurrentUser(user);
-        try {
-          const weddingsRef = collection(db, 'weddings');
-          const q = query(weddingsRef, where('userId', '==', user.uid));
-          const querySnapshot = await getDocs(q);
-
-          if (!querySnapshot.empty) {
-            const weddingDoc = querySnapshot.docs[0];
-            setWeddingData({ id: weddingDoc.id, ...weddingDoc.data() } as Wedding);
-          } else {
-            setWeddingData(null);
-          }
-        } catch (error) {
-          console.error("Error fetching wedding data:", error);
-          setWeddingData(null); 
-        }
+        unsubscribeGuests = await fetchWeddingAndGuestData(user) || (() => {});
       } else {
         setCurrentUser(null);
         setWeddingData(null);
         router.push('/auth');
+        setIsLoading(false);
+        setIsLoadingStats(false);
       }
-      setIsLoading(false);
+      // Cleanup auth listener and guests listener
+      return () => {
+        unsubscribeAuth();
+        if (unsubscribeGuests) {
+          unsubscribeGuests();
+        }
+      };
     });
-    return () => unsubscribe();
-  }, [router]);
+    // Initial call to unsubscribeAuth for cleanup on component unmount
+    return () => unsubscribeAuth();
+  }, [router, fetchWeddingAndGuestData]);
 
   if (isLoading) {
     return (
@@ -224,8 +277,8 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-foreground">0</div> 
-                <p className="text-xs text-muted-foreground">invited</p>
+                {isLoadingStats ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-3xl font-bold text-foreground">{totalGuestCount}</div>}
+                <p className="text-xs text-muted-foreground">individuals invited</p>
               </CardContent>
             </Card>
             <Card className="shadow-md">
@@ -236,7 +289,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-foreground">0</div> 
+                 {isLoadingStats ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-3xl font-bold text-foreground">{rsvpsReceivedCount}</div> }
                  <p className="text-xs text-muted-foreground">responded</p>
               </CardContent>
             </Card>
@@ -260,4 +313,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
