@@ -9,11 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, Users, ListChecks, PlusCircle, Eye, Edit, Heart, Loader2, LayoutDashboard } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from 'firebase/firestore'; // Added onSnapshot
+import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from 'firebase/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { Guest } from '@/types/guest';
 
@@ -55,12 +56,18 @@ const CountdownTimer = ({ targetDateISO }: { targetDateISO: string | null | unde
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { toast } = useToast(); // Initialize toast
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [weddingData, setWeddingData] = useState<Wedding | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const [totalGuestCount, setTotalGuestCount] = useState(0);
   const [rsvpsReceivedCount, setRsvpsReceivedCount] = useState(0);
+  const [brideGuestCount, setBrideGuestCount] = useState(0);
+  const [groomGuestCount, setGroomGuestCount] = useState(0);
+  const [sharedGuestCount, setSharedGuestCount] = useState(0);
+  const [serviceGuestCount, setServiceGuestCount] = useState(0);
+  const [otherCategoryGuestCount, setOtherCategoryGuestCount] = useState(0);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   const fetchWeddingAndGuestData = useCallback(async (user: User) => {
@@ -76,31 +83,64 @@ export default function DashboardPage() {
         const currentWeddingData = { id: weddingDoc.id, ...weddingDoc.data() } as Wedding;
         setWeddingData(currentWeddingData);
 
-        // Set up listener for guests
         if (currentWeddingData.id) {
           const guestsRef = collection(db, 'weddings', currentWeddingData.id, 'guests');
           const unsubscribeGuests = onSnapshot(guestsRef, (guestSnapshot) => {
             const guestsList: Guest[] = [];
+            let localBrideCount = 0;
+            let localGroomCount = 0;
+            let localSharedCount = 0;
+            let localServiceCount = 0;
+            let localOtherCount = 0;
+
             guestSnapshot.forEach((doc) => {
-              guestsList.push({ id: doc.id, ...doc.data() } as Guest);
+              const guest = { id: doc.id, ...doc.data() } as Guest;
+              guestsList.push(guest);
+              switch (guest.category) {
+                case "bride's":
+                  localBrideCount++;
+                  break;
+                case "bridegroom's":
+                  localGroomCount++;
+                  break;
+                case 'shared':
+                  localSharedCount++;
+                  break;
+                case 'service':
+                  localServiceCount++;
+                  break;
+                default:
+                  localOtherCount++;
+              }
             });
             
-            setTotalGuestCount(guestsList.length); // Each doc is an individual, including plus-ones
+            setTotalGuestCount(guestsList.length);
             const respondedCount = guestsList.filter(g => g.rsvpStatus === 'accepted' || g.rsvpStatus === 'declined').length;
             setRsvpsReceivedCount(respondedCount);
+            
+            setBrideGuestCount(localBrideCount);
+            setGroomGuestCount(localGroomCount);
+            setSharedGuestCount(localSharedCount);
+            setServiceGuestCount(localServiceCount);
+            setOtherCategoryGuestCount(localOtherCount);
+
             setIsLoadingStats(false);
           }, (error) => {
             console.error("Error fetching guest stats:", error);
             toast({ title: "Error loading guest stats", description: error.message, variant: "destructive" });
             setIsLoadingStats(false);
           });
-          // Return the unsubscribe function to be called on cleanup
           return unsubscribeGuests;
         } else {
           setIsLoadingStats(false);
         }
       } else {
         setWeddingData(null);
+        setBrideGuestCount(0);
+        setGroomGuestCount(0);
+        setSharedGuestCount(0);
+        setServiceGuestCount(0);
+        setOtherCategoryGuestCount(0);
         setIsLoadingStats(false);
       }
     } catch (error: any) {
@@ -111,8 +151,8 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-    return () => {}; // Default unsubscribe
-  }, []);
+    return () => {};
+  }, [toast]);
 
 
   useEffect(() => {
@@ -128,7 +168,6 @@ export default function DashboardPage() {
         setIsLoading(false);
         setIsLoadingStats(false);
       }
-      // Cleanup auth listener and guests listener
       return () => {
         unsubscribeAuth();
         if (unsubscribeGuests) {
@@ -136,7 +175,6 @@ export default function DashboardPage() {
         }
       };
     });
-    // Initial call to unsubscribeAuth for cleanup on component unmount
     return () => unsubscribeAuth();
   }, [router, fetchWeddingAndGuestData]);
 
@@ -279,6 +317,27 @@ export default function DashboardPage() {
               <CardContent>
                 {isLoadingStats ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-3xl font-bold text-foreground">{totalGuestCount}</div>}
                 <p className="text-xs text-muted-foreground">individuals invited</p>
+                {!isLoadingStats && totalGuestCount > 0 && (
+                  <div className="mt-2 text-xs text-muted-foreground flex flex-wrap gap-x-2 gap-y-1">
+                    <span>Bride: {brideGuestCount}</span>
+                    <span className="hidden sm:inline">|</span>
+                    <span>Groom: {groomGuestCount}</span>
+                    <span className="hidden sm:inline">|</span>
+                    <span>Shared: {sharedGuestCount}</span>
+                    {serviceGuestCount > 0 && (
+                      <>
+                        <span className="hidden sm:inline">|</span>
+                        <span>Service: {serviceGuestCount}</span>
+                      </>
+                    )}
+                     {otherCategoryGuestCount > 0 && (
+                      <>
+                        <span className="hidden sm:inline">|</span>
+                        <span>Other: {otherCategoryGuestCount}</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
             <Card className="shadow-md">
@@ -313,3 +372,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
