@@ -3,6 +3,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -494,9 +495,15 @@ const sampleWeddingData: Partial<Wedding> = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isPreviewSheetOpen, setIsPreviewSheetOpen] = React.useState(false);
   const [selectedTemplate, setSelectedTemplate] = React.useState<typeof WEDDING_TEMPLATES[0] | null>(null);
+
+  React.useEffect(() => {
+    router.prefetch('/auth');
+    router.prefetch('/auth?tab=register');
+  }, [router]);
 
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
