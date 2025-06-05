@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -472,7 +473,7 @@ export default function GuestsPage() {
 
           {/* Add/Edit dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}> 
-            <DialogContent className="sm:max-w-[420px]">
+            <DialogContent className="sm:max-w-xl md:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>{editingGuest ? 'Edit Guest' : 'Add Guest'}</DialogTitle>
                 <DialogDescription>
@@ -677,3 +678,4 @@ export default function GuestsPage() {
     </div>
   );
 }
+
