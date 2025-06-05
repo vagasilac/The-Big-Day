@@ -291,7 +291,11 @@ const SidebarTrigger = React.forwardRef<
     }
   }
 
-  const Comp = asChild ? Slot : Button;
+  const shouldUseSlot = asChild && React.Children.count(children) === 1;
+  if (asChild && !shouldUseSlot && process.env.NODE_ENV !== "production") {
+    console.error("SidebarTrigger with `asChild` expects a single child element");
+  }
+  const Comp = shouldUseSlot ? Slot : Button;
 
   return (
     <Comp
@@ -307,7 +311,7 @@ const SidebarTrigger = React.forwardRef<
       {...props}
     >
       {children ? children : IconComponent ? <IconComponent /> : null}
-      <span className="sr-only">Toggle Sidebar</span>
+      {!shouldUseSlot && <span className="sr-only">Toggle Sidebar</span>}
     </Comp>
   );
 });
@@ -820,10 +824,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  sidebarMenuButtonVariants, // Export variants
   useSidebar,
 }
 
-    
-
-    
