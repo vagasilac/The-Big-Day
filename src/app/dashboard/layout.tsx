@@ -177,7 +177,7 @@ export default function DashboardLayout({
           <SidebarGroup>
             <SidebarGroupLabel>Guests</SidebarGroupLabel>
             <SidebarMenu>
-              <NavLink href="/dashboard/guests" icon={<Users />} tooltip="Guest List">Guest List</NavLink>
+              <NavLink href="/dashboard/guests" icon={<Users />} tooltip="Guest Management">Guest Management</NavLink>
               <NavLink href="/dashboard/rsvps" icon={<ListChecks />} tooltip="RSVP Management">RSVP Management</NavLink>
               <NavLink href="/dashboard/invitations" icon={<Mail />} tooltip="Digital Invitations">Digital Invitations</NavLink>
             </SidebarMenu>
