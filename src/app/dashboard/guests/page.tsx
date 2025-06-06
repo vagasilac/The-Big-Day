@@ -394,8 +394,14 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
         throw new Error(data.error || 'Preview HTML not found in response.');
       }
     } else {
-      const data = await res.json();
-      throw new Error(data.error || 'Failed to fetch preview.');
+      let message = res.statusText || 'Failed to fetch preview.';
+      try {
+        const data = await res.json();
+        if (data?.error) message = data.error;
+      } catch (err) {
+        // non-json response, ignore parsing error
+      }
+      throw new Error(message);
     }
   } catch (error: any) {
     console.error('Error fetching invitation preview:', error);
