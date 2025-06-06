@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
+  DialogClose,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -56,7 +57,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, PlusCircle, Users, Edit, Trash, Mail, Loader2 } from 'lucide-react';
+import { Heart, PlusCircle, Users, Edit, Trash, Mail, Loader2, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
@@ -116,6 +117,13 @@ export default function GuestsPage() {
   });
 
   const [sending, setSending] = useState(false);
+  const [currentGuestForAction, setCurrentGuestForAction] = useState<Guest | null>(null);
+  
+  // State for Invitation Preview
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [invitationPreviewHtml, setInvitationPreviewHtml] = useState('');
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
+
 
   const form = useForm<GuestFormValues>({
     resolver: zodResolver(guestFormSchema),
@@ -221,27 +229,24 @@ export default function GuestsPage() {
       const batch = writeBatch(db);
 
       const primaryGuestData: Partial<Guest> & { weddingId: string, updatedAt: Timestamp, createdAt?: Timestamp } = {
-        ...values, // Values from the form for the primary guest
+        ...values, 
         weddingId: weddingData.id,
         updatedAt: serverTimestamp() as Timestamp,
       };
       
-      // Remove isPlusOneFor from primary guest data if it somehow got there
-      // (values from guestFormSchema should not contain it)
-      delete primaryGuestData.isPlusOneFor;
+      delete (primaryGuestData as any).isPlusOneFor;
 
 
-      if (editingGuest && primaryGuestId) { // Update existing primary guest
+      if (editingGuest && primaryGuestId) { 
         const guestRef = doc(db, 'weddings', weddingData.id, 'guests', primaryGuestId);
         batch.update(guestRef, primaryGuestData);
-      } else { // Create new primary guest
+      } else { 
         primaryGuestData.createdAt = serverTimestamp() as Timestamp;
         const newGuestRef = doc(collection(db, 'weddings', weddingData.id, 'guests'));
-        primaryGuestId = newGuestRef.id; // Capture ID for plus-one logic
+        primaryGuestId = newGuestRef.id; 
         batch.set(newGuestRef, primaryGuestData);
       }
 
-      // Handle Plus One
       if (primaryGuestId) {
         const plusOneQuery = query(
           collection(db, 'weddings', weddingData.id, 'guests'),
@@ -265,7 +270,7 @@ export default function GuestsPage() {
             invitedTo: values.invitedTo || [], 
             invitationCode: '', 
             rsvpStatus: existingPlusOneDoc?.data().rsvpStatus || 'pending', 
-            isPlusOneFor: primaryGuestId, // Link to primary guest
+            isPlusOneFor: primaryGuestId, 
             updatedAt: serverTimestamp() as Timestamp,
           };
 
@@ -277,7 +282,7 @@ export default function GuestsPage() {
             const newPlusOneRef = doc(collection(db, 'weddings', weddingData.id, 'guests'));
             batch.set(newPlusOneRef, plusOneGuestData);
           }
-        } else if (existingPlusOneDoc) { // plusOneAllowed is false or plusOneName is empty, so remove existing plus-one
+        } else if (existingPlusOneDoc) { 
           batch.delete(doc(db, 'weddings', weddingData.id, 'guests', existingPlusOneDoc.id));
         }
       }
@@ -304,7 +309,6 @@ export default function GuestsPage() {
       const guestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.id);
       batch.delete(guestRef);
 
-      // If deleting a primary guest, also delete their plus-one
       if (!guestToDelete.isPlusOneFor) {
         const plusOneQuery = query(
           collection(db, 'weddings', weddingData.id, 'guests'),
@@ -315,12 +319,11 @@ export default function GuestsPage() {
           batch.delete(doc(db, 'weddings', weddingData.id, 'guests', plusOneDoc.id));
         });
       } 
-      // If deleting a plus-one, update the primary guest to remove plus-one details
       else if (guestToDelete.isPlusOneFor) {
         const primaryGuestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.isPlusOneFor);
         batch.update(primaryGuestRef, {
           plusOneAllowed: false,
-          plusOneName: '', // Clear the plusOneName field
+          plusOneName: '', 
           updatedAt: serverTimestamp()
         });
       }
@@ -365,18 +368,51 @@ export default function GuestsPage() {
     toast({ title: 'Send Failed', description: error.message || 'Unable to send invitation.', variant: 'destructive' });
   } finally {
     setSending(false);
+    setCurrentGuestForAction(null); // Close the confirmation dialog
+  }
+};
+
+const fetchInvitationPreview = async (guestToPreview: Guest) => {
+  if (!weddingData?.slug || !guestToPreview.email) {
+    toast({ title: 'Missing Information', description: 'Guest email or wedding details incomplete for preview.', variant: 'destructive' });
+    return;
+  }
+  setIsFetchingPreview(true);
+  setInvitationPreviewHtml('');
+  try {
+    const invitationLink = `${window.location.origin}/weddings/${weddingData.slug}`;
+    const res = await fetch('/api/send-invitation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: guestToPreview.email, link: invitationLink, preview: true }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.html) {
+        setInvitationPreviewHtml(data.html);
+      } else {
+        throw new Error(data.error || 'Preview HTML not found in response.');
+      }
+    } else {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to fetch preview.');
+    }
+  } catch (error: any) {
+    console.error('Error fetching invitation preview:', error);
+    setInvitationPreviewHtml(`<p class="text-destructive">Error: ${error.message}</p>`);
+    toast({ title: 'Preview Failed', description: error.message, variant: 'destructive' });
+  } finally {
+    setIsFetchingPreview(false);
   }
 };
   
   const startEdit = (guestToEdit: Guest) => {
     let targetGuestForForm = guestToEdit;
-    // If editing a plus-one, load the primary guest's data into the form instead.
     if (guestToEdit.isPlusOneFor) {
       const primary = guests.find(g => g.id === guestToEdit.isPlusOneFor);
       if (primary) {
         targetGuestForForm = primary;
       } else {
-        // This case should ideally not happen if data is consistent
         toast({ title: "Error", description: `Primary guest for ${guestToEdit.name} not found. Please edit the primary guest directly.`, variant: "destructive" });
         return;
       }
@@ -387,20 +423,17 @@ export default function GuestsPage() {
       email: targetGuestForForm.email || '',
       phone: targetGuestForForm.phone || '',
       category: targetGuestForForm.category || "bride's",
-      // If the original guest being targeted for edit was a plus-one,
-      // their relationship field in the DB is 'plus-one'. We don't want to set the form to 'plus-one'
-      // as it's not a selectable relationship for a primary guest. Default to 'friend' or use original if not 'plus-one'.
       relationship: targetGuestForForm.relationship === 'plus-one' ? 'friend' : targetGuestForForm.relationship || 'friend',
       familyGroup: targetGuestForForm.familyGroup || '',
       headOfFamily: !!targetGuestForForm.headOfFamily,
       plusOneAllowed: !!targetGuestForForm.plusOneAllowed,
-      plusOneName: targetGuestForForm.plusOneName || '', // This will be the plus-one's name if editing primary
+      plusOneName: targetGuestForForm.plusOneName || '', 
       invitedTo: targetGuestForForm.invitedTo || [],
       invitationCode: targetGuestForForm.invitationCode || '',
       rsvpStatus: targetGuestForForm.rsvpStatus || 'pending',
       personalMessage: targetGuestForForm.personalMessage || '',
     });
-    setEditingGuest(targetGuestForForm); // Keep track of the primary guest being edited
+    setEditingGuest(targetGuestForForm); 
     setDialogOpen(true);
   };
 
@@ -411,22 +444,17 @@ export default function GuestsPage() {
         (guest.isPlusOneFor && guestMap.get(guest.isPlusOneFor || '')?.toLowerCase().includes(searchTerm.toLowerCase()));
       
       let categoryMatch = filters.category === 'all' || guest.category === filters.category;
-      // If guest is a plus-one, match based on primary guest's category for filtering
       if (guest.isPlusOneFor && filters.category !== 'all') {
          const primaryGuest = guests.find(g => g.id === guest.isPlusOneFor);
          categoryMatch = primaryGuest?.category === filters.category;
       }
 
-
       let relationshipMatch = filters.relationship === 'all' || guest.relationship === filters.relationship;
-      // Special handling for 'plus-one' filter
        if (guest.isPlusOneFor && filters.relationship === 'plus-one') {
-        relationshipMatch = true; // If filtering for plus-ones, and this guest is one, it's a match.
+        relationshipMatch = true; 
       } else if (guest.isPlusOneFor && filters.relationship !== 'all' && filters.relationship !== 'plus-one') {
-        // If filtering for something specific (e.g. 'family') and this guest is a plus-one, it's not a direct match for relationship.
         relationshipMatch = false; 
       }
-
 
       const rsvpMatch = filters.rsvpStatus === 'all' || guest.rsvpStatus === filters.rsvpStatus;
 
@@ -563,11 +591,9 @@ export default function GuestsPage() {
                           {guest.isPlusOneFor && <Badge variant="outline" className="ml-2 text-xs">Plus One</Badge>}
                         </TableCell>
                         <TableCell className="capitalize">
-                          {/* For plus-ones, show category of their primary guest */}
                           {guest.isPlusOneFor ? (guests.find(g => g.id === guest.isPlusOneFor)?.category?.replace("'", '’') || '-') : (guest.category?.replace("'", '’') || '-')}
                         </TableCell>
                         <TableCell className="capitalize">
-                           {/* For plus-ones, show who they are for */}
                           {guest.isPlusOneFor ? `For ${guestMap.get(guest.isPlusOneFor) || 'Primary Guest'}` : (guest.relationship || '-')}
                         </TableCell>
                         <TableCell className="capitalize">{guest.invitedTo?.join(', ').replace(/_/g, ' ') || '-'}</TableCell>
@@ -591,51 +617,97 @@ export default function GuestsPage() {
                             <Edit className="h-4 w-4" />
                             <span className="sr-only">Edit {guest.isPlusOneFor ? 'Primary Guest' : 'Guest'}</span>
                           </Button>
-                          <AlertDialog>
+
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                disabled={saving || !guest.email}
+                                onClick={() => {
+                                  setCurrentGuestForAction(guest);
+                                  fetchInvitationPreview(guest); // Fetch on open
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                                <span className="sr-only">Preview Invitation</span>
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Invitation Preview for {currentGuestForAction?.name}</DialogTitle>
+                                <DialogDescription>
+                                  This is how the invitation email will look.
+                                </DialogDescription>
+                              </DialogHeader>
+                              {isFetchingPreview ? (
+                                <div className="flex justify-center items-center h-40">
+                                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                </div>
+                              ) : (
+                                <div 
+                                  className="p-4 border rounded-md max-h-[60vh] overflow-y-auto bg-white text-black"
+                                  dangerouslySetInnerHTML={{ __html: invitationPreviewHtml }} 
+                                />
+                              )}
+                              <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button type="button" variant="outline">Close</Button>
+                                </DialogClose>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+
+                          <AlertDialog onOpenChange={(open) => {if (!open) setCurrentGuestForAction(null)}}>
                             <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="ghost" disabled={saving || !guest.email}>
+                              <Button size="icon" variant="ghost" disabled={saving || !guest.email} onClick={() => setCurrentGuestForAction(guest)}>
                                 <Mail className="h-4 w-4" />
                                 <span className="sr-only">Send Invitation</span>
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Send Invitation</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Send digital invitation to {guest.email}?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleSendInvitation(guest)} disabled={sending}>
-                                  {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Send
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
+                            {currentGuestForAction?.id === guest.id && ( // Only render content if this guest is selected
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Send Invitation</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Send digital invitation to {currentGuestForAction.email}?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel onClick={() => setCurrentGuestForAction(null)}>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => currentGuestForAction && handleSendInvitation(currentGuestForAction)} disabled={sending}>
+                                    {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Send
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            )}
                           </AlertDialog>
-                          <AlertDialog>
+
+                          <AlertDialog onOpenChange={(open) => {if (!open) setCurrentGuestForAction(null)}}>
                             <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="ghost" disabled={saving}>
+                              <Button size="icon" variant="ghost" disabled={saving} onClick={() => setCurrentGuestForAction(guest)}>
                                 <Trash className="h-4 w-4" />
                                 <span className="sr-only">Delete</span>
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Guest</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to remove {guest.name}?
-                                  {!guest.isPlusOneFor && ' This will also remove their plus one, if any.'}
-                                  {guest.isPlusOneFor && ' This will also update the primary guest to no longer have a plus one.'}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(guest)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
+                            {currentGuestForAction?.id === guest.id && (
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove Guest</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to remove {currentGuestForAction.name}?
+                                    {!currentGuestForAction.isPlusOneFor && ' This will also remove their plus one, if any.'}
+                                    {currentGuestForAction.isPlusOneFor && ' This will also update the primary guest to no longer have a plus one.'}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel onClick={() => setCurrentGuestForAction(null)}>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => currentGuestForAction && handleDelete(currentGuestForAction)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            )}
                           </AlertDialog>
                         </TableCell>
                       </TableRow>
@@ -881,7 +953,7 @@ export default function GuestsPage() {
                           <FormItem>
                             <FormLabel>Personal Message</FormLabel>
                             <FormControl>
-                              <textarea className="w-full h-24 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" {...field} />
+                              <textarea className="w-full h-24 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" placeholder="Add a personal note (optional)" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
