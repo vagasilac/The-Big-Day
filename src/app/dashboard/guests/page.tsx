@@ -228,15 +228,13 @@ export default function GuestsPage() {
       let primaryGuestId = editingGuest?.id;
       const batch = writeBatch(db);
 
-      const primaryGuestData: Partial<Guest> & { weddingId: string, updatedAt: Timestamp, createdAt?: Timestamp } = {
+      // For primary guest, do not include 'isPlusOneFor'
+      const primaryGuestData: Omit<Guest, 'id' | 'isPlusOneFor'> & { updatedAt: Timestamp, createdAt?: Timestamp } = {
         ...values, 
         weddingId: weddingData.id,
         updatedAt: serverTimestamp() as Timestamp,
       };
       
-      delete (primaryGuestData as any).isPlusOneFor;
-
-
       if (editingGuest && primaryGuestId) { 
         const guestRef = doc(db, 'weddings', weddingData.id, 'guests', primaryGuestId);
         batch.update(guestRef, primaryGuestData);
@@ -339,6 +337,28 @@ export default function GuestsPage() {
     }
   };
 
+  const prepareApiPayload = (guest: Guest, wedding: Wedding, forPreview: boolean) => {
+    const payload = {
+      email: guest.email,
+      link: `${window.location.origin}/weddings/${wedding.slug}`,
+      preview: forPreview,
+      guestDetails: {
+        name: guest.name,
+        plusOneAllowed: guest.plusOneAllowed,
+        plusOneName: guest.plusOneAllowed ? guest.plusOneName : undefined, // Only send if allowed
+        headOfFamily: guest.headOfFamily,
+        personalMessage: guest.personalMessage,
+      },
+      weddingDetails: {
+        title: wedding.title,
+        dateISO: wedding.date instanceof Timestamp ? wedding.date.toDate().toISOString() : (typeof wedding.date === 'string' ? wedding.date : new Date().toISOString()),
+        location: wedding.location || 'To be announced',
+      },
+    };
+    return payload;
+  };
+
+
   const handleSendInvitation = async (guestToSend: Guest) => {
     if (!weddingData?.slug || !guestToSend.email || !guestToSend.id) {
       toast({ title: 'Missing information', description: 'Guest email or wedding details are incomplete.', variant: 'destructive' });
@@ -346,13 +366,15 @@ export default function GuestsPage() {
     }
     setSending(true);
     try {
-      const invitationLink = `${window.location.origin}/weddings/${weddingData.slug}`;
+      const payload = prepareApiPayload(guestToSend, weddingData, false);
       const res = await fetch('/api/send-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: guestToSend.email, link: invitationLink }),
+        body: JSON.stringify(payload),
       });
-      if (res.ok) {
+
+      const responseData = await res.json();
+      if (res.ok && responseData.success) {
         toast({ title: 'Invitation Sent', description: `Email sent to ${guestToSend.email}` });
         await updateDoc(doc(db, 'weddings', weddingData.id, 'guests', guestToSend.id), {
           invitationStatus: 'sent',
@@ -360,15 +382,14 @@ export default function GuestsPage() {
         });
         await loadGuests();
       } else {
-        const data = await res.json();
-        toast({ title: 'Send Failed', description: data.error || 'Unable to send invitation.', variant: 'destructive' });
+        toast({ title: 'Send Failed', description: responseData.error || 'Unable to send invitation.', variant: 'destructive' });
       }
   } catch (error: any) {
     console.error('Error sending invitation:', error);
     toast({ title: 'Send Failed', description: error.message || 'Unable to send invitation.', variant: 'destructive' });
   } finally {
     setSending(false);
-    setCurrentGuestForAction(null); // Close the confirmation dialog
+    setCurrentGuestForAction(null); 
   }
 };
 
@@ -380,32 +401,42 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
   setIsFetchingPreview(true);
   setInvitationPreviewHtml('');
   try {
-    const invitationLink = `${window.location.origin}/weddings/${weddingData.slug}`;
+    const payload = prepareApiPayload(guestToPreview, weddingData, true);
     const res = await fetch('/api/send-invitation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: guestToPreview.email, link: invitationLink, preview: true }),
+      body: JSON.stringify(payload),
     });
+
+    const contentType = res.headers.get("content-type");
     if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.html) {
-        setInvitationPreviewHtml(data.html);
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await res.json();
+        if (data.success && data.html) {
+          setInvitationPreviewHtml(data.html);
+        } else {
+          throw new Error(data.error || 'Preview HTML not found in JSON response.');
+        }
       } else {
-        throw new Error(data.error || 'Preview HTML not found in response.');
+        const textResponse = await res.text();
+        console.error("Received non-JSON response for preview:", textResponse);
+        throw new Error('Received non-JSON response from server. Check server logs.');
       }
     } else {
-      let message = res.statusText || 'Failed to fetch preview.';
-      try {
+      let message = `Failed to fetch preview. Status: ${res.status}`;
+      if (contentType && contentType.indexOf("application/json") !== -1) {
         const data = await res.json();
         if (data?.error) message = data.error;
-      } catch (err) {
-        // non-json response, ignore parsing error
+      } else {
+        const textResponse = await res.text();
+        console.error("Error response (non-JSON) for preview:", textResponse);
+        message = `Server error: ${textResponse.substring(0,100)}...`; // Show a snippet
       }
       throw new Error(message);
     }
   } catch (error: any) {
     console.error('Error fetching invitation preview:', error);
-    setInvitationPreviewHtml(`<p class="text-destructive">Error: ${error.message}</p>`);
+    setInvitationPreviewHtml(`<p class="text-destructive p-4">Error fetching preview: ${error.message}</p>`);
     toast({ title: 'Preview Failed', description: error.message, variant: 'destructive' });
   } finally {
     setIsFetchingPreview(false);
@@ -595,6 +626,7 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                         <TableCell>
                           {guest.name}
                           {guest.isPlusOneFor && <Badge variant="outline" className="ml-2 text-xs">Plus One</Badge>}
+                          {guest.invitationStatus === 'sent' && <Badge variant="secondary" className="ml-2 text-xs">Invited</Badge>}
                         </TableCell>
                         <TableCell className="capitalize">
                           {guest.isPlusOneFor ? (guests.find(g => g.id === guest.isPlusOneFor)?.category?.replace("'", '’') || '-') : (guest.category?.replace("'", '’') || '-')}
@@ -624,7 +656,7 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                             <span className="sr-only">Edit {guest.isPlusOneFor ? 'Primary Guest' : 'Guest'}</span>
                           </Button>
 
-                          <Dialog>
+                          <Dialog open={isPreviewDialogOpen && currentGuestForAction?.id === guest.id} onOpenChange={(open) => { if(!open) {setIsPreviewDialogOpen(false); setCurrentGuestForAction(null);}}}>
                             <DialogTrigger asChild>
                               <Button 
                                 size="icon" 
@@ -632,6 +664,7 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                                 disabled={saving || !guest.email}
                                 onClick={() => {
                                   setCurrentGuestForAction(guest);
+                                  setIsPreviewDialogOpen(true); // Open the dialog
                                   fetchInvitationPreview(guest); // Fetch on open
                                 }}
                               >
@@ -652,13 +685,13 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                                 </div>
                               ) : (
                                 <div 
-                                  className="p-4 border rounded-md max-h-[60vh] overflow-y-auto bg-white text-black"
+                                  className="p-4 border rounded-md max-h-[60vh] overflow-y-auto bg-white text-black" // Ensure preview area has contrast
                                   dangerouslySetInnerHTML={{ __html: invitationPreviewHtml }} 
                                 />
                               )}
                               <DialogFooter>
                                 <DialogClose asChild>
-                                  <Button type="button" variant="outline">Close</Button>
+                                  <Button type="button" variant="outline" onClick={() => {setIsPreviewDialogOpen(false); setCurrentGuestForAction(null);}}>Close</Button>
                                 </DialogClose>
                               </DialogFooter>
                             </DialogContent>
@@ -671,7 +704,7 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                                 <span className="sr-only">Send Invitation</span>
                               </Button>
                             </AlertDialogTrigger>
-                            {currentGuestForAction?.id === guest.id && ( // Only render content if this guest is selected
+                            {currentGuestForAction?.id === guest.id && ( 
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Send Invitation</AlertDialogTitle>
@@ -893,7 +926,7 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                       <Separator className="my-2" />
                       <h3 className="text-base font-medium">Invitation Details</h3>
                       <p className="text-sm text-muted-foreground">Location: {weddingData?.location || '-'}</p>
-                      <p className="text-sm text-muted-foreground mb-2">Date: {weddingData?.date instanceof Timestamp ? weddingData.date.toDate().toLocaleDateString() : '-'}</p>
+                      <p className="text-sm text-muted-foreground mb-2">Date: {weddingData?.date instanceof Timestamp ? weddingData.date.toDate().toLocaleDateString() : (typeof weddingData?.date === 'string' ? new Date(weddingData.date).toLocaleDateString() : '-')}</p>
                     </div>
 
                     <div className="md:col-span-2">
@@ -985,5 +1018,3 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
     </div>
   );
 }
-
-    
