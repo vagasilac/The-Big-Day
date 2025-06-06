@@ -56,7 +56,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, PlusCircle, Users, Edit, Trash, Loader2 } from 'lucide-react';
+import { Heart, PlusCircle, Users, Edit, Trash, Mail, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
@@ -114,6 +114,8 @@ export default function GuestsPage() {
     relationship: 'all',
     rsvpStatus: 'all',
   });
+
+  const [sending, setSending] = useState(false);
 
   const form = useForm<GuestFormValues>({
     resolver: zodResolver(guestFormSchema),
@@ -296,7 +298,7 @@ export default function GuestsPage() {
 
   const handleDelete = async (guestToDelete: Guest) => {
     if (!weddingData?.id || !guestToDelete.id) return;
-    setSaving(true); 
+    setSaving(true);
     try {
       const batch = writeBatch(db);
       const guestRef = doc(db, 'weddings', weddingData.id, 'guests', guestToDelete.id);
@@ -333,6 +335,38 @@ export default function GuestsPage() {
       setSaving(false);
     }
   };
+
+  const handleSendInvitation = async (guestToSend: Guest) => {
+    if (!weddingData?.slug || !guestToSend.email || !guestToSend.id) {
+      toast({ title: 'Missing information', description: 'Guest email or wedding details are incomplete.', variant: 'destructive' });
+      return;
+    }
+    setSending(true);
+    try {
+      const invitationLink = `${window.location.origin}/weddings/${weddingData.slug}`;
+      const res = await fetch('/api/send-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: guestToSend.email, link: invitationLink }),
+      });
+      if (res.ok) {
+        toast({ title: 'Invitation Sent', description: `Email sent to ${guestToSend.email}` });
+        await updateDoc(doc(db, 'weddings', weddingData.id, 'guests', guestToSend.id), {
+          invitationStatus: 'sent',
+          updatedAt: serverTimestamp(),
+        });
+        await loadGuests();
+      } else {
+        const data = await res.json();
+        toast({ title: 'Send Failed', description: data.error || 'Unable to send invitation.', variant: 'destructive' });
+      }
+  } catch (error: any) {
+    console.error('Error sending invitation:', error);
+    toast({ title: 'Send Failed', description: error.message || 'Unable to send invitation.', variant: 'destructive' });
+  } finally {
+    setSending(false);
+  }
+};
   
   const startEdit = (guestToEdit: Guest) => {
     let targetGuestForForm = guestToEdit;
@@ -559,6 +593,28 @@ export default function GuestsPage() {
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" disabled={saving || !guest.email}>
+                                <Mail className="h-4 w-4" />
+                                <span className="sr-only">Send Invitation</span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Send Invitation</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Send digital invitation to {guest.email}?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleSendInvitation(guest)} disabled={sending}>
+                                  {sending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Send
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
                               <Button size="icon" variant="ghost" disabled={saving}>
                                 <Trash className="h-4 w-4" />
                                 <span className="sr-only">Delete</span>
@@ -568,7 +624,7 @@ export default function GuestsPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Remove Guest</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to remove {guest.name}? 
+                                  Are you sure you want to remove {guest.name}?
                                   {!guest.isPlusOneFor && ' This will also remove their plus one, if any.'}
                                   {guest.isPlusOneFor && ' This will also update the primary guest to no longer have a plus one.'}
                                 </AlertDialogDescription>
