@@ -277,25 +277,38 @@ Sidebar.displayName = "Sidebar"
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button> & { asChild?: boolean }
->(({ className, onClick, children, asChild, ...props }, ref) => {
+>(({ className, onClick, children: parentChildren, asChild, ...props }, ref) => {
   const { toggleSidebar, state, isMobile, openMobile } = useSidebar();
-
-  let IconComponent: React.ElementType | null = null;
   const effectiveState = isMobile ? (openMobile ? "expanded" : "collapsed") : state;
 
-  if (!children) {
-    if (isMobile) {
-      IconComponent = MenuIcon;
-    } else {
-      IconComponent = effectiveState === "collapsed" ? PanelLeftOpen : PanelLeftClose;
-    }
-  }
-
-  const shouldUseSlot = asChild && React.Children.count(children) === 1;
-  if (asChild && !shouldUseSlot && process.env.NODE_ENV !== "production") {
-    console.error("SidebarTrigger with `asChild` expects a single child element");
-  }
+  const shouldUseSlot = asChild && React.Children.count(parentChildren) === 1 && React.isValidElement(parentChildren);
   const Comp = shouldUseSlot ? Slot : Button;
+
+  const clickHandler = (event: React.MouseEvent<HTMLElement>) => {
+    if (onClick) {
+      onClick(event as React.MouseEvent<HTMLButtonElement>);
+    }
+    toggleSidebar();
+  };
+
+  let contentForComp;
+  if (shouldUseSlot) {
+    contentForComp = parentChildren;
+  } else {
+    let iconOrPassedChildren;
+    if (parentChildren) {
+      iconOrPassedChildren = parentChildren;
+    } else {
+      const Icon = isMobile ? MenuIcon : (effectiveState === "collapsed" ? PanelLeftOpen : PanelLeftClose);
+      iconOrPassedChildren = <Icon />;
+    }
+    contentForComp = (
+      <>
+        {iconOrPassedChildren}
+        <span className="sr-only">Toggle Sidebar</span>
+      </>
+    );
+  }
 
   return (
     <Comp
@@ -304,14 +317,10 @@ const SidebarTrigger = React.forwardRef<
       variant="ghost"
       size="icon"
       className={cn("h-7 w-7 shrink-0", className)}
-      onClick={(event) => {
-        onClick?.(event);
-        toggleSidebar();
-      }}
+      onClick={clickHandler}
       {...props}
     >
-      {children ? children : IconComponent ? <IconComponent /> : null}
-      {!shouldUseSlot && <span className="sr-only">Toggle Sidebar</span>}
+      {contentForComp}
     </Comp>
   );
 });
@@ -826,4 +835,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
