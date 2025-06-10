@@ -699,7 +699,7 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
 
                           <AlertDialog onOpenChange={(open) => {if (!open) setCurrentGuestForAction(null)}}>
                             <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="ghost" disabled={saving || !guest.email} onClick={() => setCurrentGuestForAction(guest)}>
+                              <Button size="icon" variant="ghost" disabled={saving || !guest.email || guest.rsvpStatus === 'accepted'} onClick={() => setCurrentGuestForAction(guest)}>
                                 <Mail className="h-4 w-4" />
                                 <span className="sr-only">Send Invitation</span>
                               </Button>
