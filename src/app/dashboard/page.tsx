@@ -63,6 +63,7 @@ export default function DashboardPage() {
   
   const [totalGuestCount, setTotalGuestCount] = useState(0);
   const [rsvpsReceivedCount, setRsvpsReceivedCount] = useState(0);
+  const [totalMarkedAsInvitedCount, setTotalMarkedAsInvitedCount] = useState(0);
   
   const [brideGuestCount, setBrideGuestCount] = useState(0);
   const [groomGuestCount, setGroomGuestCount] = useState(0);
@@ -106,6 +107,7 @@ export default function DashboardPage() {
             let localGroomCount = 0;
             let localSharedCount = 0;
             let localServiceCount = 0;
+            let localMarkedAsInvited = 0;
             
             let localTotalAccepted = 0;
             let localTotalDeclined = 0;
@@ -116,6 +118,10 @@ export default function DashboardPage() {
             guestSnapshot.forEach((doc) => {
               const guest = { id: doc.id, ...doc.data() } as Guest;
               guestsList.push(guest);
+
+              if (guest.invitationStatus === 'sent') {
+                localMarkedAsInvited++;
+              }
 
               // Total guests by category
               switch (guest.category) {
@@ -149,6 +155,7 @@ export default function DashboardPage() {
             });
             
             setTotalGuestCount(guestsList.length);
+            setTotalMarkedAsInvitedCount(localMarkedAsInvited);
             setBrideGuestCount(localBrideCount);
             setGroomGuestCount(localGroomCount);
             setSharedGuestCount(localSharedCount);
@@ -183,12 +190,13 @@ export default function DashboardPage() {
         }
       } else {
         setWeddingData(null);
+        setTotalGuestCount(0);
+        setTotalMarkedAsInvitedCount(0);
         setBrideGuestCount(0);
         setGroomGuestCount(0);
         setSharedGuestCount(0);
         setServiceGuestCount(0);
         setOtherCategoryGuestCount(0);
-        // Reset RSVP stats too
         setTotalAcceptedCount(0); setAcceptedBrideGuestCount(0); setAcceptedGroomGuestCount(0); setAcceptedSharedGuestCount(0); setAcceptedServiceGuestCount(0); setAcceptedOtherGuestCount(0);
         setTotalDeclinedCount(0); setDeclinedBrideGuestCount(0); setDeclinedGroomGuestCount(0); setDeclinedSharedGuestCount(0); setDeclinedServiceGuestCount(0); setDeclinedOtherGuestCount(0);
         setRsvpsReceivedCount(0);
@@ -368,7 +376,11 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 {isLoadingStats ? <Loader2 className="h-6 w-6 animate-spin" /> : <div className="text-3xl font-bold text-foreground">{totalGuestCount}</div>}
-                <p className="text-xs text-muted-foreground">individuals invited</p>
+                <p className="text-xs text-muted-foreground">
+                  {isLoadingStats ? "loading..." : 
+                    `${totalMarkedAsInvitedCount} ${totalMarkedAsInvitedCount === 1 ? "guest marked as invited" : "guests marked as invited"}`
+                  }
+                </p>
                 {!isLoadingStats && totalGuestCount > 0 && (
                   <div className="mt-2 text-xs text-muted-foreground flex flex-wrap gap-x-2 gap-y-1">
                     <span>Bride: {brideGuestCount}</span>
