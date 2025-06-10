@@ -119,7 +119,6 @@ export default function GuestsPage() {
   const [sending, setSending] = useState(false);
   const [currentGuestForAction, setCurrentGuestForAction] = useState<Guest | null>(null);
   
-  // State for Invitation Preview
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const [invitationPreviewHtml, setInvitationPreviewHtml] = useState('');
   const [isFetchingPreview, setIsFetchingPreview] = useState(false);
@@ -228,7 +227,6 @@ export default function GuestsPage() {
       let primaryGuestId = editingGuest?.id;
       const batch = writeBatch(db);
 
-      // For primary guest, do not include 'isPlusOneFor'
       const primaryGuestData: Omit<Guest, 'id' | 'isPlusOneFor'> & { updatedAt: Timestamp, createdAt?: Timestamp } = {
         ...values, 
         weddingId: weddingData.id,
@@ -267,7 +265,7 @@ export default function GuestsPage() {
             plusOneName: '',
             invitedTo: values.invitedTo || [], 
             invitationCode: '', 
-            rsvpStatus: existingPlusOneDoc?.data().rsvpStatus || 'pending', 
+            rsvpStatus: values.rsvpStatus === 'accepted' ? 'accepted' : (existingPlusOneDoc?.data().rsvpStatus || 'pending'),
             isPlusOneFor: primaryGuestId, 
             updatedAt: serverTimestamp() as Timestamp,
           };
@@ -345,7 +343,7 @@ export default function GuestsPage() {
       guestDetails: {
         name: guest.name,
         plusOneAllowed: guest.plusOneAllowed,
-        plusOneName: guest.plusOneAllowed ? guest.plusOneName : undefined, // Only send if allowed
+        plusOneName: guest.plusOneAllowed ? guest.plusOneName : undefined, 
         headOfFamily: guest.headOfFamily,
         personalMessage: guest.personalMessage,
       },
@@ -420,7 +418,8 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
       } else {
         const textResponse = await res.text();
         console.error("Received non-JSON response for preview:", textResponse);
-        throw new Error('Received non-JSON response from server. Check server logs.');
+        setInvitationPreviewHtml(`<p class="text-destructive p-4">Error: Server returned non-JSON response. Check server logs for details. <br/> Content: ${textResponse.substring(0, 200)}...</p>`);
+        throw new Error('Received non-JSON response from server.');
       }
     } else {
       let message = `Failed to fetch preview. Status: ${res.status}`;
@@ -430,7 +429,7 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
       } else {
         const textResponse = await res.text();
         console.error("Error response (non-JSON) for preview:", textResponse);
-        message = `Server error: ${textResponse.substring(0,100)}...`; // Show a snippet
+        message = `Server error: ${textResponse.substring(0,100)}...`; 
       }
       throw new Error(message);
     }
@@ -664,8 +663,8 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                                 disabled={saving || !guest.email}
                                 onClick={() => {
                                   setCurrentGuestForAction(guest);
-                                  setIsPreviewDialogOpen(true); // Open the dialog
-                                  fetchInvitationPreview(guest); // Fetch on open
+                                  setIsPreviewDialogOpen(true); 
+                                  fetchInvitationPreview(guest); 
                                 }}
                               >
                                 <Eye className="h-4 w-4" />
@@ -685,7 +684,7 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                                 </div>
                               ) : (
                                 <div 
-                                  className="p-4 border rounded-md max-h-[60vh] overflow-y-auto bg-white text-black" // Ensure preview area has contrast
+                                  className="p-4 border rounded-md max-h-[60vh] overflow-y-auto bg-white text-black" 
                                   dangerouslySetInnerHTML={{ __html: invitationPreviewHtml }} 
                                 />
                               )}
@@ -699,7 +698,9 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
 
                           <AlertDialog onOpenChange={(open) => {if (!open) setCurrentGuestForAction(null)}}>
                             <AlertDialogTrigger asChild>
-                              <Button size="icon" variant="ghost" disabled={saving || !guest.email || guest.rsvpStatus === 'accepted'} onClick={() => setCurrentGuestForAction(guest)}>
+                              <Button size="icon" variant="ghost" 
+                                disabled={saving || !guest.email || guest.rsvpStatus === 'accepted' || guest.invitationStatus === 'sent'} 
+                                onClick={() => setCurrentGuestForAction(guest)}>
                                 <Mail className="h-4 w-4" />
                                 <span className="sr-only">Send Invitation</span>
                               </Button>
