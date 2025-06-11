@@ -456,7 +456,7 @@ export default function NewLayoutPage() {
                   x={table.x} 
                   y={table.y} 
                   rotation={table.rotation}
-                  draggable={selectedTableId !== table.id}
+                  draggable={true} 
                   ref={node => { 
                     if (node) {
                       tableNodeRefs.current.set(table.id, node);
@@ -465,7 +465,11 @@ export default function NewLayoutPage() {
                     }
                   }}
                   onDragEnd={(e) => {
-                    if (selectedTableId === table.id) return; // Prevent drag if selected (Transformer handles)
+                    if (selectedTableId === table.id) {
+                      // If selected, Transformer handles drag via onTransformEnd
+                      return;
+                    }
+                    // If not selected, this is a direct drag on the Group.
                     setTables(prevTables =>
                       prevTables.map(t =>
                         t.id === table.id ? { ...t, x: e.target.x(), y: e.target.y() } : t
@@ -497,8 +501,8 @@ export default function NewLayoutPage() {
                             radius: newRadius,
                             chairs: currentTableState.chairs.map(chair => ({
                               ...chair,
-                              x: chair.x * scaleX,
-                              y: chair.y * scaleY,
+                              x: chair.x * scaleX, 
+                              y: chair.y * scaleY, 
                             })),
                           };
                         }
@@ -667,4 +671,3 @@ export default function NewLayoutPage() {
     </div>
   );
 }
-
