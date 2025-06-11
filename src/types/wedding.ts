@@ -31,6 +31,8 @@ export interface Wedding {
   schedule?: WeddingEvent[];
   dressCode?: string;
   rsvpDeadline?: Timestamp | null;
+  selectedVenueLayoutId?: string; // ID of the VenueLayout selected for seating
+  seatingArrangementId?: string; // ID of the specific SeatingArrangement document
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
