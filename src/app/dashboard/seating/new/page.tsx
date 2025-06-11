@@ -130,7 +130,7 @@ export default function NewLayoutPage() {
 
         let totalPlaced = 0;
         let loopIterations = 0; 
-        const maxIterations = capacity * sidePreference.length * 2; // Safety break
+        const maxIterations = capacity * sidePreference.length * 2; 
 
         while (totalPlaced < capacity && loopIterations < maxIterations ) { 
             let placedInThisLoop = false;
@@ -143,9 +143,6 @@ export default function NewLayoutPage() {
                 }
             }
             if (!placedInThisLoop && totalPlaced < capacity) { 
-                 // If no side could take more chairs but capacity not met, try forcing onto longest available sides.
-                 // This is a fallback, ideally sideCapacities and main loop handle it.
-                 // For simplicity, we'll assume the main loop is usually sufficient if capacities are well-defined.
                 break; 
             }
             loopIterations++;
@@ -161,19 +158,19 @@ export default function NewLayoutPage() {
                 switch (sideKey) {
                     case 'top':
                         chairY = -h / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-                        chairX = (i + 1) * (w / (numChairsOnThisSide + 1)) - w / 2;
+                        chairX = numChairsOnThisSide === 1 ? 0 : i * (w / (numChairsOnThisSide - 1)) - w / 2;
                         break;
                     case 'bottom':
                         chairY = h / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-                        chairX = (i + 1) * (w / (numChairsOnThisSide + 1)) - w / 2;
+                        chairX = numChairsOnThisSide === 1 ? 0 : i * (w / (numChairsOnThisSide - 1)) - w / 2;
                         break;
                     case 'left':
                         chairX = -w / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-                        chairY = (i + 1) * (h / (numChairsOnThisSide + 1)) - h / 2;
+                        chairY = numChairsOnThisSide === 1 ? 0 : i * (h / (numChairsOnThisSide - 1)) - h / 2;
                         break;
                     case 'right':
                         chairX = w / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-                        chairY = (i + 1) * (h / (numChairsOnThisSide + 1)) - h / 2;
+                        chairY = numChairsOnThisSide === 1 ? 0 : i * (h / (numChairsOnThisSide - 1)) - h / 2;
                         break;
                 }
                 chairsArray.push({ id: uuidv4(), x: chairX, y: chairY });
@@ -418,7 +415,6 @@ export default function NewLayoutPage() {
         top: [], bottom: [], left: [], right: []
       };
       
-      // Temporarily update the dragged chair's position for side determination
       const tempChairs = table.chairs.map(c => 
         c.id === chairId ? { ...c, x: newChairX, y: newChairY } : c
       );
@@ -434,7 +430,6 @@ export default function NewLayoutPage() {
         const numChairsOnThisSide = sideChairs.length;
         if (numChairsOnThisSide === 0) return;
 
-        // Sort chairs for consistent ordering before re-spacing
         sideChairs.sort((a, b) => {
           if (sideKey === 'top' || sideKey === 'bottom') return a.x - b.x;
           return a.y - b.y;
@@ -447,19 +442,19 @@ export default function NewLayoutPage() {
           switch (sideKey) {
             case 'top':
               finalY = -table.height / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-              finalX = (index + 1) * (table.width / (numChairsOnThisSide + 1)) - table.width / 2;
+              finalX = numChairsOnThisSide === 1 ? 0 : index * (table.width / (numChairsOnThisSide - 1)) - table.width / 2;
               break;
             case 'bottom':
               finalY = table.height / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-              finalX = (index + 1) * (table.width / (numChairsOnThisSide + 1)) - table.width / 2;
+              finalX = numChairsOnThisSide === 1 ? 0 : index * (table.width / (numChairsOnThisSide - 1)) - table.width / 2;
               break;
             case 'left':
               finalX = -table.width / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-              finalY = (index + 1) * (table.height / (numChairsOnThisSide + 1)) - table.height / 2;
+              finalY = numChairsOnThisSide === 1 ? 0 : index * (table.height / (numChairsOnThisSide - 1)) - table.height / 2;
               break;
             case 'right':
               finalX = table.width / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-              finalY = (index + 1) * (table.height / (numChairsOnThisSide + 1)) - table.height / 2;
+              finalY = numChairsOnThisSide === 1 ? 0 : index * (table.height / (numChairsOnThisSide - 1)) - table.height / 2;
               break;
           }
           newAlignedChairsArray.push({ ...chair, x: finalX, y: finalY });
@@ -552,7 +547,7 @@ export default function NewLayoutPage() {
                   x={table.x} 
                   y={table.y} 
                   rotation={table.rotation}
-                  draggable={true} 
+                  draggable={true}
                   ref={node => { 
                     if (node) {
                       tableNodeRefs.current.set(table.id, node);
@@ -561,10 +556,9 @@ export default function NewLayoutPage() {
                     }
                   }}
                   onDragEnd={(e) => {
-                    if (selectedTableId === table.id) { // Dragged by Transformer
+                    if (selectedTableId === table.id) { 
                       return; 
                     }
-                    // Direct drag of the group when not selected
                     setTables(prevTables =>
                       prevTables.map(t =>
                         t.id === table.id ? { ...t, x: e.target.x(), y: e.target.y() } : t
@@ -612,8 +606,8 @@ export default function NewLayoutPage() {
                 >
                   {table.type === 'rect' ? (
                     <Rect
-                      x={-table.width / 2} // Center the Rect within the Group
-                      y={-table.height / 2} // Center the Rect within the Group
+                      x={-table.width / 2}
+                      y={-table.height / 2}
                       width={table.width}
                       height={table.height}
                       fill="#d7ccc8" 
@@ -627,7 +621,7 @@ export default function NewLayoutPage() {
                     />
                   ) : (
                     <KonvaCircle
-                      radius={table.radius} // Circle is already centered at Group's (0,0)
+                      radius={table.radius} 
                       fill="#d7ccc8"
                       stroke="#8d6e63"
                       strokeWidth={1.5}
@@ -659,12 +653,12 @@ export default function NewLayoutPage() {
                     fontSize={fontSizeNumber}
                     fill="#3e2723"
                     fontStyle="bold"
-                    x={0} // Position relative to Group's center
-                    y={yPosNumberText} // Position relative to Group's center
+                    x={0} 
+                    y={yPosNumberText} 
                     width={tableWidthForText}
                     height={textBlockRenderHeightNumber}
-                    offsetX={tableWidthForText / 2} // Center content within text box
-                    offsetY={textBlockRenderHeightNumber / 2} // Center content within text box
+                    offsetX={tableWidthForText / 2} 
+                    offsetY={textBlockRenderHeightNumber / 2} 
                     align="center"
                     verticalAlign="middle"
                     listening={false}
@@ -673,12 +667,12 @@ export default function NewLayoutPage() {
                     text={`(${table.capacity}pp)`}
                     fontSize={fontSizeCapacity}
                     fill="#5d4037"
-                    x={0} // Position relative to Group's center
-                    y={yPosCapacityText} // Position relative to Group's center
+                    x={0} 
+                    y={yPosCapacityText} 
                     width={tableWidthForText}
                     height={textBlockRenderHeightCapacity}
-                    offsetX={tableWidthForText / 2} // Center content within text box
-                    offsetY={textBlockRenderHeightCapacity / 2} // Center content within text box
+                    offsetX={tableWidthForText / 2} 
+                    offsetY={textBlockRenderHeightCapacity / 2} 
                     align="center"
                     verticalAlign="middle"
                     listening={false}
@@ -767,3 +761,4 @@ export default function NewLayoutPage() {
     </div>
   );
 }
+
