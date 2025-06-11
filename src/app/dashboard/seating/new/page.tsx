@@ -35,9 +35,9 @@ interface TableElement {
   type: 'rect' | 'circle';
   x: number;
   y: number;
-  width: number;      // Always defined, even for circles (diameter)
-  height: number;     // Always defined, even for circles (diameter)
-  radius?: number;     // Specific to circles
+  width: number;
+  height: number;
+  radius?: number;
   rotation: number;
   capacity: number;
   chairs: Chair[];
@@ -77,8 +77,8 @@ export default function NewLayoutPage() {
     const { type, width, height, radius, capacity } = table;
     if (capacity === 0) return chairs;
 
-    const chairRadius = 8; // Visual radius of chair
-    const chairSpacingFromTable = 15; // Distance from table edge to chair center
+    const chairRadius = 8; 
+    const chairSpacingFromTable = 15; 
 
     if (type === 'rect') {
         let chairsPerLongSide = 0;
@@ -86,12 +86,12 @@ export default function NewLayoutPage() {
         const w = width;
         const h = height;
 
-        if (w === h) { // Square
+        if (w === h) { 
             const chairsPerSide = Math.ceil(capacity / 4);
             chairsPerLongSide = chairsPerSide;
             chairsPerShortSide = chairsPerSide;
-        } else { // Rectangle
-            const longSideRatio = w > h ? 0.35 : 0.15; // More chairs on longer side
+        } else { 
+            const longSideRatio = w > h ? 0.35 : 0.15; 
             const shortSideRatio = w < h ? 0.35 : 0.15;
             chairsPerLongSide = Math.min(Math.floor(w / 30), Math.ceil(capacity * longSideRatio));
             chairsPerShortSide = Math.min(Math.floor(h / 30), Math.ceil(capacity * shortSideRatio));
@@ -99,7 +99,6 @@ export default function NewLayoutPage() {
         
         let placedChairs = 0;
 
-        // Top side
         if (chairsPerLongSide > 0 && placedChairs < capacity) {
             const effectiveNum = Math.min(chairsPerLongSide, capacity - placedChairs);
             const spacingX = w / (effectiveNum + 1);
@@ -109,7 +108,6 @@ export default function NewLayoutPage() {
                 placedChairs++;
             }
         }
-        // Bottom side
         if (chairsPerLongSide > 0 && placedChairs < capacity) {
             const effectiveNum = Math.min(chairsPerLongSide, capacity - placedChairs);
             const spacingX = w / (effectiveNum + 1);
@@ -119,7 +117,6 @@ export default function NewLayoutPage() {
                 placedChairs++;
             }
         }
-        // Left side
         if (chairsPerShortSide > 0 && placedChairs < capacity) {
             const effectiveNum = Math.min(chairsPerShortSide, capacity - placedChairs);
             const spacingY = h / (effectiveNum + 1);
@@ -129,7 +126,6 @@ export default function NewLayoutPage() {
                 placedChairs++;
             }
         }
-        // Right side
         if (chairsPerShortSide > 0 && placedChairs < capacity) {
             const effectiveNum = Math.min(chairsPerShortSide, capacity - placedChairs);
             const spacingY = h / (effectiveNum + 1);
@@ -139,17 +135,16 @@ export default function NewLayoutPage() {
                 placedChairs++;
             }
         }
-         // Fallback for any remaining chairs (distribute somewhat evenly)
         let sideIndex = 0;
         const sidePlacementFunctions = [
-            (idx: number, num: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: -h/2 - chairRadius - chairSpacingFromTable}), // Top
-            (idx: number, num: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: h/2 + chairRadius + chairSpacingFromTable}),  // Bottom
-            (idx: number, num: number) => ({ x: -w/2 - chairRadius - chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}), // Left
-            (idx: number, num: number) => ({ x: w/2 + chairRadius - chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}),  // Right
+            (idx: number, num: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: -h/2 - chairRadius - chairSpacingFromTable}),
+            (idx: number, num: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: h/2 + chairRadius + chairSpacingFromTable}), 
+            (idx: number, num: number) => ({ x: -w/2 - chairRadius - chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}),
+            (idx: number, num: number) => ({ x: w/2 + chairRadius - chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}), 
         ];
         let chairsOnSideCount = [0,0,0,0];
 
-        while(placedChairs < capacity && chairs.length < capacity * 1.5) { // Safety break
+        while(placedChairs < capacity && chairs.length < capacity * 1.5) { 
             const currentSideMax = sideIndex % 2 === 0 ? Math.floor(w/30) : Math.floor(h/30);
             if(chairsOnSideCount[sideIndex % 4] < currentSideMax){
                 const pos = sidePlacementFunctions[sideIndex % 4](chairsOnSideCount[sideIndex % 4], currentSideMax);
@@ -171,7 +166,7 @@ export default function NewLayoutPage() {
         });
       }
     }
-    return chairs.slice(0, capacity); // Ensure exact number of chairs
+    return chairs.slice(0, capacity);
   }, []);
 
 
@@ -306,13 +301,13 @@ export default function NewLayoutPage() {
       const editorElement = document.getElementById('layout-editor-canvas-container');
       if (editorElement) {
         setStageDimensions({
-          width: editorElement.offsetWidth > 0 ? editorElement.offsetWidth - 2 : 800, // -2 for border
-          height: editorElement.offsetHeight > 0 ? editorElement.offsetHeight -2 : 600, // -2 for border
+          width: editorElement.offsetWidth > 0 ? editorElement.offsetWidth - 2 : 800, 
+          height: editorElement.offsetHeight > 0 ? editorElement.offsetHeight -2 : 600, 
         });
       } else if (typeof window !== 'undefined') {
          setStageDimensions({
-            width: window.innerWidth - 280, 
-            height: window.innerHeight - 150 
+            width: window.innerWidth > 280 ? window.innerWidth - 280 : 800, 
+            height: window.innerHeight > 150 ? window.innerHeight - 150: 600 
         });
       }
     };
@@ -461,7 +456,7 @@ export default function NewLayoutPage() {
                   x={table.x} 
                   y={table.y} 
                   rotation={table.rotation}
-                  draggable
+                  draggable={selectedTableId !== table.id}
                   ref={node => { 
                     if (node) {
                       tableNodeRefs.current.set(table.id, node);
@@ -470,47 +465,51 @@ export default function NewLayoutPage() {
                     }
                   }}
                   onDragEnd={(e) => {
-                    const newTables = tables.map(t => 
-                      t.id === table.id ? { ...t, x: e.target.x(), y: e.target.y() } : t
+                    if (selectedTableId === table.id) return; // Prevent drag if selected (Transformer handles)
+                    setTables(prevTables =>
+                      prevTables.map(t =>
+                        t.id === table.id ? { ...t, x: e.target.x(), y: e.target.y() } : t
+                      )
                     );
-                    setTables(newTables);
                   }}
                   onDblClick={() => handleTableDblClick(table.id)}
                   onTransformEnd={(e) => {
-                    const node = e.target;
+                    const node = e.target as Konva.Group;
                     const scaleX = node.scaleX();
                     const scaleY = node.scaleY();
                     
+                    setTables(prevTables =>
+                      prevTables.map(t => {
+                        if (t.id === table.id) {
+                           const currentTableState = prevTables.find(pts => pts.id === table.id)!;
+
+                           const newWidth = t.type === 'circle' ? (currentTableState.radius || 0) * 2 * Math.max(scaleX,scaleY) : currentTableState.width * scaleX;
+                           const newHeight = t.type === 'circle' ? (currentTableState.radius || 0) * 2 * Math.max(scaleX,scaleY) : currentTableState.height * scaleY;
+                           const newRadius = t.type === 'circle' ? (currentTableState.radius || 0) * Math.max(scaleX, scaleY) : undefined;
+
+                          return {
+                            ...currentTableState,
+                            x: node.x(),
+                            y: node.y(),
+                            rotation: node.rotation(),
+                            width: newWidth,
+                            height: newHeight,
+                            radius: newRadius,
+                            chairs: currentTableState.chairs.map(chair => ({
+                              ...chair,
+                              x: chair.x * scaleX,
+                              y: chair.y * scaleY,
+                            })),
+                          };
+                        }
+                        return t;
+                      })
+                    );
                     node.scaleX(1);
                     node.scaleY(1);
-
-                    const newWidth = Math.max(20, table.width * scaleX);
-                    const newHeight = Math.max(20, table.height * scaleY);
-                    
-                    let updatedTable = tables.find(t => t.id === table.id);
-                    if (!updatedTable) return;
-
-                    let newAttrs: Partial<TableElement> = {
-                        x: node.x(),
-                        y: node.y(),
-                        rotation: node.rotation(),
-                        // chairs are preserved, not regenerated here
-                    };
-
-                    if (updatedTable.type === 'circle') {
-                        const newRadius = Math.max(10, (updatedTable.radius || Math.min(updatedTable.width, updatedTable.height)/2) * Math.max(scaleX, scaleY)); 
-                        newAttrs.radius = newRadius;
-                        newAttrs.width = newRadius * 2;
-                        newAttrs.height = newRadius * 2;
-                    } else {
-                        newAttrs.width = newWidth;
-                        newAttrs.height = newHeight;
-                    }
-                    
-                    setTables(prevTables => prevTables.map(t => 
-                      t.id === table.id ? { ...t, ...newAttrs } : t
-                    ));
                   }}
+                  offsetX={table.type === 'rect' ? table.width / 2 : 0}
+                  offsetY={table.type === 'rect' ? table.height / 2 : 0}
                 >
                   {table.type === 'rect' ? (
                     <Rect
@@ -520,7 +519,6 @@ export default function NewLayoutPage() {
                       stroke="#8d6e63" 
                       strokeWidth={1.5}
                       cornerRadius={4}
-                      offset={{ x: table.width / 2, y: table.height / 2 }}
                       shadowBlur={3}
                       shadowOpacity={0.2}
                       shadowOffsetX={1}
@@ -549,19 +547,10 @@ export default function NewLayoutPage() {
                         stroke="#a1887f" 
                         strokeWidth={1} 
                         draggable={table.id === selectedTableId}
-                        onDragEnd={(e) => handleChairDragEnd(e, table.id, chair.id)}
-                        // Optional: Prevent table drag when chair drag starts
                         onDragStart={(e) => { 
                             e.cancelBubble = true; 
-                            // If the table group is also draggable, you might need:
-                            // const tableNode = tableNodeRefs.current.get(table.id);
-                            // if (tableNode) tableNode.draggable(false);
                         }}
-                        // Optional: Re-enable table drag if it was disabled
-                        // onMouseUp={(e) => {
-                        //     const tableNode = tableNodeRefs.current.get(table.id);
-                        //     if (tableNode) tableNode.draggable(true);
-                        // }}
+                        onDragEnd={(e) => handleChairDragEnd(e, table.id, chair.id)}
                     />
                   ))}
                   <Text 
@@ -569,8 +558,8 @@ export default function NewLayoutPage() {
                     fontSize={fontSizeNumber}
                     fill="#3e2723"
                     fontStyle="bold"
-                    x={0}
-                    y={yPosNumberText}
+                    x={table.type === 'rect' ? table.width / 2 : 0}
+                    y={table.type === 'rect' ? table.height / 2 + yPosNumberText : yPosNumberText}
                     width={tableWidthForText}
                     height={textBlockRenderHeightNumber}
                     offsetX={tableWidthForText / 2}
@@ -583,8 +572,8 @@ export default function NewLayoutPage() {
                     text={`(${table.capacity}pp)`}
                     fontSize={fontSizeCapacity}
                     fill="#5d4037"
-                    x={0}
-                    y={yPosCapacityText}
+                    x={table.type === 'rect' ? table.width / 2 : 0}
+                    y={table.type === 'rect' ? table.height / 2 + yPosCapacityText : yPosCapacityText}
                     width={tableWidthForText}
                     height={textBlockRenderHeightCapacity}
                     offsetX={tableWidthForText / 2}
@@ -678,3 +667,4 @@ export default function NewLayoutPage() {
     </div>
   );
 }
+
