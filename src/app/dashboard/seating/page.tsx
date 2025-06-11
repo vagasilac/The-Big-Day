@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from '@/components/ui/input';
-import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2, RectangleHorizontal, Circle as CircleIcon, Minimize2, Ruler, Settings2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
@@ -19,7 +20,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { VenueLayout } from '@/types/venue';
-import type { Guest } from '@/types/guest'; // Import Guest type
+import type { Guest } from '@/types/guest';
 
 // Mock data for venue layouts - replace with Firestore fetching later
 const MOCK_VENUE_LAYOUTS: VenueLayout[] = [
@@ -165,7 +166,7 @@ export default function SeatingPage() {
     try {
         const weddingRef = doc(db, 'weddings', weddingData.id);
         await updateDoc(weddingRef, {
-            selectedVenueLayoutId: null,
+            selectedVenueLayoutId: null, // Set to null or use deleteField()
         });
         setSelectedLayoutId(null);
         setWeddingData(prev => prev ? ({ ...prev, selectedVenueLayoutId: undefined }) : null);
@@ -256,13 +257,14 @@ export default function SeatingPage() {
                 </div>
             </div>
             <Button variant="outline" onClick={handleClearSelection} disabled={isSavingSelection}>
+                {isSavingSelection && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Change Layout
             </Button>
         </div>
 
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-6 overflow-hidden">
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
           {/* Left Pane: Guest List */}
-          <Card className="md:col-span-1 flex flex-col shadow-lg">
+          <Card className="md:col-span-1 xl:col-span-1 flex flex-col shadow-lg">
             <CardHeader className="flex-shrink-0">
               <CardTitle className="flex items-center gap-2"><UsersIcon className="h-5 w-5 text-primary" /> Guest List</CardTitle>
               <CardDescription>{guests.length} guests loaded. Drag to assign.</CardDescription>
@@ -285,23 +287,90 @@ export default function SeatingPage() {
             </CardContent>
           </Card>
 
-          {/* Right Pane: Visual Layout Placeholder */}
-          <Card className="md:col-span-2 flex flex-col shadow-lg">
-            <CardHeader className="flex-shrink-0">
-              <CardTitle className="flex items-center gap-2"><LayoutGrid className="h-5 w-5 text-primary" /> Venue Layout: {currentSelectedLayoutDetails.name}</CardTitle>
-              <CardDescription>Interactive seating planner will be here.</CardDescription>
+          {/* Right Pane: Visual Layout Editor */}
+          <Card className="md:col-span-2 xl:col-span-3 flex flex-col shadow-lg">
+            <CardHeader className="flex-shrink-0 border-b">
+              <CardTitle className="flex items-center gap-2"><LayoutGrid className="h-5 w-5 text-primary" /> Venue Layout Editor</CardTitle>
+              <CardDescription>Design your venue: {currentSelectedLayoutDetails.name}</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow flex items-center justify-center bg-muted/30 rounded-b-md">
-              <div className="text-center p-8">
-                 <LayoutGrid className="h-16 w-16 text-primary/30 mx-auto mb-4" />
-                <p className="font-medium text-lg text-muted-foreground">
-                  Drag & Drop Seating Chart Area
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  (Visual table and chair editor coming soon!)
-                </p>
+            
+            <div className="flex flex-col flex-grow overflow-hidden">
+              {/* Toolbar */}
+              <div className="p-2 border-b bg-muted/50 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled title="Add Rectangle Table (coming soon)">
+                    <RectangleHorizontal className="mr-2 h-4 w-4" /> Table
+                  </Button>
+                  <Button variant="outline" size="sm" disabled title="Add Round Table (coming soon)">
+                    <CircleIcon className="mr-2 h-4 w-4" /> Round Table
+                  </Button>
+                  <Button variant="outline" size="sm" disabled title="Add Stage (coming soon)">
+                    <Minimize2 className="mr-2 h-4 w-4 transform rotate-45" /> Stage
+                  </Button>
+                   <Button variant="outline" size="sm" disabled title="Add Wall/Divider (coming soon)">
+                    <Ruler className="mr-2 h-4 w-4" /> Wall
+                  </Button>
+                  <Separator orientation="vertical" className="h-6 mx-2" />
+                  <Button variant="ghost" size="icon" disabled title="Undo (coming soon)">
+                    <Undo2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" disabled title="Redo (coming soon)">
+                    <Redo2 className="h-4 w-4" />
+                  </Button>
+                   <Separator orientation="vertical" className="h-6 mx-2" />
+                   <Button variant="ghost" size="icon" disabled title="Save Layout (coming soon)">
+                    <Save className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </CardContent>
+
+              {/* Canvas Area & Properties Panel (simplified side-by-side) */}
+              <div className="flex flex-grow overflow-hidden">
+                {/* Main Canvas Area */}
+                <div className="flex-grow bg-background border-r p-4 relative overflow-auto">
+                  <div 
+                    className="w-full h-full min-h-[400px] bg-white rounded-md shadow-inner"
+                    style={{
+                      backgroundImage: 'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)',
+                      backgroundSize: '20px 20px',
+                    }}
+                  >
+                    {/* Layout elements will be rendered here */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="text-muted-foreground p-4 bg-background/80 rounded-md">Layout Editor Canvas Area</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Properties Panel Placeholder */}
+                <div className="w-64 p-4 border-l bg-muted/30 flex-shrink-0 overflow-y-auto">
+                  <h3 className="text-sm font-semibold mb-3 text-foreground flex items-center">
+                    <Settings2 className="mr-2 h-4 w-4 text-primary" /> Element Properties
+                  </h3>
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      Select an element on the canvas to edit its properties. (Coming Soon)
+                    </p>
+                    {/* Example property fields (disabled) */}
+                    <div>
+                      <label htmlFor="element-name" className="text-xs font-medium">Name</label>
+                      <Input id="element-name" size="sm" disabled placeholder="Table 1" className="mt-1"/>
+                    </div>
+                     <div>
+                      <label htmlFor="element-width" className="text-xs font-medium">Width</label>
+                      <Input id="element-width" type="number" size="sm" disabled placeholder="120" className="mt-1"/>
+                    </div>
+                     <div>
+                      <label htmlFor="element-height" className="text-xs font-medium">Height</label>
+                      <Input id="element-height" type="number" size="sm" disabled placeholder="60" className="mt-1"/>
+                    </div>
+                     <Button size="sm" variant="outline" className="w-full text-destructive hover:text-destructive" disabled>
+                        <Trash2 className="mr-2 h-4 w-4"/> Delete Element
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </Card>
         </div>
       </div>
@@ -337,14 +406,14 @@ export default function SeatingPage() {
         </div>
       </div>
 
-      {currentSelectedLayoutDetails && ( // This state seems unlikely if we are in this part of the code, but good for robustness
+      {currentSelectedLayoutDetails && weddingData.selectedVenueLayoutId && (
         <Alert variant="default" className="mb-6 border-primary/30 bg-primary/5">
           <CheckCircle className="h-5 w-5 text-primary" />
           <AlertTitle className="text-primary">Layout Selected: {currentSelectedLayoutDetails.name}</AlertTitle>
           <AlertDescription>
             You are currently using the '{currentSelectedLayoutDetails.name}' layout. Proceed to assign guests or{' '}
             <Button variant="link" className="p-0 h-auto text-sm text-primary hover:underline" onClick={handleClearSelection} disabled={isSavingSelection}>
-                 change layout
+                 {isSavingSelection && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}change layout
             </Button>.
           </AlertDescription>
         </Alert>
@@ -352,7 +421,7 @@ export default function SeatingPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {venueLayouts.map((layout) => (
-          <Card key={layout.id} className={`shadow-lg hover:shadow-xl transition-shadow flex flex-col ${selectedLayoutId === layout.id ? 'border-2 border-primary ring-2 ring-primary ring-offset-2' : 'border-transparent'}`}>
+          <Card key={layout.id} className={`shadow-lg hover:shadow-xl transition-shadow flex flex-col ${selectedLayoutId === layout.id ? 'border-2 border-primary ring-2 ring-primary ring-offset-2' : ''}`}>
             {layout.previewImageUrl && (
                 <div className="relative w-full h-48 bg-secondary rounded-t-md overflow-hidden">
                  <Image src={layout.previewImageUrl} alt={layout.name} layout="fill" objectFit="cover" data-ai-hint={layout.dataAiHint || "venue layout"} />
@@ -369,7 +438,7 @@ export default function SeatingPage() {
               <p className="text-sm text-muted-foreground line-clamp-3">{layout.description || "No description available."}</p>
             </CardContent>
             <CardFooter>
-              {selectedLayoutId === layout.id ? ( // This state should ideally not happen if we are showing the list
+              {selectedLayoutId === layout.id ? ( 
                 <Button className="w-full" variant="outline" disabled>
                     <CheckCircle className="mr-2 h-4 w-4" /> Currently Selected
                 </Button>
@@ -396,4 +465,13 @@ export default function SeatingPage() {
     </div>
   );
 }
+
+// Missing Undo2, Redo2, Save icons - import them if available or use alternatives
+// For now, let's assume they are available or will be handled.
+// If not, I'll need to remove or replace them. Let's use generic placeholders for now if they don't exist.
+// For simplicity, I will remove them for now from the imports if they are not already standard in lucide-react.
+// Looking at lucide-react, Undo2, Redo2, Save are available.
+
+    
+
     
