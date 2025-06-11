@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -9,16 +9,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Input } from '@/components/ui/input'; // Added this line
-import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info } from 'lucide-react'; // Using Armchair for seating
+import { Input } from '@/components/ui/input';
+import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import type { Wedding } from '@/types/wedding';
-import type { VenueLayout } from '@/types/venue'; // Import the new type
+import type { VenueLayout } from '@/types/venue';
+import type { Guest } from '@/types/guest'; // Import Guest type
 
 // Mock data for venue layouts - replace with Firestore fetching later
 const MOCK_VENUE_LAYOUTS: VenueLayout[] = [
@@ -29,6 +30,7 @@ const MOCK_VENUE_LAYOUTS: VenueLayout[] = [
     capacity: 250,
     previewImageUrl: 'https://placehold.co/600x400.png?text=Grand+Ballroom',
     ownerId: 'system',
+    dataAiHint: 'ballroom wedding venue'
   },
   {
     id: 'layout-2',
@@ -37,6 +39,7 @@ const MOCK_VENUE_LAYOUTS: VenueLayout[] = [
     capacity: 120,
     previewImageUrl: 'https://placehold.co/600x400.png?text=Rustic+Barn',
     ownerId: 'system',
+    dataAiHint: 'barn wedding venue'
   },
   {
     id: 'layout-3',
@@ -45,6 +48,7 @@ const MOCK_VENUE_LAYOUTS: VenueLayout[] = [
     capacity: 80,
     previewImageUrl: 'https://placehold.co/600x400.png?text=City+Loft',
     ownerId: 'venue-owner-123', // Example of a venue-owner provided layout
+    dataAiHint: 'modern loft venue'
   },
 ];
 
@@ -58,10 +62,14 @@ export default function SeatingPage() {
   const [selectedLayoutId, setSelectedLayoutId] = useState<string | null | undefined>(null);
   const [isSavingSelection, setIsSavingSelection] = useState(false);
 
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [isLoadingGuests, setIsLoadingGuests] = useState(false);
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
+        setIsLoading(true);
         try {
           const weddingsRef = collection(db, 'weddings');
           const q = query(weddingsRef, where('userId', '==', user.uid));
@@ -74,21 +82,57 @@ export default function SeatingPage() {
             setSelectedLayoutId(currentWeddingData.selectedVenueLayoutId);
           } else {
             setWeddingData(null);
+            setSelectedLayoutId(null);
           }
         } catch (error) {
           console.error("Error fetching wedding data:", error);
           toast({ title: 'Error', description: 'Could not load wedding details.', variant: 'destructive' });
           setWeddingData(null);
+          setSelectedLayoutId(null);
+        } finally {
+          setIsLoading(false);
         }
       } else {
         setCurrentUser(null);
         setWeddingData(null);
+        setSelectedLayoutId(null);
         router.push('/auth');
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, [router, toast]);
+
+  const fetchGuests = useCallback(async (weddingId: string) => {
+    if (!weddingId) return;
+    setIsLoadingGuests(true);
+    const guestsRef = collection(db, 'weddings', weddingId, 'guests');
+    const unsubscribeGuests = onSnapshot(guestsRef, (snapshot) => {
+      const guestList: Guest[] = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Guest, 'id'>) }));
+      setGuests(guestList);
+      setIsLoadingGuests(false);
+    }, (error) => {
+      console.error("Error fetching guests:", error);
+      toast({ title: 'Error', description: 'Could not load guest list for seating.', variant: 'destructive' });
+      setIsLoadingGuests(false);
+    });
+    return unsubscribeGuests;
+  }, [toast]);
+
+  useEffect(() => {
+    let unsubscribeGuests: (() => void) | undefined;
+    if (weddingData?.id && selectedLayoutId) {
+      (async () => {
+        unsubscribeGuests = await fetchGuests(weddingData.id);
+      })();
+    }
+    return () => {
+      if (unsubscribeGuests) {
+        unsubscribeGuests();
+      }
+    };
+  }, [weddingData, selectedLayoutId, fetchGuests]);
+
 
   const handleSelectLayout = async (layoutId: string) => {
     if (!currentUser || !weddingData?.id) {
@@ -102,7 +146,6 @@ export default function SeatingPage() {
         selectedVenueLayoutId: layoutId,
       });
       setSelectedLayoutId(layoutId);
-      // Update local weddingData state to reflect change immediately
       setWeddingData(prev => prev ? ({ ...prev, selectedVenueLayoutId: layoutId }) : null);
       toast({ title: "Layout Selected", description: "Venue layout has been updated for your wedding." });
     } catch (error) {
@@ -122,10 +165,11 @@ export default function SeatingPage() {
     try {
         const weddingRef = doc(db, 'weddings', weddingData.id);
         await updateDoc(weddingRef, {
-            selectedVenueLayoutId: null, // or deleteField() if you prefer to remove it
+            selectedVenueLayoutId: null,
         });
         setSelectedLayoutId(null);
         setWeddingData(prev => prev ? ({ ...prev, selectedVenueLayoutId: undefined }) : null);
+        setGuests([]); // Clear guests when layout is cleared
         toast({ title: "Layout Cleared", description: "Venue layout selection has been cleared." });
     } catch (error) {
         console.error("Error clearing layout selection:", error);
@@ -197,17 +241,17 @@ export default function SeatingPage() {
   
   const currentSelectedLayoutDetails = venueLayouts.find(layout => layout.id === selectedLayoutId);
 
-  // If a layout is selected, show the next step UI, otherwise show layout selection
+  // If a layout is selected, show the two-pane planner UI
   if (selectedLayoutId && currentSelectedLayoutDetails) {
     return (
-      <div className="flex flex-col gap-6 md:gap-8">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-6 md:gap-8 h-[calc(100vh-10rem)]"> {/* Adjust height as needed */}
+        <div className="flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
                 <Armchair className="h-8 w-8 text-primary" />
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Seating Chart for {weddingData.title}</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Seating Chart: {weddingData.title}</h1>
                     <p className="text-muted-foreground mt-1">
-                    Venue Layout: <span className="font-semibold text-primary">{currentSelectedLayoutDetails.name}</span>
+                    Venue Layout: <span className="font-semibold text-primary">{currentSelectedLayoutDetails.name}</span> (Capacity: {currentSelectedLayoutDetails.capacity})
                     </p>
                 </div>
             </div>
@@ -216,17 +260,50 @@ export default function SeatingPage() {
             </Button>
         </div>
 
-        {/* Placeholder for two-pane layout: Guest List | Visual Layout */}
-        <Alert>
-          <LayoutGrid className="h-4 w-4" />
-          <AlertTitle>Seating Planner Interface</AlertTitle>
-          <AlertDescription>
-            The interactive seating chart planner will be displayed here. You'll be able to drag and drop guests onto seats within the '{currentSelectedLayoutDetails.name}' layout.
-            <div className="mt-4 p-6 bg-secondary/50 rounded-md text-center">
-                <p className="font-medium text-secondary-foreground">Interactive seating planner for "{currentSelectedLayoutDetails.name}" coming soon!</p>
-            </div>
-          </AlertDescription>
-        </Alert>
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-6 overflow-hidden">
+          {/* Left Pane: Guest List */}
+          <Card className="md:col-span-1 flex flex-col shadow-lg">
+            <CardHeader className="flex-shrink-0">
+              <CardTitle className="flex items-center gap-2"><UsersIcon className="h-5 w-5 text-primary" /> Guest List</CardTitle>
+              <CardDescription>{guests.length} guests loaded. Drag to assign.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow overflow-y-auto p-4 space-y-2">
+              {isLoadingGuests ? (
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : guests.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No guests found for this wedding yet. Add guests in the Guest Management section.</p>
+              ) : (
+                guests.map(guest => (
+                  <div key={guest.id} className="p-3 border rounded-md bg-background hover:bg-secondary cursor-grab">
+                    <p className="font-medium text-sm text-foreground">{guest.name}</p>
+                    {guest.isPlusOneFor && <p className="text-xs text-muted-foreground">Plus one for {guests.find(g => g.id === guest.isPlusOneFor)?.name}</p>}
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Right Pane: Visual Layout Placeholder */}
+          <Card className="md:col-span-2 flex flex-col shadow-lg">
+            <CardHeader className="flex-shrink-0">
+              <CardTitle className="flex items-center gap-2"><LayoutGrid className="h-5 w-5 text-primary" /> Venue Layout: {currentSelectedLayoutDetails.name}</CardTitle>
+              <CardDescription>Interactive seating planner will be here.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow flex items-center justify-center bg-muted/30 rounded-b-md">
+              <div className="text-center p-8">
+                 <LayoutGrid className="h-16 w-16 text-primary/30 mx-auto mb-4" />
+                <p className="font-medium text-lg text-muted-foreground">
+                  Drag & Drop Seating Chart Area
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  (Visual table and chair editor coming soon!)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -260,7 +337,7 @@ export default function SeatingPage() {
         </div>
       </div>
 
-      {currentSelectedLayoutDetails && (
+      {currentSelectedLayoutDetails && ( // This state seems unlikely if we are in this part of the code, but good for robustness
         <Alert variant="default" className="mb-6 border-primary/30 bg-primary/5">
           <CheckCircle className="h-5 w-5 text-primary" />
           <AlertTitle className="text-primary">Layout Selected: {currentSelectedLayoutDetails.name}</AlertTitle>
@@ -275,10 +352,10 @@ export default function SeatingPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {venueLayouts.map((layout) => (
-          <Card key={layout.id} className={`shadow-lg hover:shadow-xl transition-shadow flex flex-col ${selectedLayoutId === layout.id ? 'border-2 border-primary ring-2 ring-primary ring-offset-2' : ''}`}>
+          <Card key={layout.id} className={`shadow-lg hover:shadow-xl transition-shadow flex flex-col ${selectedLayoutId === layout.id ? 'border-2 border-primary ring-2 ring-primary ring-offset-2' : 'border-transparent'}`}>
             {layout.previewImageUrl && (
                 <div className="relative w-full h-48 bg-secondary rounded-t-md overflow-hidden">
-                 <Image src={layout.previewImageUrl} alt={layout.name} layout="fill" objectFit="cover" data-ai-hint="venue layout" />
+                 <Image src={layout.previewImageUrl} alt={layout.name} layout="fill" objectFit="cover" data-ai-hint={layout.dataAiHint || "venue layout"} />
                 </div>
             )}
             <CardHeader>
@@ -292,13 +369,13 @@ export default function SeatingPage() {
               <p className="text-sm text-muted-foreground line-clamp-3">{layout.description || "No description available."}</p>
             </CardContent>
             <CardFooter>
-              {selectedLayoutId === layout.id ? (
+              {selectedLayoutId === layout.id ? ( // This state should ideally not happen if we are showing the list
                 <Button className="w-full" variant="outline" disabled>
                     <CheckCircle className="mr-2 h-4 w-4" /> Currently Selected
                 </Button>
               ) : (
-                <Button className="w-full" onClick={() => handleSelectLayout(layout.id)} disabled={isSavingSelection}>
-                    {isSavingSelection && <Skeleton className="mr-2 h-4 w-4 animate-spin" />}
+                <Button className="w-full" onClick={() => handleSelectLayout(layout.id)} disabled={isSavingSelection || isLoading}>
+                    {(isSavingSelection || isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Select this Layout
                 </Button>
               )}
@@ -319,5 +396,4 @@ export default function SeatingPage() {
     </div>
   );
 }
-
     
