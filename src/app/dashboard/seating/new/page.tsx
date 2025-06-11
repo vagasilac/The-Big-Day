@@ -230,6 +230,14 @@ export default function NewLayoutPage() {
         return;
     }
 
+    // If clicking on transformer anchors/handles, keep current selection
+    const isTransformer =
+      e.target.getClassName() === 'Transformer' ||
+      e.target.getParent()?.getClassName() === 'Transformer';
+    if (isTransformer) {
+        return;
+    }
+
     let node = e.target;
     // Traverse up to find a Konva.Group that has a table ID
     while (node && node !== stage) {
