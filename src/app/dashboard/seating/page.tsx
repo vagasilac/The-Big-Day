@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from '@/components/ui/input'; // Added this line
 import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info } from 'lucide-react'; // Using Armchair for seating
 import { useToast } from '@/hooks/use-toast';
 
@@ -318,3 +319,5 @@ export default function SeatingPage() {
     </div>
   );
 }
+
+    
