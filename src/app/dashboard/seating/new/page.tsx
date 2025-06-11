@@ -51,7 +51,8 @@ const FONT_SIZE_CAPACITY_CIRCLE = 12;
 const TEXT_VERTICAL_GAP = 4;
 
 const CHAIR_RADIUS = 8;
-const CHAIR_SPACING_FROM_TABLE = 15;
+const CHAIR_SPACING_FROM_TABLE = 10; // Reduced from 15
+const CHAIR_CORNER_MARGIN = 5; // New: Margin from perpendicular edges
 
 // Helper function to determine which side a chair should snap to for rectangular tables
 const getChairSnapSide = (
@@ -62,15 +63,15 @@ const getChairSnapSide = (
 ): 'top' | 'bottom' | 'left' | 'right' => {
   const halfWidth = tableWidth / 2;
   const halfHeight = tableHeight / 2;
-  const preferenceThreshold = (CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE) * 1.5;
+  const preferenceThreshold = (CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE); 
 
-  if (chairY < -halfHeight - preferenceThreshold) return 'top';
-  if (chairY > halfHeight + preferenceThreshold) return 'bottom';
-  if (chairX < -halfWidth - preferenceThreshold) return 'left';
-  if (chairX > halfWidth + preferenceThreshold) return 'right';
+  if (chairY < -halfHeight - preferenceThreshold + CHAIR_RADIUS) return 'top';
+  if (chairY > halfHeight + preferenceThreshold - CHAIR_RADIUS) return 'bottom';
+  if (chairX < -halfWidth - preferenceThreshold + CHAIR_RADIUS) return 'left';
+  if (chairX > halfWidth + preferenceThreshold - CHAIR_RADIUS) return 'right';
 
-  const normalizedY = Math.abs(chairY / (tableHeight + CHAIR_SPACING_FROM_TABLE * 2));
-  const normalizedX = Math.abs(chairX / (tableWidth + CHAIR_SPACING_FROM_TABLE * 2));
+  const normalizedY = Math.abs(chairY / (tableHeight + CHAIR_SPACING_FROM_TABLE * 2 + CHAIR_RADIUS * 2));
+  const normalizedX = Math.abs(chairX / (tableWidth + CHAIR_SPACING_FROM_TABLE * 2 + CHAIR_RADIUS * 2));
 
   if (normalizedY > normalizedX) {
     return chairY < 0 ? 'top' : 'bottom';
@@ -110,11 +111,11 @@ export default function NewLayoutPage() {
         const w = width;
         const h = height;
 
-        const sideCapacities = {
-            top: Math.max(0, Math.floor(w / (CHAIR_RADIUS * 2.5))),
-            bottom: Math.max(0, Math.floor(w / (CHAIR_RADIUS * 2.5))),
-            left: Math.max(0, Math.floor(h / (CHAIR_RADIUS * 2.5))),
-            right: Math.max(0, Math.floor(h / (CHAIR_RADIUS * 2.5))),
+        const sideCapacities = { // Max chairs that can fit "comfortably"
+            top: Math.max(0, Math.floor((w - 2 * CHAIR_CORNER_MARGIN) / (CHAIR_RADIUS * 2.5))),
+            bottom: Math.max(0, Math.floor((w - 2 * CHAIR_CORNER_MARGIN) / (CHAIR_RADIUS * 2.5))),
+            left: Math.max(0, Math.floor((h - 2 * CHAIR_CORNER_MARGIN) / (CHAIR_RADIUS * 2.5))),
+            right: Math.max(0, Math.floor((h - 2 * CHAIR_CORNER_MARGIN) / (CHAIR_RADIUS * 2.5))),
         };
         
         const sidePreference: Array<'top' | 'bottom' | 'left' | 'right'> = [];
@@ -143,6 +144,8 @@ export default function NewLayoutPage() {
                 }
             }
             if (!placedInThisLoop && totalPlaced < capacity) { 
+                // If no side could take a chair in a full loop, break to avoid infinite loop
+                // (e.g. capacity > total sideCapacities) - chairs will be sliced later
                 break; 
             }
             loopIterations++;
@@ -152,25 +155,38 @@ export default function NewLayoutPage() {
             const numChairsOnThisSide = chairsAssignedToSide[sideKey];
             if (numChairsOnThisSide === 0) return;
 
+            const primaryLengthOfSide = (sideKey === 'top' || sideKey === 'bottom') ? w : h;
+            const effectiveDistributableLength = primaryLengthOfSide - (2 * CHAIR_RADIUS) - (2 * CHAIR_CORNER_MARGIN);
+
             for (let i = 0; i < numChairsOnThisSide; i++) {
                 let chairX = 0;
                 let chairY = 0;
+                let variableCoordinate: number;
+
+                if (numChairsOnThisSide === 1) {
+                    variableCoordinate = 0;
+                } else if (effectiveDistributableLength <= 0) {
+                    variableCoordinate = 0; // Stack if no space
+                } else {
+                    variableCoordinate = (i * (effectiveDistributableLength / (numChairsOnThisSide - 1))) - (effectiveDistributableLength / 2);
+                }
+
                 switch (sideKey) {
                     case 'top':
                         chairY = -h / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-                        chairX = numChairsOnThisSide === 1 ? 0 : i * (w / (numChairsOnThisSide - 1)) - w / 2;
+                        chairX = variableCoordinate;
                         break;
                     case 'bottom':
                         chairY = h / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-                        chairX = numChairsOnThisSide === 1 ? 0 : i * (w / (numChairsOnThisSide - 1)) - w / 2;
+                        chairX = variableCoordinate;
                         break;
                     case 'left':
                         chairX = -w / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-                        chairY = numChairsOnThisSide === 1 ? 0 : i * (h / (numChairsOnThisSide - 1)) - h / 2;
+                        chairY = variableCoordinate;
                         break;
                     case 'right':
                         chairX = w / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-                        chairY = numChairsOnThisSide === 1 ? 0 : i * (h / (numChairsOnThisSide - 1)) - h / 2;
+                        chairY = variableCoordinate;
                         break;
                 }
                 chairsArray.push({ id: uuidv4(), x: chairX, y: chairY });
@@ -187,7 +203,7 @@ export default function NewLayoutPage() {
         });
       }
     }
-    return chairsArray.slice(0, capacity);
+    return chairsArray.slice(0, capacity); // Ensure we don't exceed requested capacity
   }, []);
 
 
@@ -287,7 +303,7 @@ export default function NewLayoutPage() {
     }
     
     const maxAllowedNumber = tables.length;
-    if (newNumber > maxAllowedNumber && tables.some(t => t.displayOrderNumber === newNumber && t.id !== editingTableIdForNumber)) {
+     if (newNumber > maxAllowedNumber && tables.some(t => t.displayOrderNumber === newNumber && t.id !== editingTableIdForNumber)) {
          toast({
             title: "Invalid Table Number",
             description: `Please enter a number between 1 and ${maxAllowedNumber} if swapping. To set a higher number, ensure it's unique or adjust other tables first.`,
@@ -435,26 +451,38 @@ export default function NewLayoutPage() {
           return a.y - b.y;
         });
 
+        const primaryLengthOfSide = (sideKey === 'top' || sideKey === 'bottom') ? table.width : table.height;
+        const effectiveDistributableLength = primaryLengthOfSide - (2 * CHAIR_RADIUS) - (2 * CHAIR_CORNER_MARGIN);
+
         sideChairs.forEach((chair, index) => {
           let finalX = chair.x;
           let finalY = chair.y;
+          let variableCoordinate: number;
+
+          if (numChairsOnThisSide === 1) {
+              variableCoordinate = 0;
+          } else if (effectiveDistributableLength <= 0) {
+              variableCoordinate = 0; // Stack if no space
+          } else {
+              variableCoordinate = (index * (effectiveDistributableLength / (numChairsOnThisSide - 1))) - (effectiveDistributableLength / 2);
+          }
 
           switch (sideKey) {
             case 'top':
               finalY = -table.height / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-              finalX = numChairsOnThisSide === 1 ? 0 : index * (table.width / (numChairsOnThisSide - 1)) - table.width / 2;
+              finalX = variableCoordinate;
               break;
             case 'bottom':
               finalY = table.height / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-              finalX = numChairsOnThisSide === 1 ? 0 : index * (table.width / (numChairsOnThisSide - 1)) - table.width / 2;
+              finalX = variableCoordinate;
               break;
             case 'left':
               finalX = -table.width / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-              finalY = numChairsOnThisSide === 1 ? 0 : index * (table.height / (numChairsOnThisSide - 1)) - table.height / 2;
+              finalY = variableCoordinate;
               break;
             case 'right':
               finalX = table.width / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-              finalY = numChairsOnThisSide === 1 ? 0 : index * (table.height / (numChairsOnThisSide - 1)) - table.height / 2;
+              finalY = variableCoordinate;
               break;
           }
           newAlignedChairsArray.push({ ...chair, x: finalX, y: finalY });
@@ -547,7 +575,7 @@ export default function NewLayoutPage() {
                   x={table.x} 
                   y={table.y} 
                   rotation={table.rotation}
-                  draggable={true}
+                  draggable={true} 
                   ref={node => { 
                     if (node) {
                       tableNodeRefs.current.set(table.id, node);
@@ -588,10 +616,10 @@ export default function NewLayoutPage() {
                             width: newWidth,
                             height: newHeight,
                             radius: newRadius,
-                             chairs: currentTableState.chairs.map(chair => ({
-                              ...chair,
-                              x: chair.x * scaleX, 
-                              y: chair.y * scaleY, 
+                            chairs: currentTableState.chairs.map(chair => ({
+                                ...chair,
+                                x: chair.x * scaleX, 
+                                y: chair.y * scaleY, 
                             })),
                           };
                         }
