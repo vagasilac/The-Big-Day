@@ -39,6 +39,7 @@ import {
   Music,
   ScrollText,
   Menu,
+  Armchair, // Added Armchair icon
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -178,6 +179,7 @@ export default function DashboardLayout({
             <SidebarMenu>
               <NavLink href="/dashboard/guests" icon={<Users />} tooltip="Guest Management">Guest Management</NavLink>
               <NavLink href="/dashboard/invitations" icon={<Mail />} tooltip="Digital Invitations">Digital Invitations</NavLink>
+              <NavLink href="/dashboard/seating" icon={<Armchair />} tooltip="Seating Arrangements">Seating Arrangements</NavLink>
             </SidebarMenu>
           </SidebarGroup>
 
