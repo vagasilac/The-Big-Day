@@ -50,6 +50,39 @@ const FONT_SIZE_NUMBER_CIRCLE = 16;
 const FONT_SIZE_CAPACITY_CIRCLE = 12;
 const TEXT_VERTICAL_GAP = 4;
 
+const CHAIR_RADIUS = 8;
+const CHAIR_SPACING_FROM_TABLE = 15;
+
+// Helper function to determine which side a chair should snap to for rectangular tables
+const getChairSnapSide = (
+  chairX: number, // Chair's x relative to table center
+  chairY: number, // Chair's y relative to table center
+  tableWidth: number,
+  tableHeight: number
+): 'top' | 'bottom' | 'left' | 'right' => {
+  const halfWidth = tableWidth / 2;
+  const halfHeight = tableHeight / 2;
+  // Threshold to prefer snapping to an edge rather than being perfectly diagonal
+  const preferenceThreshold = (CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE) * 1.5;
+
+  // Check if chair is clearly outside one edge more than others
+  if (chairY < -halfHeight - preferenceThreshold) return 'top';
+  if (chairY > halfHeight + preferenceThreshold) return 'bottom';
+  if (chairX < -halfWidth - preferenceThreshold) return 'left';
+  if (chairX > halfWidth + preferenceThreshold) return 'right';
+
+  // If not clearly outside, determine by proximity to axes adjusted for table aspect ratio
+  // Closer to horizontal axis (top/bottom sides) or vertical axis (left/right sides)
+  const normalizedY = Math.abs(chairY / (tableHeight + CHAIR_SPACING_FROM_TABLE * 2));
+  const normalizedX = Math.abs(chairX / (tableWidth + CHAIR_SPACING_FROM_TABLE * 2));
+
+  if (normalizedY > normalizedX) {
+    return chairY < 0 ? 'top' : 'bottom';
+  } else {
+    return chairX < 0 ? 'left' : 'right';
+  }
+};
+
 
 export default function NewLayoutPage() {
   const router = useRouter();
@@ -77,9 +110,6 @@ export default function NewLayoutPage() {
     const { type, width, height, radius, capacity } = table;
     if (capacity === 0) return chairs;
 
-    const chairRadius = 8; 
-    const chairSpacingFromTable = 15; 
-
     if (type === 'rect') {
         let chairsPerLongSide = 0;
         let chairsPerShortSide = 0;
@@ -93,66 +123,83 @@ export default function NewLayoutPage() {
         } else { 
             const longSideRatio = w > h ? 0.35 : 0.15; 
             const shortSideRatio = w < h ? 0.35 : 0.15;
-            chairsPerLongSide = Math.min(Math.floor(w / 30), Math.ceil(capacity * longSideRatio));
-            chairsPerShortSide = Math.min(Math.floor(h / 30), Math.ceil(capacity * shortSideRatio));
+            
+            const maxChairsLong = Math.floor(w / (CHAIR_RADIUS * 2.5)); // Max chairs that can fit
+            const maxChairsShort = Math.floor(h / (CHAIR_RADIUS * 2.5));
+
+            chairsPerLongSide = Math.min(maxChairsLong, Math.ceil(capacity * longSideRatio));
+            chairsPerShortSide = Math.min(maxChairsShort, Math.ceil(capacity * shortSideRatio));
         }
         
         let placedChairs = 0;
 
+        // Top side
         if (chairsPerLongSide > 0 && placedChairs < capacity) {
-            const effectiveNum = Math.min(chairsPerLongSide, capacity - placedChairs);
+            const effectiveNum = Math.min(chairsPerLongSide, capacity - placedChairs, Math.floor(w / (CHAIR_RADIUS * 2.5)));
             const spacingX = w / (effectiveNum + 1);
             for (let i = 0; i < effectiveNum; i++) {
                 if (placedChairs >= capacity) break;
-                chairs.push({ id: uuidv4(), x: (i + 1) * spacingX - w / 2, y: -h / 2 - chairRadius - chairSpacingFromTable });
+                chairs.push({ id: uuidv4(), x: (i + 1) * spacingX - w / 2, y: -h / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE });
                 placedChairs++;
             }
         }
+        // Bottom side
         if (chairsPerLongSide > 0 && placedChairs < capacity) {
-            const effectiveNum = Math.min(chairsPerLongSide, capacity - placedChairs);
+            const effectiveNum = Math.min(chairsPerLongSide, capacity - placedChairs, Math.floor(w / (CHAIR_RADIUS * 2.5)));
             const spacingX = w / (effectiveNum + 1);
             for (let i = 0; i < effectiveNum; i++) {
                 if (placedChairs >= capacity) break;
-                chairs.push({ id: uuidv4(), x: (i + 1) * spacingX - w / 2, y: h / 2 + chairRadius + chairSpacingFromTable });
+                chairs.push({ id: uuidv4(), x: (i + 1) * spacingX - w / 2, y: h / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE });
                 placedChairs++;
             }
         }
+        // Left side
         if (chairsPerShortSide > 0 && placedChairs < capacity) {
-            const effectiveNum = Math.min(chairsPerShortSide, capacity - placedChairs);
+            const effectiveNum = Math.min(chairsPerShortSide, capacity - placedChairs, Math.floor(h / (CHAIR_RADIUS * 2.5)));
             const spacingY = h / (effectiveNum + 1);
             for (let i = 0; i < effectiveNum; i++) {
                  if (placedChairs >= capacity) break;
-                chairs.push({ id: uuidv4(), x: -w / 2 - chairRadius - chairSpacingFromTable, y: (i + 1) * spacingY - h / 2 });
+                chairs.push({ id: uuidv4(), x: -w / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE, y: (i + 1) * spacingY - h / 2 });
                 placedChairs++;
             }
         }
+        // Right side
         if (chairsPerShortSide > 0 && placedChairs < capacity) {
-            const effectiveNum = Math.min(chairsPerShortSide, capacity - placedChairs);
+            const effectiveNum = Math.min(chairsPerShortSide, capacity - placedChairs, Math.floor(h / (CHAIR_RADIUS * 2.5)));
             const spacingY = h / (effectiveNum + 1);
             for (let i = 0; i < effectiveNum; i++) {
                 if (placedChairs >= capacity) break;
-                chairs.push({ id: uuidv4(), x: w / 2 + chairRadius + chairSpacingFromTable, y: (i + 1) * spacingY - h / 2 });
+                chairs.push({ id: uuidv4(), x: w / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE, y: (i + 1) * spacingY - h / 2 });
                 placedChairs++;
             }
         }
+        // Distribute remaining chairs if any
         let sideIndex = 0;
         const sidePlacementFunctions = [
-            (idx: number, num: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: -h/2 - chairRadius - chairSpacingFromTable}),
-            (idx: number, num: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: h/2 + chairRadius + chairSpacingFromTable}), 
-            (idx: number, num: number) => ({ x: -w/2 - chairRadius - chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}),
-            (idx: number, num: number) => ({ x: w/2 + chairRadius - chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}), 
+            (idx: number, num: number, currentCount: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: -h/2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE}), // Top
+            (idx: number, num: number, currentCount: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: h/2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE}),  // Bottom
+            (idx: number, num: number, currentCount: number) => ({ x: -w/2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE, y: (idx + 1) * (h/(num+1)) - h/2}), // Left
+            (idx: number, num: number, currentCount: number) => ({ x: w/2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE, y: (idx + 1) * (h/(num+1)) - h/2}),  // Right
         ];
-        let chairsOnSideCount = [0,0,0,0];
+        let chairsOnSideCount = [ // initial counts based on above placements
+            chairs.filter(c => c.y < -h/2).length,
+            chairs.filter(c => c.y > h/2).length,
+            chairs.filter(c => c.x < -w/2).length,
+            chairs.filter(c => c.x > w/2).length,
+        ];
 
-        while(placedChairs < capacity && chairs.length < capacity * 1.5) { 
-            const currentSideMax = sideIndex % 2 === 0 ? Math.floor(w/30) : Math.floor(h/30);
-            if(chairsOnSideCount[sideIndex % 4] < currentSideMax){
-                const pos = sidePlacementFunctions[sideIndex % 4](chairsOnSideCount[sideIndex % 4], currentSideMax);
+        while(placedChairs < capacity && chairs.length < capacity * 1.5) { // Safety break
+            const currentSideMaxCap = sideIndex % 2 === 0 ? Math.floor(w/(CHAIR_RADIUS*2.5)) : Math.floor(h/(CHAIR_RADIUS*2.5));
+            const currentSideIdx = sideIndex % 4;
+            if(chairsOnSideCount[currentSideIdx] < currentSideMaxCap){
+                // Add to the side that has fewer chairs relative to its capacity or just round-robin
+                const pos = sidePlacementFunctions[currentSideIdx](chairsOnSideCount[currentSideIdx], chairsOnSideCount[currentSideIdx] + 1, chairsOnSideCount[currentSideIdx]);
                 chairs.push({id: uuidv4(), x: pos.x, y: pos.y });
-                chairsOnSideCount[sideIndex % 4]++;
+                chairsOnSideCount[currentSideIdx]++;
                 placedChairs++;
             }
             sideIndex++;
+            if (sideIndex > 20 * capacity) break; // Another safety break
         }
 
 
@@ -161,12 +208,12 @@ export default function NewLayoutPage() {
         const angle = (2 * Math.PI * i) / capacity;
         chairs.push({ 
           id: uuidv4(), 
-          x: Math.cos(angle) * (radius + chairRadius + chairSpacingFromTable), 
-          y: Math.sin(angle) * (radius + chairRadius + chairSpacingFromTable) 
+          x: Math.cos(angle) * (radius + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE), 
+          y: Math.sin(angle) * (radius + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE) 
         });
       }
     }
-    return chairs.slice(0, capacity);
+    return chairs.slice(0, capacity); // Ensure exact capacity
   }, []);
 
 
@@ -185,8 +232,8 @@ export default function NewLayoutPage() {
     }
 
     let newTableBase: Omit<TableElement, 'id' | 'chairs' | 'displayOrderNumber' | 'rotation'>;
-    const initialX = (stageDimensions.width / 2) + Math.random() * 100 - 50;
-    const initialY = (stageDimensions.height / 2) + Math.random() * 100 - 50;
+    const initialX = (stageDimensions.width / 2) + Math.random() * 20 - 10;
+    const initialY = (stageDimensions.height / 2) + Math.random() * 20 - 10;
     const displayOrderNumber = tables.length + 1;
 
     if (tableTypeToAdd === 'rect') {
@@ -219,7 +266,7 @@ export default function NewLayoutPage() {
 
   const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
-    if (e.target === stage) {
+    if (e.target === stage || e.target.getParent() === stage) { // Check if direct child of stage too
         setSelectedTableId(null);
         return;
     }
@@ -255,14 +302,23 @@ export default function NewLayoutPage() {
     if (!editingTableIdForNumber) return;
 
     const newNumber = parseInt(newTableNumberInput, 10);
-    if (isNaN(newNumber) || newNumber < 1 || newNumber > tables.length) {
+    if (isNaN(newNumber) || newNumber < 1) {
       toast({
         title: "Invalid Table Number",
-        description: `Please enter a number between 1 and ${tables.length}.`,
+        description: `Please enter a positive number.`,
         variant: "destructive",
       });
       return;
     }
+     if (newNumber > tables.length) {
+         toast({
+            title: "Invalid Table Number",
+            description: `Please enter a number between 1 and ${tables.length} if swapping. To set a higher number, ensure it's unique or adjust other tables first.`,
+            variant: "destructive",
+        });
+        return;
+    }
+
 
     const tableA = tables.find(t => t.id === editingTableIdForNumber);
     if (!tableA) return;
@@ -301,8 +357,8 @@ export default function NewLayoutPage() {
       const editorElement = document.getElementById('layout-editor-canvas-container');
       if (editorElement) {
         setStageDimensions({
-          width: editorElement.offsetWidth > 0 ? editorElement.offsetWidth - 2 : 800, 
-          height: editorElement.offsetHeight > 0 ? editorElement.offsetHeight -2 : 600, 
+          width: editorElement.offsetWidth > 0 ? editorElement.offsetWidth - 2 : (typeof window !== 'undefined' ? window.innerWidth - 280 : 800) , 
+          height: editorElement.offsetHeight > 0 ? editorElement.offsetHeight -2 : (typeof window !== 'undefined' ? window.innerHeight - 150 : 600), 
         });
       } else if (typeof window !== 'undefined') {
          setStageDimensions({
@@ -359,22 +415,88 @@ export default function NewLayoutPage() {
 
 
   const handleChairDragEnd = (e: Konva.KonvaEventObject<DragEvent>, tableId: string, chairId: string) => {
-    const newX = e.target.x();
-    const newY = e.target.y();
+    const newChairX = e.target.x();
+    const newChairY = e.target.y();
 
-    setTables(prevTables => 
-      prevTables.map(table => {
-        if (table.id === tableId) {
-          return {
-            ...table,
-            chairs: table.chairs.map(chair => 
-              chair.id === chairId ? { ...chair, x: newX, y: newY } : chair
-            )
-          };
+    setTables(prevTables => {
+      const tableIndex = prevTables.findIndex(t => t.id === tableId);
+      if (tableIndex === -1) return prevTables;
+
+      const table = prevTables[tableIndex];
+
+      if (table.type === 'circle') { // Free drag for circle chairs
+        const updatedChairs = table.chairs.map(chair =>
+          chair.id === chairId ? { ...chair, x: newChairX, y: newChairY } : chair
+        );
+        const newTables = [...prevTables];
+        newTables[tableIndex] = { ...table, chairs: updatedChairs };
+        return newTables;
+      }
+
+      // Auto-align logic for rectangular tables
+      const chairsBySide: { top: Chair[]; bottom: Chair[]; left: Chair[]; right: Chair[] } = {
+        top: [], bottom: [], left: [], right: []
+      };
+      const draggedChairOriginal = table.chairs.find(c => c.id === chairId);
+      if (!draggedChairOriginal) return prevTables;
+
+      // Determine the target side for the *dragged* chair based on its new drop position
+      const draggedChairTargetSide = getChairSnapSide(newChairX, newChairY, table.width, table.height);
+
+      table.chairs.forEach(c => {
+        let side: 'top' | 'bottom' | 'left' | 'right';
+        if (c.id === chairId) {
+          side = draggedChairTargetSide; // Use the new target side for the dragged chair
+          chairsBySide[side].push({ ...c, x: newChairX, y: newChairY }); // Temporarily place with dragged coords
+        } else {
+          // For other chairs, determine their current side based on their existing x, y
+          side = getChairSnapSide(c.x, c.y, table.width, table.height);
+          chairsBySide[side].push(c);
         }
-        return table;
-      })
-    );
+      });
+
+      const newAlignedChairsArray: Chair[] = [];
+      (['top', 'bottom', 'left', 'right'] as const).forEach(sideKey => {
+        const sideChairs = chairsBySide[sideKey];
+        const numChairsOnThisSide = sideChairs.length;
+        if (numChairsOnThisSide === 0) return;
+
+        // Sort chairs for consistent distribution
+        sideChairs.sort((a, b) => {
+          if (sideKey === 'top' || sideKey === 'bottom') return a.x - b.x;
+          return a.y - b.y;
+        });
+
+        sideChairs.forEach((chair, index) => {
+          let finalX = chair.x;
+          let finalY = chair.y;
+
+          switch (sideKey) {
+            case 'top':
+              finalY = -table.height / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+              finalX = (index + 1) * (table.width / (numChairsOnThisSide + 1)) - table.width / 2;
+              break;
+            case 'bottom':
+              finalY = table.height / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
+              finalX = (index + 1) * (table.width / (numChairsOnThisSide + 1)) - table.width / 2;
+              break;
+            case 'left':
+              finalX = -table.width / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+              finalY = (index + 1) * (table.height / (numChairsOnThisSide + 1)) - table.height / 2;
+              break;
+            case 'right':
+              finalX = table.width / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
+              finalY = (index + 1) * (table.height / (numChairsOnThisSide + 1)) - table.height / 2;
+              break;
+          }
+          newAlignedChairsArray.push({ ...chair, x: finalX, y: finalY });
+        });
+      });
+      
+      const newTables = [...prevTables];
+      newTables[tableIndex] = { ...table, chairs: newAlignedChairsArray };
+      return newTables;
+    });
   };
 
 
@@ -412,8 +534,9 @@ export default function NewLayoutPage() {
                 setVenueShape([]);
                 setDrawingVenue(d => !d);
               }}
+              disabled 
             >
-              {drawingVenue ? 'Finish Venue Shape' : 'Draw Venue Shape'}
+              {drawingVenue ? 'Finish Venue Shape' : 'Draw Venue Shape (Soon)'}
             </Button>
             
           </CardContent>
@@ -499,7 +622,7 @@ export default function NewLayoutPage() {
                             width: newWidth,
                             height: newHeight,
                             radius: newRadius,
-                            chairs: currentTableState.chairs.map(chair => ({
+                             chairs: currentTableState.chairs.map(chair => ({
                               ...chair,
                               x: chair.x * scaleX, 
                               y: chair.y * scaleY, 
@@ -546,7 +669,7 @@ export default function NewLayoutPage() {
                         id={chair.id}
                         x={chair.x} 
                         y={chair.y} 
-                        radius={8} 
+                        radius={CHAIR_RADIUS} 
                         fill="#f5f5f5" 
                         stroke="#a1887f" 
                         strokeWidth={1} 
@@ -655,7 +778,7 @@ export default function NewLayoutPage() {
                 onChange={(e) => setNewTableNumberInput(e.target.value)}
                 className="col-span-3"
                 min="1"
-                max={tables.length}
+                // max={tables.length} // Max can be more flexible if not strictly swapping
               />
             </div>
           </div>
@@ -671,3 +794,4 @@ export default function NewLayoutPage() {
     </div>
   );
 }
+
