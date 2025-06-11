@@ -145,7 +145,7 @@ export default function NewLayoutPage() {
             (idx: number, num: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: -h/2 - chairRadius - chairSpacingFromTable}), // Top
             (idx: number, num: number) => ({ x: (idx + 1) * (w / (num + 1)) - w/2, y: h/2 + chairRadius + chairSpacingFromTable}),  // Bottom
             (idx: number, num: number) => ({ x: -w/2 - chairRadius - chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}), // Left
-            (idx: number, num: number) => ({ x: w/2 + chairRadius + chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}),  // Right
+            (idx: number, num: number) => ({ x: w/2 + chairRadius - chairSpacingFromTable, y: (idx + 1) * (h/(num+1)) - h/2}),  // Right
         ];
         let chairsOnSideCount = [0,0,0,0];
 
@@ -224,13 +224,11 @@ export default function NewLayoutPage() {
 
   const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
-    // Clicked on empty stage
     if (e.target === stage) {
         setSelectedTableId(null);
         return;
     }
 
-    // If clicking on transformer anchors/handles, keep current selection
     const isTransformer =
       e.target.getClassName() === 'Transformer' ||
       e.target.getParent()?.getClassName() === 'Transformer';
@@ -239,17 +237,13 @@ export default function NewLayoutPage() {
     }
 
     let node = e.target;
-    // Traverse up to find a Konva.Group that has a table ID
     while (node && node !== stage) {
-        // node.id() is the correct Konva method, not node.attrs.id
-        // Check if 'node' is a Konva.Group and has an 'id' attribute that matches one of our table IDs
         if (node instanceof Konva.Group && typeof node.id() === 'string' && tables.some(t => t.id === node.id())) {
             setSelectedTableId(node.id());
             return;
         }
         node = node.getParent();
     }
-    // If no table group found in ancestry, deselect
     setSelectedTableId(null);
   };
 
@@ -317,8 +311,8 @@ export default function NewLayoutPage() {
         });
       } else if (typeof window !== 'undefined') {
          setStageDimensions({
-            width: window.innerWidth - 280, // Approx width of sidebar + padding
-            height: window.innerHeight - 150 // Approx height of header/footer + padding
+            width: window.innerWidth - 280, 
+            height: window.innerHeight - 150 
         });
       }
     };
@@ -341,7 +335,7 @@ export default function NewLayoutPage() {
 
   useEffect(() => {
     const tr = transformerRef.current;
-    if (!tr) return; // Transformer not ready
+    if (!tr) return; 
 
     if (selectedTableId) {
       const selectedNode = tableNodeRefs.current.get(selectedTableId);
@@ -353,10 +347,10 @@ export default function NewLayoutPage() {
           tr.enabledAnchors(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
         } else {
           tr.keepRatio(false);
-          tr.enabledAnchors(undefined); // All anchors for rect/square
+          tr.enabledAnchors(undefined); 
         }
         tr.rotateEnabled(true);
-        tr.visible(true); // Explicitly make visible
+        tr.visible(true); 
       } else {
         tr.nodes([]);
         tr.visible(false);
@@ -365,12 +359,32 @@ export default function NewLayoutPage() {
       tr.nodes([]);
       tr.visible(false);
     }
-    tr.getLayer()?.batchDraw(); // Redraw the layer the transformer is on
-  }, [selectedTableId, tables]); // Depend on tables in case selected table is removed
+    tr.getLayer()?.batchDraw(); 
+  }, [selectedTableId, tables]); 
+
+
+  const handleChairDragEnd = (e: Konva.KonvaEventObject<DragEvent>, tableId: string, chairId: string) => {
+    const newX = e.target.x();
+    const newY = e.target.y();
+
+    setTables(prevTables => 
+      prevTables.map(table => {
+        if (table.id === tableId) {
+          return {
+            ...table,
+            chairs: table.chairs.map(chair => 
+              chair.id === chairId ? { ...chair, x: newX, y: newY } : chair
+            )
+          };
+        }
+        return table;
+      })
+    );
+  };
 
 
   return (
-    <div className="flex flex-col gap-6 md:gap-8 h-[calc(100vh-8rem)]"> {/* Adjusted for typical header height */}
+    <div className="flex flex-col gap-6 md:gap-8 h-[calc(100vh-8rem)]">
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
             <Button variant="outline" size="icon" onClick={() => router.back()}>
@@ -378,7 +392,7 @@ export default function NewLayoutPage() {
             </Button>
             <h1 className="text-2xl font-bold tracking-tight">Create New Venue Layout</h1>
         </div>
-        <Button variant="default" disabled>Save Layout</Button> {/* Placeholder */}
+        <Button variant="default" disabled>Save Layout</Button> 
       </div>
       <div className="flex flex-grow gap-4 overflow-hidden">
         <Card className="w-64 flex-shrink-0 shadow-md">
@@ -423,7 +437,7 @@ export default function NewLayoutPage() {
               )}
               {tables.map(table => {
                 const isCircle = table.type === 'circle';
-                const tableWidthForText = table.width; // Use consistent width for text block
+                const tableWidthForText = table.width; 
 
                 const fontSizeNumber = isCircle ? FONT_SIZE_NUMBER_CIRCLE : FONT_SIZE_NUMBER_RECT;
                 const fontSizeCapacity = isCircle ? FONT_SIZE_CAPACITY_CIRCLE : FONT_SIZE_CAPACITY_RECT;
@@ -443,12 +457,12 @@ export default function NewLayoutPage() {
                 return (
                 <Group 
                   key={table.id} 
-                  id={table.id} // Make sure ID is set for selection
+                  id={table.id} 
                   x={table.x} 
                   y={table.y} 
                   rotation={table.rotation}
                   draggable
-                  ref={node => { // Assign ref to the Group node
+                  ref={node => { 
                     if (node) {
                       tableNodeRefs.current.set(table.id, node);
                     } else {
@@ -467,7 +481,6 @@ export default function NewLayoutPage() {
                     const scaleX = node.scaleX();
                     const scaleY = node.scaleY();
                     
-                    // Reset scale to avoid cumulative scaling
                     node.scaleX(1);
                     node.scaleY(1);
 
@@ -481,10 +494,11 @@ export default function NewLayoutPage() {
                         x: node.x(),
                         y: node.y(),
                         rotation: node.rotation(),
+                        // chairs are preserved, not regenerated here
                     };
 
                     if (updatedTable.type === 'circle') {
-                        const newRadius = Math.max(10, (updatedTable.radius || Math.min(updatedTable.width, updatedTable.height)/2) * Math.max(scaleX, scaleY)); // Maintain aspect ratio
+                        const newRadius = Math.max(10, (updatedTable.radius || Math.min(updatedTable.width, updatedTable.height)/2) * Math.max(scaleX, scaleY)); 
                         newAttrs.radius = newRadius;
                         newAttrs.width = newRadius * 2;
                         newAttrs.height = newRadius * 2;
@@ -493,9 +507,6 @@ export default function NewLayoutPage() {
                         newAttrs.height = newHeight;
                     }
                     
-                    const chairs = generateChairs({ ...updatedTable, ...newAttrs } as Omit<TableElement, 'id'|'chairs'|'displayOrderNumber'|'rotation'>);
-                    newAttrs.chairs = chairs;
-
                     setTables(prevTables => prevTables.map(t => 
                       t.id === table.id ? { ...t, ...newAttrs } : t
                     ));
@@ -521,7 +532,6 @@ export default function NewLayoutPage() {
                       fill="#d7ccc8"
                       stroke="#8d6e63"
                       strokeWidth={1.5}
-                      // Offset is implicitly 0,0 for circle in group if group x,y is center
                       shadowBlur={3}
                       shadowOpacity={0.2}
                       shadowOffsetX={1}
@@ -531,16 +541,30 @@ export default function NewLayoutPage() {
                   {table.chairs.map(chair => (
                     <KonvaCircle
                         key={chair.id} 
+                        id={chair.id}
                         x={chair.x} 
                         y={chair.y} 
                         radius={8} 
                         fill="#f5f5f5" 
                         stroke="#a1887f" 
                         strokeWidth={1} 
-                        listening={false} // Chairs usually not interactive individually
+                        draggable={table.id === selectedTableId}
+                        onDragEnd={(e) => handleChairDragEnd(e, table.id, chair.id)}
+                        // Optional: Prevent table drag when chair drag starts
+                        onDragStart={(e) => { 
+                            e.cancelBubble = true; 
+                            // If the table group is also draggable, you might need:
+                            // const tableNode = tableNodeRefs.current.get(table.id);
+                            // if (tableNode) tableNode.draggable(false);
+                        }}
+                        // Optional: Re-enable table drag if it was disabled
+                        // onMouseUp={(e) => {
+                        //     const tableNode = tableNodeRefs.current.get(table.id);
+                        //     if (tableNode) tableNode.draggable(true);
+                        // }}
                     />
                   ))}
-                  <Text // Table Number
+                  <Text 
                     text={`#${table.displayOrderNumber}`}
                     fontSize={fontSizeNumber}
                     fill="#3e2723"
@@ -555,7 +579,7 @@ export default function NewLayoutPage() {
                     verticalAlign="middle"
                     listening={false}
                   />
-                  <Text // Capacity
+                  <Text 
                     text={`(${table.capacity}pp)`}
                     fontSize={fontSizeCapacity}
                     fill="#5d4037"
@@ -580,7 +604,6 @@ export default function NewLayoutPage() {
                   }
                   return newBox;
                 }}
-                // keepRatio and enabledAnchors are set dynamically in useEffect
               />
             </Layer>
           </Stage>
@@ -655,4 +678,3 @@ export default function NewLayoutPage() {
     </div>
   );
 }
-
