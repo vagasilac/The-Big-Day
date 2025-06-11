@@ -400,8 +400,10 @@ export default function SeatingPage() {
             <Button variant="outline" disabled>
                 <ExternalLink className="mr-2 h-4 w-4" /> Request from Venue (Soon)
             </Button>
-            <Button disabled>
-                <PlusCircle className="mr-2 h-4 w-4" /> Create New Layout (Soon)
+            <Button asChild>
+                <Link href="/dashboard/seating/new">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Create New Layout
+                </Link>
             </Button>
         </div>
       </div>
