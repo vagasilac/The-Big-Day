@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2, RectangleHorizontal, Circle as CircleIcon, Minimize2, Ruler, Settings2, Trash2 } from 'lucide-react';
+import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2, RectangleHorizontal, Circle as CircleIcon, Minimize2, Ruler, Settings2, Trash2, Undo2, Redo2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
