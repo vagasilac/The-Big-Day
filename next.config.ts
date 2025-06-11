@@ -37,6 +37,17 @@ const nextConfigBase: NextConfig = {
       },
     ],
   },
+  webpack: config => {
+    config.externals = [...(config.externals || []), { canvas: 'canvas' }];
+    return config;
+  },
+  experimental: {
+    turbo: {
+      resolveAlias: {
+        canvas: './empty.js',
+      },
+    },
+  },
 };
 
 export default nextConfigBase;
