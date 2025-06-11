@@ -3,13 +3,24 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Stage, Layer, Rect, Circle, Group, Line } from 'react-konva';
+import { Stage, Layer, Rect, Circle as KonvaCircle, Group, Line } from 'react-konva'; // Renamed Circle to KonvaCircle
 import { v4 as uuidv4 } from 'uuid';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Square, Circle as CircleIcon, ArrowLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Square, Circle as CircleIcon, ArrowLeft } from 'lucide-react'; // CircleIcon for UI
 
 interface Chair {
   id: string;
@@ -35,126 +46,140 @@ export default function NewLayoutPage() {
   const [venueShape, setVenueShape] = useState<number[]>([]); // polygon points
   const [drawingVenue, setDrawingVenue] = useState(false);
 
+  const [isGuestNumberDialogOpen, setIsGuestNumberDialogOpen] = useState(false);
+  const [tableTypeToAdd, setTableTypeToAdd] = useState<'rect' | 'square' | 'circle' | null>(null);
+  const [guestCountInput, setGuestCountInput] = useState<string>("8");
+
+
   const generateRectChairs = (w: number, h: number, cap: number) => {
     const chairs: Chair[] = [];
     if (cap === 0) return { chairs };
 
-    const numSides = 4;
     let chairsPerLongSide = 0;
     let chairsPerShortSide = 0;
 
     if (w === h) { // Square table
-        chairsPerLongSide = Math.ceil(cap / numSides);
-        chairsPerShortSide = chairsPerLongSide;
+        const chairsPerSide = Math.ceil(cap / 4);
+        chairsPerLongSide = chairsPerSide;
+        chairsPerShortSide = chairsPerSide;
     } else { // Rectangle table
-        // Prioritize longer sides for more chairs
-        const longSidesRatio = w > h ? 2 * (w / (w+h)) : 2 * (h / (w+h));
-        const shortSidesRatio = 2 - longSidesRatio;
-        
-        chairsPerLongSide = Math.ceil((cap * (w > h ? longSidesRatio : shortSidesRatio)) / 2);
-        chairsPerShortSide = Math.ceil((cap * (w < h ? longSidesRatio : shortSidesRatio)) / 2);
-
-        // Ensure total does not exceed capacity and adjust if needed
-        if (chairsPerLongSide*2 + chairsPerShortSide*2 > cap) {
-            // simple adjustment: reduce from shorter side first or equally
-           if (w > h) { // long sides are w
-             chairsPerLongSide = Math.floor(cap / 2 / 2) + (cap % 4 >= 1 ? 1 : 0);
-             chairsPerShortSide = Math.floor(cap / 2 / 2) + (cap % 4 >= 2 ? 1 : 0) ;
-           } else { // long sides are h
-             chairsPerShortSide = Math.floor(cap / 2 / 2) + (cap % 4 >= 1 ? 1 : 0);
-             chairsPerLongSide = Math.floor(cap / 2 / 2) + (cap % 4 >= 2 ? 1 : 0) ;
-           }
-        }
-         // Fallback if calculation is off, distribute as evenly as possible
-        if (chairsPerLongSide * 2 + chairsPerShortSide * 2 !== cap && cap > 0) {
-            chairsPerLongSide = Math.ceil(cap/4);
-            chairsPerShortSide = Math.ceil(cap/4);
-            if (chairsPerLongSide * 2 + chairsPerShortSide * 2 > cap + 1 && cap > 1) { // allow one extra if cap is odd
-                 chairsPerLongSide = Math.floor(cap/4);
-                 chairsPerShortSide = Math.floor(cap/4);
-            }
-        }
-
+        // Simplified: attempt to put more on longer sides
+        const longSideCount = w > h ? Math.ceil(cap * 0.35) : Math.ceil(cap * 0.15); // approx 35% on each long
+        const shortSideCount = w < h ? Math.ceil(cap * 0.35) : Math.ceil(cap * 0.15); // approx 15% on each short
+        chairsPerLongSide = Math.min(Math.floor(w/30), longSideCount); // Max chairs based on side length
+        chairsPerShortSide = Math.min(Math.floor(h/30), shortSideCount);
     }
     
-    const chairRadius = 8; // Radius of the chair circle
-    const chairSpacing = 5; // Spacing from table edge
+    let placedChairs = 0;
+    const chairRadius = 8;
+    const chairSpacingFromTable = 15; // Increased spacing for clarity
 
     // Top side (along width, y = -height/2)
     if (chairsPerLongSide > 0) {
-        const spacingX = w / (chairsPerLongSide + 1);
-        for (let i = 0; i < chairsPerLongSide; i++) {
-          if (chairs.length < cap) chairs.push({ id: uuidv4(), x: (i + 1) * spacingX - w / 2, y: -h / 2 - chairRadius - chairSpacing });
+        const effectiveNumChairs = Math.min(chairsPerLongSide, cap - placedChairs);
+        const spacingX = w / (effectiveNumChairs + 1);
+        for (let i = 0; i < effectiveNumChairs; i++) {
+          if (placedChairs < cap) {
+            chairs.push({ id: uuidv4(), x: (i + 1) * spacingX - w / 2, y: -h / 2 - chairRadius - chairSpacingFromTable });
+            placedChairs++;
+          }
         }
     }
 
     // Bottom side (along width, y = height/2)
     if (chairsPerLongSide > 0) {
-        const spacingX = w / (chairsPerLongSide + 1);
-        for (let i = 0; i < chairsPerLongSide; i++) {
-          if (chairs.length < cap) chairs.push({ id: uuidv4(), x: (i + 1) * spacingX - w / 2, y: h / 2 + chairRadius + chairSpacing });
+        const effectiveNumChairs = Math.min(chairsPerLongSide, cap - placedChairs);
+        const spacingX = w / (effectiveNumChairs + 1);
+        for (let i = 0; i < effectiveNumChairs; i++) {
+          if (placedChairs < cap) {
+            chairs.push({ id: uuidv4(), x: (i + 1) * spacingX - w / 2, y: h / 2 + chairRadius + chairSpacingFromTable });
+            placedChairs++;
+          }
         }
     }
     
     // Left side (along height, x = -width/2)
     if (chairsPerShortSide > 0) {
-        const spacingY = h / (chairsPerShortSide + 1);
-        for (let i = 0; i < chairsPerShortSide; i++) {
-          if (chairs.length < cap) chairs.push({ id: uuidv4(), x: -w / 2 - chairRadius - chairSpacing, y: (i + 1) * spacingY - h / 2 });
+        const effectiveNumChairs = Math.min(chairsPerShortSide, cap - placedChairs);
+        const spacingY = h / (effectiveNumChairs + 1);
+        for (let i = 0; i < effectiveNumChairs; i++) {
+          if (placedChairs < cap) {
+            chairs.push({ id: uuidv4(), x: -w / 2 - chairRadius - chairSpacingFromTable, y: (i + 1) * spacingY - h / 2 });
+            placedChairs++;
+          }
         }
     }
 
     // Right side (along height, x = width/2)
     if (chairsPerShortSide > 0) {
-        const spacingY = h / (chairsPerShortSide + 1);
-        for (let i = 0; i < chairsPerShortSide; i++) {
-          if (chairs.length < cap) chairs.push({ id: uuidv4(), x: w / 2 + chairRadius + chairSpacing, y: (i + 1) * spacingY - h / 2 });
+        const effectiveNumChairs = Math.min(chairsPerShortSide, cap - placedChairs);
+        const spacingY = h / (effectiveNumChairs + 1);
+        for (let i = 0; i < effectiveNumChairs; i++) {
+         if (placedChairs < cap) {
+            chairs.push({ id: uuidv4(), x: w / 2 + chairRadius + chairSpacingFromTable, y: (i + 1) * spacingY - h / 2 });
+            placedChairs++;
+          }
         }
     }
-    // If still not enough chairs due to rounding, fill remaining up to cap, preferring longer sides
-    let currentChairs = chairs.length;
-    let attemptSide = 0; // 0:top, 1:bottom, 2:left, 3:right
-    while(currentChairs < cap && chairs.length < cap * 1.5) { // safety break
-        if (attemptSide === 0 || attemptSide === 1) { // top or bottom
-             const yPos = attemptSide === 0 ? (-h/2 - chairRadius - chairSpacing) : (h/2 + chairRadius + chairSpacing);
-             // Add chair at midpoint of remaining space
-             chairs.push({id: uuidv4(), x: 0, y: yPos});
-        } else { // left or right
-            const xPos = attemptSide === 2 ? (-w/2 - chairRadius - chairSpacing) : (w/2 + chairRadius + chairSpacing);
-            chairs.push({id: uuidv4(), x: xPos, y: 0});
-        }
-        currentChairs++;
-        attemptSide = (attemptSide + 1) % 4;
+     // Fallback if not all chairs are placed (e.g. due to space constraints or rounding)
+    // This simple fallback might not be perfect for all scenarios.
+    let side = 0; // 0: top, 1: bottom, 2: left, 3: right
+    while(placedChairs < cap && chairs.length < cap * 1.5){ // safety break
+        let x=0, y=0;
+        if(side === 0) { x = 0; y = -h / 2 - chairRadius - chairSpacingFromTable; }
+        else if(side === 1) { x = 0; y = h / 2 + chairRadius + chairSpacingFromTable; }
+        else if(side === 2) { x = -w / 2 - chairRadius - chairSpacingFromTable; y = 0; }
+        else { x = w / 2 + chairRadius - chairSpacingFromTable; y = 0; }
+        chairs.push({id: uuidv4(), x,y});
+        placedChairs++;
+        side = (side+1)%4;
     }
 
     return { chairs: chairs.slice(0, cap) };
   };
 
-
-  const handleAddRectangleTable = () => {
-    const cap = parseInt(prompt('Number of guests for this rectangle table?', '8') || '8', 10);
-    const width = 120;
-    const height = 60;
-    const { chairs } = generateRectChairs(width, height, cap);
-    setTables(t => [...t, { id: uuidv4(), type: 'rect', x: 200, y: 200, width, height, capacity: cap, chairs }]);
+  const openGuestNumberDialog = (type: 'rect' | 'square' | 'circle') => {
+    setTableTypeToAdd(type);
+    setGuestCountInput(type === 'circle' ? "6" : type === 'square' ? "4" : "8"); // Default values
+    setIsGuestNumberDialogOpen(true);
   };
 
-  const handleAddSquareTable = () => {
-    const cap = parseInt(prompt('Number of guests for this square table?', '4') || '4', 10);
-    const sideLength = 80;
-    const { chairs } = generateRectChairs(sideLength, sideLength, cap); // Use same logic for square
-    setTables(t => [...t, { id: uuidv4(), type: 'rect', x: 250, y: 250, width: sideLength, height: sideLength, capacity: cap, chairs }]);
-  };
-
-  const handleAddCircleTable = () => {
-    const cap = parseInt(prompt('Number of guests for this round table?', '6') || '6', 10);
-    const radius = 50; // slightly smaller for rounder look with 6-8 chairs
-    const chairs: Chair[] = [];
-    for (let i = 0; i < cap; i++) {
-      const angle = (2 * Math.PI * i) / cap;
-      chairs.push({ id: uuidv4(), x: Math.cos(angle) * (radius + 20), y: Math.sin(angle) * (radius + 20) });
+  const handleConfirmAddTable = () => {
+    const cap = parseInt(guestCountInput, 10) || 0;
+    if (cap <= 0) {
+        // Maybe show a toast later
+        setIsGuestNumberDialogOpen(false);
+        return;
     }
-    setTables(t => [...t, { id: uuidv4(), type: 'circle', x: 300, y: 300, radius, capacity: cap, chairs }]);
+
+    let newTable: TableElement | null = null;
+    const initialX = 200 + Math.random() * 100 - 50; // Add some randomness to position
+    const initialY = 200 + Math.random() * 100 - 50;
+
+    if (tableTypeToAdd === 'rect') {
+      const width = 120;
+      const height = 60;
+      const { chairs } = generateRectChairs(width, height, cap);
+      newTable = { id: uuidv4(), type: 'rect', x: initialX, y: initialY, width, height, capacity: cap, chairs };
+    } else if (tableTypeToAdd === 'square') {
+      const sideLength = 80;
+      const { chairs } = generateRectChairs(sideLength, sideLength, cap);
+      newTable = { id: uuidv4(), type: 'rect', x: initialX, y: initialY, width: sideLength, height: sideLength, capacity: cap, chairs };
+    } else if (tableTypeToAdd === 'circle') {
+      const radius = 50;
+      const chairs: Chair[] = [];
+      for (let i = 0; i < cap; i++) {
+        const angle = (2 * Math.PI * i) / cap;
+        chairs.push({ id: uuidv4(), x: Math.cos(angle) * (radius + 20), y: Math.sin(angle) * (radius + 20) });
+      }
+      newTable = { id: uuidv4(), type: 'circle', x: initialX, y: initialY, radius, capacity: cap, chairs };
+    }
+
+    if (newTable) {
+      setTables(t => [...t, newTable!]);
+    }
+    setIsGuestNumberDialogOpen(false);
+    setTableTypeToAdd(null);
   };
 
 
@@ -180,13 +205,13 @@ export default function NewLayoutPage() {
             <CardTitle>Tools</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button className="w-full" onClick={handleAddRectangleTable}>
+            <Button className="w-full" onClick={() => openGuestNumberDialog('rect')}>
               <Square className="mr-2 h-4 w-4" /> Add Rect Table
             </Button>
-            <Button className="w-full" onClick={handleAddSquareTable}>
+            <Button className="w-full" onClick={() => openGuestNumberDialog('square')}>
               <Square className="mr-2 h-4 w-4" /> Add Square Table
             </Button>
-            <Button className="w-full" onClick={handleAddCircleTable}>
+            <Button className="w-full" onClick={() => openGuestNumberDialog('circle')}>
               <CircleIcon className="mr-2 h-4 w-4" /> Add Round Table
             </Button>
             <Separator className="my-2" />
@@ -200,15 +225,19 @@ export default function NewLayoutPage() {
             >
               {drawingVenue ? 'Finish Venue Shape' : 'Draw Venue Shape'}
             </Button>
-             {/* TODO: Implement Save Layout button */}
              <Button className="w-full mt-4" variant="default" disabled>Save Layout</Button>
           </CardContent>
         </Card>
         <div className="flex-grow relative bg-muted/50 rounded-md overflow-hidden">
-          <Stage width={window.innerWidth - 320} height={window.innerHeight - 200} onMouseDown={handleStageClick} className="bg-white">
+          <Stage 
+            width={typeof window !== 'undefined' ? window.innerWidth - 320 : 800} 
+            height={typeof window !== 'undefined' ? window.innerHeight - 200 : 600} 
+            onMouseDown={handleStageClick} 
+            className="bg-white"
+          >
             <Layer>
               {venueShape.length >= 4 && (
-                <Line points={venueShape} closed stroke="black" strokeWidth={2} fill="#f0f0f0" />
+                <Line points={venueShape} closed stroke="#a1887f" strokeWidth={2} fill="#efebe9" />
               )}
               {tables.map(table => (
                 <Group key={table.id} x={table.x} y={table.y} draggable
@@ -222,31 +251,39 @@ export default function NewLayoutPage() {
                     <Rect
                       width={table.width}
                       height={table.height}
-                      fill="#d1c4e9" // Softer purple
-                      stroke="#5e35b1" // Darker purple
+                      fill="#d7ccc8" 
+                      stroke="#8d6e63" 
                       strokeWidth={1.5}
                       cornerRadius={4}
                       offset={{ x: (table.width || 0) / 2, y: (table.height || 0) / 2 }}
-                      shadowBlur={5}
-                      shadowOpacity={0.3}
-                      shadowOffsetX={2}
-                      shadowOffsetY={2}
+                      shadowBlur={3}
+                      shadowOpacity={0.2}
+                      shadowOffsetX={1}
+                      shadowOffsetY={1}
                     />
                   ) : (
-                    <Circle
+                    <KonvaCircle // Use KonvaCircle to avoid conflict with Lucide icon
                       radius={table.radius}
-                      fill="#d1c4e9"
-                      stroke="#5e35b1"
+                      fill="#d7ccc8"
+                      stroke="#8d6e63"
                       strokeWidth={1.5}
                       offset={{ x: 0, y: 0 }}
-                      shadowBlur={5}
-                      shadowOpacity={0.3}
-                      shadowOffsetX={2}
-                      shadowOffsetY={2}
+                      shadowBlur={3}
+                      shadowOpacity={0.2}
+                      shadowOffsetX={1}
+                      shadowOffsetY={1}
                     />
                   )}
                   {table.chairs.map(chair => (
-                    <Circle key={chair.id} x={chair.x} y={chair.y} radius={8} fill="#ede7f6" stroke="#7e57c2" strokeWidth={1} />
+                    <KonvaCircle // Use KonvaCircle here too
+                        key={chair.id} 
+                        x={chair.x} 
+                        y={chair.y} 
+                        radius={8} 
+                        fill="#f5f5f5" 
+                        stroke="#a1887f" 
+                        strokeWidth={1} 
+                    />
                   ))}
                 </Group>
               ))}
@@ -254,6 +291,40 @@ export default function NewLayoutPage() {
           </Stage>
         </div>
       </div>
+
+      <Dialog open={isGuestNumberDialogOpen} onOpenChange={setIsGuestNumberDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Table Capacity</DialogTitle>
+            <DialogDescription>
+              How many guests will this {tableTypeToAdd} table accommodate?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="guest-count" className="text-right">
+                Guests
+              </Label>
+              <Input
+                id="guest-count"
+                type="number"
+                value={guestCountInput}
+                onChange={(e) => setGuestCountInput(e.target.value)}
+                className="col-span-3"
+                min="1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="button" onClick={handleConfirmAddTable}>Add Table</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
+
