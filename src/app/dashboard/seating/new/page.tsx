@@ -42,6 +42,13 @@ interface TableElement {
   displayOrderNumber: number;
 }
 
+const FONT_SIZE_NUMBER_RECT = 14;
+const FONT_SIZE_CAPACITY_RECT = 10;
+const FONT_SIZE_NUMBER_CIRCLE = 16;
+const FONT_SIZE_CAPACITY_CIRCLE = 12;
+const TEXT_VERTICAL_GAP = 4;
+
+
 export default function NewLayoutPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -147,7 +154,6 @@ export default function NewLayoutPage() {
             y = (placedChairs % (Math.floor(h/30) || 1)) * 30 - h/2 + 15; // simplified placement
         }
         
-        // Basic check to avoid placing chairs on top of each other (very naive)
         const tooClose = chairs.some(c => Math.abs(c.x - x) < 20 && Math.abs(c.y - y) < 20);
         if (!tooClose) {
              chairs.push({id: uuidv4(), x,y});
@@ -275,8 +281,8 @@ export default function NewLayoutPage() {
         });
       } else if (typeof window !== 'undefined') {
          setStageDimensions({
-            width: window.innerWidth - 320, // Approx width of sidebar
-            height: window.innerHeight - 200 // Approx height of header/footer
+            width: window.innerWidth - 320, 
+            height: window.innerHeight - 200 
         });
       }
     };
@@ -334,7 +340,28 @@ export default function NewLayoutPage() {
               {venueShape.length >= 4 && (
                 <Line points={venueShape} closed stroke="#a1887f" strokeWidth={2} fill="#efebe9" />
               )}
-              {tables.map(table => (
+              {tables.map(table => {
+                const isCircle = table.type === 'circle';
+                const tableWidth = table.width || (table.radius ? table.radius * 2 : 0);
+                const tableHeight = table.height || (table.radius ? table.radius * 2 : 0);
+
+                const fontSizeNumber = isCircle ? FONT_SIZE_NUMBER_CIRCLE : FONT_SIZE_NUMBER_RECT;
+                const fontSizeCapacity = isCircle ? FONT_SIZE_CAPACITY_CIRCLE : FONT_SIZE_CAPACITY_RECT;
+                
+                // Estimate text heights (Konva doesn't give actual rendered height easily without rendering)
+                const numberTextHeightEstimate = fontSizeNumber; 
+                const capacityTextHeightEstimate = fontSizeCapacity;
+
+                const totalTextContentHeight = numberTextHeightEstimate + TEXT_VERTICAL_GAP + capacityTextHeightEstimate;
+
+                const yPosNumberText = - (totalTextContentHeight / 2) + (numberTextHeightEstimate / 2);
+                const yPosCapacityText = (totalTextContentHeight / 2) - (capacityTextHeightEstimate / 2);
+                
+                const textBlockRenderHeightNumber = numberTextHeightEstimate * 1.5; // Give some buffer for verticalAlign
+                const textBlockRenderHeightCapacity = capacityTextHeightEstimate * 1.5;
+
+
+                return (
                 <Group key={table.id} x={table.x} y={table.y} draggable
                   onDragEnd={(e) => {
                     setTables(prevTables => prevTables.map(t => 
@@ -363,7 +390,7 @@ export default function NewLayoutPage() {
                       fill="#d7ccc8"
                       stroke="#8d6e63"
                       strokeWidth={1.5}
-                      offset={{ x: 0, y: 0 }}
+                      offset={{ x: 0, y: 0 }} // Circle offset is implicitly 0,0 if x,y of group is center
                       shadowBlur={3}
                       shadowOpacity={0.2}
                       shadowOffsetX={1}
@@ -383,29 +410,34 @@ export default function NewLayoutPage() {
                   ))}
                   <Text
                     text={`#${table.displayOrderNumber}`}
-                    fontSize={table.type === 'circle' ? 16 : 14}
-                    fill="#3e2723"
+                    fontSize={fontSizeNumber}
+                    fill="#3e2723" // Darker for table number
+                    fontStyle="bold"
+                    x={0} // Centered by offsetX
+                    y={yPosNumberText}
+                    width={tableWidth}
+                    height={textBlockRenderHeightNumber}
+                    offsetX={tableWidth / 2}
+                    offsetY={textBlockRenderHeightNumber / 2}
                     align="center"
                     verticalAlign="middle"
-                    width={table.width || (table.radius ? table.radius * 2 : 0)}
-                    height={(table.height || (table.radius ? table.radius * 2 : 0)) / 2} // Upper half for number
-                    offsetX={(table.width || (table.radius ? table.radius * 2 : 0)) / 2}
-                    offsetY={(table.height || (table.radius ? table.radius * 2 : 0)) / 2 - (table.type === 'circle' ? 5 : (table.height || 0) * 0.1)}
-                    fontStyle="bold"
                   />
                   <Text
                     text={`(${table.capacity}pp)`}
-                    fontSize={table.type === 'circle' ? 12 : 10}
-                    fill="#5d4037"
+                    fontSize={fontSizeCapacity}
+                    fill="#5d4037" // Slightly lighter for capacity
+                    x={0} // Centered by offsetX
+                    y={yPosCapacityText}
+                    width={tableWidth}
+                    height={textBlockRenderHeightCapacity}
+                    offsetX={tableWidth / 2}
+                    offsetY={textBlockRenderHeightCapacity / 2}
                     align="center"
                     verticalAlign="middle"
-                    width={table.width || (table.radius ? table.radius * 2 : 0)}
-                    height={(table.height || (table.radius ? table.radius * 2 : 0)) / 2} // Lower half for capacity
-                    offsetX={(table.width || (table.radius ? table.radius * 2 : 0)) / 2}
-                    offsetY={(table.height || (table.radius ? table.radius * 2 : 0)) / 2 - (table.height || 0) * 0.25 - (table.type === 'circle' ? -10 : 0)}
                   />
                 </Group>
-              ))}
+                );
+              })}
             </Layer>
           </Stage>
         </div>
