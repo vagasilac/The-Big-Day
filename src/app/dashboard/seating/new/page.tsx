@@ -140,7 +140,7 @@ const alignChairsOnTable = (table: TableElement): Chair[] => {
                         finalX = variableCoordinate;
                         break;
                     case 'bottom':
-                        finalY = height / 2 + CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+                        finalY = height / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
                         finalX = variableCoordinate;
                         break;
                     case 'left':
@@ -148,7 +148,7 @@ const alignChairsOnTable = (table: TableElement): Chair[] => {
                         finalY = variableCoordinate;
                         break;
                     case 'right':
-                        finalX = width / 2 + CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+                        finalX = width / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
                         finalY = variableCoordinate;
                         break;
                 }
@@ -180,9 +180,9 @@ const chairDragBoundFunc = (pos: Konva.Vector2d, tableWidth: number, tableHeight
 
     // Define the tracks (lines where chair centers should be)
     const trackTopY = -tableHalfHeight - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-    const trackBottomY = tableHalfHeight + CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+    const trackBottomY = tableHalfHeight + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
     const trackLeftX = -tableHalfWidth - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-    const trackRightX = tableHalfWidth + CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+    const trackRightX = tableHalfWidth + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
     
     // Determine which side the cursor is on/closest to
     const targetSide = getChairSnapSide(newX, newY, tableWidth, tableHeight);
@@ -241,14 +241,60 @@ export default function NewLayoutPage() {
   const [isSavingLayout, setIsSavingLayout] = useState(false);
 
   const generateChairs = useCallback((tableBase: Omit<TableElement, 'id' | 'chairs' | 'displayOrderNumber' | 'rotation'>): Chair[] => {
-    const placeholderTable = {
-        ...tableBase,
-        id: 'temp', // dummy id
-        chairs: Array.from({ length: tableBase.capacity }, () => ({ id: uuidv4(), x:0, y:0 })), // dummy chairs to infer side from
-        displayOrderNumber: 0,
-        rotation: 0,
-    };
-    return alignChairsOnTable(placeholderTable);
+    const { type, width, height, radius, capacity } = tableBase;
+    const chairs: Chair[] = [];
+
+    if (capacity <= 0) return chairs;
+
+    if (type === 'rect') {
+      const perSideBase = Math.floor(capacity / 4);
+      const remainder = capacity % 4;
+      const sides = ['top', 'right', 'bottom', 'left'] as const;
+      sides.forEach((side, idx) => {
+        const count = perSideBase + (remainder > idx ? 1 : 0);
+        if (count === 0) return;
+
+        const primaryLength = (side === 'top' || side === 'bottom') ? width : height;
+        const effectiveLength = primaryLength - 2 * CHAIR_RADIUS - 2 * CHAIR_CORNER_MARGIN;
+
+        for (let i = 0; i < count; i++) {
+          const variable = (count === 1 || effectiveLength <= 0)
+            ? 0
+            : (i * (effectiveLength / (count - 1))) - (effectiveLength / 2);
+          let x = 0; let y = 0;
+          switch (side) {
+            case 'top':
+              y = -height / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+              x = variable;
+              break;
+            case 'bottom':
+              y = height / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
+              x = variable;
+              break;
+            case 'left':
+              x = -width / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+              y = variable;
+              break;
+            case 'right':
+              x = width / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
+              y = variable;
+              break;
+          }
+          chairs.push({ id: uuidv4(), x, y });
+        }
+      });
+    } else if (type === 'circle' && radius) {
+      for (let i = 0; i < capacity; i++) {
+        const angle = (2 * Math.PI * i) / capacity;
+        chairs.push({
+          id: uuidv4(),
+          x: Math.cos(angle) * (radius + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE),
+          y: Math.sin(angle) * (radius + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE)
+        });
+      }
+    }
+
+    return chairs;
   }, []);
 
 
@@ -673,8 +719,8 @@ export default function NewLayoutPage() {
                 >
                   {table.type === 'rect' ? (
                     <Rect
-                      x={-table.width / 2} // Draw centered
-                      y={-table.height / 2} // Draw centered
+                      x={0}
+                      y={0}
                       width={table.width}
                       height={table.height}
                       fill="#d7ccc8" 
@@ -724,9 +770,9 @@ export default function NewLayoutPage() {
                     fontSize={fontSizeNumber}
                     fill="#3e2723"
                     fontStyle="bold"
-                    x={isCircle ? 0 : -tableWidthForText / 2} // Centered for circle, start for rect
-                    y={isCircle ? yPosNumberText : yPosNumberText - table.height / 2} // Adjusted for rect's offset
-                    width={tableWidthForText}
+                    x={isCircle ? -tableWidthForText / 2 : 0}
+                    y={isCircle ? yPosNumberText : table.height / 2 + yPosNumberText}
+                    width={isCircle ? tableWidthForText : table.width}
                     height={textBlockRenderHeightNumber}
                     align="center"
                     verticalAlign="middle"
@@ -736,9 +782,9 @@ export default function NewLayoutPage() {
                     text={`(${table.capacity}pp)`}
                     fontSize={fontSizeCapacity}
                     fill="#5d4037"
-                    x={isCircle ? 0 : -tableWidthForText / 2} // Centered for circle, start for rect
-                    y={isCircle ? yPosCapacityText : yPosCapacityText - table.height / 2} // Adjusted for rect's offset
-                    width={tableWidthForText}
+                    x={isCircle ? -tableWidthForText / 2 : 0}
+                    y={isCircle ? yPosCapacityText : table.height / 2 + yPosCapacityText}
+                    width={isCircle ? tableWidthForText : table.width}
                     height={textBlockRenderHeightCapacity}
                     align="center"
                     verticalAlign="middle"
