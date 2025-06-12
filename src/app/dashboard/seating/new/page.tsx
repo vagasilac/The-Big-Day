@@ -171,47 +171,73 @@ const alignChairsOnTable = (table: TableElement): Chair[] => {
     return currentChairs; // Fallback
 };
 
-const chairDragBoundFunc = (pos: Konva.Vector2d, tableWidth: number, tableHeight: number) => {
-    const tableHalfWidth = tableWidth / 2;
-    const tableHalfHeight = tableHeight / 2;
+const chairDragBoundFunc = (
+  pos: Konva.Vector2d,
+  tableWidth: number,
+  tableHeight: number,
+  tableTransform: Konva.Transform
+) => {
+  const tableHalfWidth = tableWidth / 2;
+  const tableHalfHeight = tableHeight / 2;
 
-    const newX = pos.x;
-    const newY = pos.y;
+  // Convert absolute drag position to the table's local coordinate space
+  const inverted = tableTransform.copy().invert();
+  const local = inverted.point(pos);
 
-    // Define the tracks (lines where chair centers should be)
-    const trackTopY = -tableHalfHeight - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-    const trackBottomY = tableHalfHeight + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-    const trackLeftX = -tableHalfWidth - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-    const trackRightX = tableHalfWidth + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-    
-    // Determine which side the cursor is on/closest to
-    const targetSide = getChairSnapSide(newX, newY, tableWidth, tableHeight);
+  const newX = local.x;
+  const newY = local.y;
 
-    let constrainedX = newX;
-    let constrainedY = newY;
+  // Define the tracks (lines where chair centers should be)
+  const trackTopY = -tableHalfHeight - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+  const trackBottomY = tableHalfHeight + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
+  const trackLeftX = -tableHalfWidth - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+  const trackRightX = tableHalfWidth + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
 
-    const effectiveSideWidthForChairs = tableWidth - 2 * CHAIR_CORNER_MARGIN - 2 * CHAIR_RADIUS;
-    const effectiveSideHeightForChairs = tableHeight - 2 * CHAIR_CORNER_MARGIN - 2 * CHAIR_RADIUS;
+  // Determine which side the cursor is on/closest to
+  const targetSide = getChairSnapSide(newX, newY, tableWidth, tableHeight);
 
-    switch (targetSide) {
-        case 'top':
-            constrainedY = trackTopY;
-            constrainedX = Math.max(-effectiveSideWidthForChairs / 2, Math.min(effectiveSideWidthForChairs / 2, newX));
-            break;
-        case 'bottom':
-            constrainedY = trackBottomY;
-            constrainedX = Math.max(-effectiveSideWidthForChairs / 2, Math.min(effectiveSideWidthForChairs / 2, newX));
-            break;
-        case 'left':
-            constrainedX = trackLeftX;
-            constrainedY = Math.max(-effectiveSideHeightForChairs / 2, Math.min(effectiveSideHeightForChairs / 2, newY));
-            break;
-        case 'right':
-            constrainedX = trackRightX;
-            constrainedY = Math.max(-effectiveSideHeightForChairs / 2, Math.min(effectiveSideHeightForChairs / 2, newY));
-            break;
-    }
-    return { x: constrainedX, y: constrainedY };
+  let constrainedX = newX;
+  let constrainedY = newY;
+
+  const effectiveSideWidthForChairs =
+    tableWidth - 2 * CHAIR_CORNER_MARGIN - 2 * CHAIR_RADIUS;
+  const effectiveSideHeightForChairs =
+    tableHeight - 2 * CHAIR_CORNER_MARGIN - 2 * CHAIR_RADIUS;
+
+  switch (targetSide) {
+    case 'top':
+      constrainedY = trackTopY;
+      constrainedX = Math.max(
+        -effectiveSideWidthForChairs / 2,
+        Math.min(effectiveSideWidthForChairs / 2, newX)
+      );
+      break;
+    case 'bottom':
+      constrainedY = trackBottomY;
+      constrainedX = Math.max(
+        -effectiveSideWidthForChairs / 2,
+        Math.min(effectiveSideWidthForChairs / 2, newX)
+      );
+      break;
+    case 'left':
+      constrainedX = trackLeftX;
+      constrainedY = Math.max(
+        -effectiveSideHeightForChairs / 2,
+        Math.min(effectiveSideHeightForChairs / 2, newY)
+      );
+      break;
+    case 'right':
+      constrainedX = trackRightX;
+      constrainedY = Math.max(
+        -effectiveSideHeightForChairs / 2,
+        Math.min(effectiveSideHeightForChairs / 2, newY)
+      );
+      break;
+  }
+
+  // Convert the constrained local position back to absolute coordinates
+  const absolute = tableTransform.point({ x: constrainedX, y: constrainedY });
+  return absolute;
 };
 
 
@@ -757,7 +783,16 @@ export default function NewLayoutPage() {
                         onDragEnd={(e) => handleChairDragEnd(e, table.id, chair.id)}
                         dragBoundFunc={(pos) => {
                             if (table.type === 'rect') {
-                                return chairDragBoundFunc(pos, table.width, table.height);
+                                const tableNode = tableNodeRefs.current.get(table.id);
+                                const transform = tableNode
+                                  ? tableNode.getAbsoluteTransform().copy()
+                                  : new Konva.Transform();
+                                return chairDragBoundFunc(
+                                  pos,
+                                  table.width,
+                                  table.height,
+                                  transform
+                                );
                             }
                             return pos;
                         }}
