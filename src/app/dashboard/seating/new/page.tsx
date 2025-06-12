@@ -763,26 +763,26 @@ export default function NewLayoutPage() {
                         }}
                     />
                   ))}
-                  <Text 
+                  <Text
                     text={`#${table.displayOrderNumber}`}
                     fontSize={fontSizeNumber}
                     fill="#3e2723"
                     fontStyle="bold"
-                    x={isCircle ? -tableWidthForText / 2 : 0}
-                    y={isCircle ? yPosNumberText : table.height / 2 + yPosNumberText}
-                    width={isCircle ? tableWidthForText : table.width}
+                    x={-tableWidthForText / 2}
+                    y={yPosNumberText}
+                    width={tableWidthForText}
                     height={textBlockRenderHeightNumber}
                     align="center"
                     verticalAlign="middle"
                     listening={false}
                   />
-                  <Text 
+                  <Text
                     text={`(${table.capacity}pp)`}
                     fontSize={fontSizeCapacity}
                     fill="#5d4037"
-                    x={isCircle ? -tableWidthForText / 2 : 0}
-                    y={isCircle ? yPosCapacityText : table.height / 2 + yPosCapacityText}
-                    width={isCircle ? tableWidthForText : table.width}
+                    x={-tableWidthForText / 2}
+                    y={yPosCapacityText}
+                    width={tableWidthForText}
                     height={textBlockRenderHeightCapacity}
                     align="center"
                     verticalAlign="middle"
