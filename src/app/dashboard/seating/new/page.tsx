@@ -653,13 +653,13 @@ export default function NewLayoutPage() {
                 const textBlockRenderHeightCapacity = fontSizeCapacity * 1.5;
 
                 return (
-                <Group 
-                  key={table.id} 
-                  id={table.id} 
-                  x={table.x} 
-                  y={table.y} 
+                <Group
+                  key={table.id}
+                  id={table.id}
+                  x={table.x}
+                  y={table.y}
                   rotation={table.rotation}
-                  draggable={true} 
+                  draggable={true}
                   ref={node => { 
                     if (node) {
                       tableNodeRefs.current.set(table.id, node);
@@ -714,13 +714,11 @@ export default function NewLayoutPage() {
                     node.scaleX(1);
                     node.scaleY(1);
                   }}
-                  offsetX={table.type === 'rect' ? table.width / 2 : 0} // Centering for rect
-                  offsetY={table.type === 'rect' ? table.height / 2 : 0} // Centering for rect
                 >
                   {table.type === 'rect' ? (
                     <Rect
-                      x={0}
-                      y={0}
+                      x={-table.width / 2}
+                      y={-table.height / 2}
                       width={table.width}
                       height={table.height}
                       fill="#d7ccc8" 
