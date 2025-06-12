@@ -1,0 +1,54 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can only read/write their own user document
+    match /users/{userId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null; // Allow user creation on signup
+    }
+
+    // Wedding documents
+    match /weddings/{weddingId} {
+      // Allow read if public, or if user is the owner (add more conditions as needed)
+      allow read: if true; // For simplicity, allow public read of wedding sites. Adjust if privacy is needed.
+      // Allow create, update, delete only by the authenticated owner
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Guests subcollection for a wedding
+      match /guests/{guestId} {
+        // Only the wedding owner can read/write guests for their wedding
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/weddings/$(weddingId)).data.userId == request.auth.uid;
+      }
+    }
+
+    // Venue Layouts
+    match /venueLayouts/{layoutId} {
+      // Allow anyone to read layouts (e.g., for selection)
+      allow read: if true;
+      // Allow authenticated users to create layouts if they are the owner and provide required fields
+      allow create: if request.auth != null
+                      && request.resource.data.ownerId == request.auth.uid
+                      && request.resource.data.name is string
+                      && request.resource.data.tables is list
+                      && request.resource.data.totalCapacity is number
+                      && request.resource.data.createdAt == request.time // Ensure server timestamp for creation
+                      && request.resource.data.updatedAt == request.time; // Ensure server timestamp for creation
+      // Allow authenticated owners to update or delete their layouts
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid
+                      && request.resource.data.name is string // Ensure required fields on update too
+                      && request.resource.data.tables is list
+                      && request.resource.data.totalCapacity is number
+                      && request.resource.data.updatedAt == request.time; // Ensure server timestamp for update
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Fallback: Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
