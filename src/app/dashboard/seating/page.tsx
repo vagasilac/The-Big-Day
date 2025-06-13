@@ -357,7 +357,17 @@ export default function SeatingPage() {
                       key={guest.id} 
                       className={`p-3 border rounded-md cursor-grab transition-opacity ${isAssigned ? 'bg-muted/70 opacity-60 hover:opacity-80' : 'bg-background hover:bg-secondary'}`}
                       draggable={!isAssigned}
-                      onDragStart={() => !isAssigned && setDraggedGuestInfo({ guestId: guest.id!, guestName: guest.name })}
+                      onDragStart={(e) => {
+                        if (!isAssigned) {
+                          try {
+                            e.dataTransfer.setData('text/plain', guest.id!);
+                            e.dataTransfer.effectAllowed = 'move';
+                          } catch (err) {
+                            // ignore unsupported browser errors
+                          }
+                          setDraggedGuestInfo({ guestId: guest.id!, guestName: guest.name });
+                        }
+                      }}
                       onDragEnd={() => setDraggedGuestInfo(null)} 
                       title={isAssigned ? `${guest.name} is already seated` : `Drag ${guest.name} to a seat`}
                     >
@@ -387,7 +397,11 @@ export default function SeatingPage() {
             </CardHeader>
             
             <div ref={editorCanvasContainerRef} className="flex flex-col flex-grow overflow-hidden">
-              <div className="flex-grow bg-background border-r p-0 relative overflow-auto">
+              <div
+                className="flex-grow bg-background border-r p-0 relative overflow-auto"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => e.preventDefault()}
+              >
                 <Stage 
                   ref={stageRef} 
                   width={stageDimensions.width} 
