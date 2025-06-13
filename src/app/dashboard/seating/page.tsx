@@ -41,8 +41,8 @@ const FONT_SIZE_NUMBER_CIRCLE = 16;
 const FONT_SIZE_CAPACITY_CIRCLE = 12;
 const TEXT_VERTICAL_GAP = 4;
 const CHAIR_RADIUS = 10;
-const ASSIGNED_CHAIR_FILL = '#a5d6a7';
-const CHAIR_TEXT_COLOR = '#1b5e20';
+const ASSIGNED_CHAIR_FILL = '#a5d6a7'; // Soft green for assigned chairs
+const CHAIR_TEXT_COLOR = '#1b5e20'; // Dark green for text on assigned chairs
 
 export default function SeatingPage() {
   const router = useRouter();
@@ -95,7 +95,7 @@ export default function SeatingPage() {
         robserver.unobserve(editorCanvasContainerRef.current);
       }
     }
-  }, [selectedLayoutId]);
+  }, [selectedLayoutId]); // Re-check dimensions if selectedLayoutId changes (triggers re-render of canvas area)
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -189,7 +189,7 @@ export default function SeatingPage() {
     const guestsRef = collection(db, 'weddings', weddingId, 'guests');
     const unsubscribeGuests = onSnapshot(guestsRef, (snapshot) => {
       const guestList: Guest[] = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Guest, 'id'>) }));
-      setGuests(guestList.filter(g => g.rsvpStatus === 'accepted'));
+      setGuests(guestList.filter(g => g.rsvpStatus === 'accepted')); // Only show accepted guests for seating
       setIsLoadingGuests(false);
     }, (error) => {
       console.error("Error fetching guests:", error);
@@ -206,7 +206,7 @@ export default function SeatingPage() {
         unsubscribeGuests = await fetchGuests(weddingData.id);
       })();
     } else {
-      setGuests([]);
+      setGuests([]); // Clear guests if no wedding or layout is selected
     }
     return () => {
       if (unsubscribeGuests) {
@@ -249,9 +249,11 @@ export default function SeatingPage() {
         seatingAssignments: {}, // Clear assignments when changing layout
       });
       setSelectedLayoutId(layoutId);
+      // Update local weddingData state as well to reflect the change immediately
       setWeddingData(prev => {
         if (prev) {
           const newWeddingData = { ...prev, selectedVenueLayoutId: layoutId, seatingAssignments: {} };
+          // Also update the local seatingAssignments state from the (now cleared) weddingData
           setSeatingAssignments(newWeddingData.seatingAssignments || {});
           return newWeddingData;
         }
@@ -275,19 +277,21 @@ export default function SeatingPage() {
     try {
       const weddingRef = doc(db, 'weddings', weddingData.id);
       await updateDoc(weddingRef, {
-        selectedVenueLayoutId: null,
+        selectedVenueLayoutId: null, // Use null to clear in Firestore
         seatingAssignments: {}, // Clear assignments
       });
       setSelectedLayoutId(null);
+      // Update local weddingData state as well
       setWeddingData(prev => {
         if (prev) {
           const newWeddingData = { ...prev, selectedVenueLayoutId: undefined, seatingAssignments: {} };
+           // Update local seatingAssignments state
            setSeatingAssignments(newWeddingData.seatingAssignments || {});
           return newWeddingData;
         }
         return null;
       });
-      setGuests([]);
+      setGuests([]); // Clear guests list as no layout is selected
       toast({ title: "Layout Cleared", description: "Venue layout selection has been cleared." });
     } catch (error) {
       console.error("Error clearing layout selection:", error);
@@ -302,12 +306,26 @@ export default function SeatingPage() {
       toast({ title: "Error", description: "Layout or user information is missing.", variant: "destructive" });
       return;
     }
+    if (layoutToDelete.ownerId !== currentUser.uid) {
+      toast({ title: "Permission Denied", description: "You can only delete layouts you own.", variant: "destructive" });
+      return;
+    }
     setIsDeletingLayout(true);
     try {
-      await deleteDoc(doc(db, 'venueLayouts', layoutToDelete.id));
+      // Before deleting, check if this layout is selected for the current wedding
       if (weddingData?.selectedVenueLayoutId === layoutToDelete.id) {
-        await handleClearSelection();
+        // If it is, clear the selection in Firestore first
+        const weddingRef = doc(db, 'weddings', weddingData.id);
+        await updateDoc(weddingRef, {
+          selectedVenueLayoutId: null,
+          seatingAssignments: {},
+        });
+        setSelectedLayoutId(null);
+        setSeatingAssignments({});
+        setWeddingData(prev => prev ? { ...prev, selectedVenueLayoutId: undefined, seatingAssignments: {} } : null);
       }
+
+      await deleteDoc(doc(db, 'venueLayouts', layoutToDelete.id));
       setVenueLayouts(prevLayouts => prevLayouts.filter(l => l.id !== layoutToDelete.id));
       toast({ title: "Layout Deleted", description: `Layout "${layoutToDelete.name}" has been successfully deleted.` });
     } catch (error: any) {
@@ -327,18 +345,21 @@ export default function SeatingPage() {
     );
   }, [venueLayouts, searchTerm]);
 
+  // Drag and Drop Handlers for Seating
   const handleDropOnChair = (droppedChairId: string) => {
     if (!draggedGuestInfo) return;
 
     const newAssignments = { ...seatingAssignments };
     const { guestId: draggedGuestIdValue, guestName: draggedGuestNameValue } = draggedGuestInfo;
 
+    // Unassign the dragged guest from any previous chair
     Object.keys(newAssignments).forEach(chairIdKey => {
       if (newAssignments[chairIdKey]?.guestId === draggedGuestIdValue) {
         delete newAssignments[chairIdKey];
       }
     });
 
+    // Assign to the new chair
     newAssignments[droppedChairId] = { guestId: draggedGuestIdValue, guestName: draggedGuestNameValue };
     setSeatingAssignments(newAssignments);
     saveSeatingAssignmentsToFirestore(newAssignments); // Auto-save
@@ -355,8 +376,9 @@ export default function SeatingPage() {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     };
-    const shape = stage.getIntersection(point);
+    const shape = stage.getIntersection(point); // Get the shape at the drop position
     if (shape) {
+      // Try to find the parent group that represents the chair
       const chairGroup = shape.findAncestor('.chair-group', true);
       if (chairGroup) {
         handleDropOnChair(chairGroup.id());
@@ -365,7 +387,7 @@ export default function SeatingPage() {
   };
 
   const handleCanvasDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
+    e.preventDefault(); // Necessary to allow dropping
   };
 
   const assignedGuestIds = useMemo(() => {
@@ -379,41 +401,105 @@ export default function SeatingPage() {
     saveSeatingAssignmentsToFirestore(newAssignments); // Auto-save
   };
 
+  // Render loading state if user or wedding data is still loading
   if (isLoadingUserWeddingData) {
     return (
       <div className="flex flex-col gap-6 md:gap-8">
-        <div className="flex items-center gap-3"> <Skeleton className="h-8 w-8 rounded-full" /> <div> <Skeleton className="h-10 w-60 mb-2" /> <Skeleton className="h-5 w-80" /> </div> </div>
-        <Card className="shadow-md"> <CardHeader> <Skeleton className="h-8 w-1/3 mb-2" /> <Skeleton className="h-4 w-2/3" /> </CardHeader> <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {[...Array(3)].map((_, i) => ( <Card key={i}> <Skeleton className="h-40 w-full" /> <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader> <CardContent><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6 mt-2" /></CardContent> <CardFooter><Skeleton className="h-10 w-full" /></CardFooter> </Card> ))} </CardContent> </Card>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <div>
+            <Skeleton className="h-10 w-60 mb-2" />
+            <Skeleton className="h-5 w-80" />
+          </div>
+        </div>
+        <Card className="shadow-md">
+          <CardHeader>
+            <Skeleton className="h-8 w-1/3 mb-2" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i}>
+                <Skeleton className="h-40 w-full" />
+                <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
+                <CardContent><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6 mt-2" /></CardContent>
+                <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  // Render prompt to create wedding if no wedding data exists
   if (!weddingData) {
     return (
       <div className="flex flex-col gap-6 md:gap-8">
-        <div className="flex items-center gap-3"> <Armchair className="h-8 w-8 text-primary" /> <div> <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Seating Arrangements</h1> <p className="text-muted-foreground mt-1"> Plan and visualize your event's seating layout. </p> </div> </div>
-        <Card className="border-dashed border-2 p-8 text-center shadow-sm"> <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" /> <CardTitle className="text-xl font-semibold mb-2">No Wedding Site Yet</CardTitle> <CardDescription className="text-muted-foreground mb-6 max-w-md mx-auto"> Please create your wedding site first to manage seating arrangements. </CardDescription> <Button asChild> <Link href="/dashboard/details"> <PlusCircle className="mr-2 h-4 w-4" /> Create Your Wedding Site </Link> </Button> </Card>
+        <div className="flex items-center gap-3">
+          <Armchair className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Seating Arrangements</h1>
+            <p className="text-muted-foreground mt-1">
+              Plan and visualize your event's seating layout.
+            </p>
+          </div>
+        </div>
+        <Card className="border-dashed border-2 p-8 text-center shadow-sm">
+          <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
+          <CardTitle className="text-xl font-semibold mb-2">No Wedding Site Yet</CardTitle>
+          <CardDescription className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Please create your wedding site first to manage seating arrangements.
+          </CardDescription>
+          <Button asChild>
+            <Link href="/dashboard/details">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Your Wedding Site
+            </Link>
+          </Button>
+        </Card>
       </div>
     );
   }
 
+  // If a layout is selected, show the interactive planner
   const currentSelectedLayoutDetails = venueLayouts.find(layout => layout.id === selectedLayoutId);
 
   if (selectedLayoutId && currentSelectedLayoutDetails) {
     const totalAssignedGuests = Object.keys(seatingAssignments).length;
     return (
-      <div className="flex flex-col gap-6 md:gap-8 h-[calc(100vh-10rem)]">
+      <div className="flex flex-col gap-6 md:gap-8 h-[calc(100vh-10rem)]"> {/* Ensure full height */}
         <div className="flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3"> <Armchair className="h-8 w-8 text-primary" /> <div> <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Seating Chart: {weddingData.title}</h1> <p className="text-muted-foreground mt-1"> Venue Layout: <span className="font-semibold text-primary">{currentSelectedLayoutDetails.name}</span> (Capacity: {currentSelectedLayoutDetails.totalCapacity}, Assigned: {totalAssignedGuests}) </p> </div> </div>
-          <Button variant="outline" onClick={handleClearSelection} disabled={isSavingSelection || isSavingAssignments}> {(isSavingSelection || isSavingAssignments) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Change Layout </Button>
+          <div className="flex items-center gap-3">
+            <Armchair className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Seating Chart: {weddingData.title}</h1>
+              <p className="text-muted-foreground mt-1">
+                Venue Layout: <span className="font-semibold text-primary">{currentSelectedLayoutDetails.name}</span>
+                (Capacity: {currentSelectedLayoutDetails.totalCapacity}, Assigned: {totalAssignedGuests})
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" onClick={handleClearSelection} disabled={isSavingSelection || isSavingAssignments}>
+            {(isSavingSelection || isSavingAssignments) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Change Layout
+          </Button>
         </div>
 
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden"> {/* Ensure flex-grow and overflow-hidden */}
+          {/* Guest List Panel */}
           <Card className="md:col-span-1 xl:col-span-1 flex flex-col shadow-lg">
-            <CardHeader className="flex-shrink-0"> <CardTitle className="flex items-center gap-2"><UsersIcon className="h-5 w-5 text-primary" /> Accepted Guests</CardTitle> <CardDescription>{guests.length} guests who accepted. Drag to assign.</CardDescription> </CardHeader>
+            <CardHeader className="flex-shrink-0">
+              <CardTitle className="flex items-center gap-2"><UsersIcon className="h-5 w-5 text-primary" /> Accepted Guests</CardTitle>
+              <CardDescription>{guests.length} guests who accepted. Drag to assign.</CardDescription>
+            </CardHeader>
             <CardContent className="flex-grow overflow-y-auto p-4 space-y-2">
-              {isLoadingGuests ? ( <div className="flex justify-center items-center h-full"> <Loader2 className="h-8 w-8 animate-spin text-primary" /> </div>
-              ) : guests.length === 0 ? ( <p className="text-muted-foreground text-center py-4">No accepted guests found.</p>
+              {isLoadingGuests ? (
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : guests.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">No accepted guests found.</p>
               ) : (
                 guests.map(guest => {
                   const isAssigned = assignedGuestIds.has(guest.id!);
@@ -425,7 +511,7 @@ export default function SeatingPage() {
                       onDragStart={(e) => {
                         if (!isAssigned) {
                           try {
-                            e.dataTransfer.setData('text/plain', guest.id!);
+                            e.dataTransfer.setData('text/plain', guest.id!); // Required for Firefox
                             e.dataTransfer.effectAllowed = 'move';
                           } catch (err) {
                             // ignore unsupported browser errors
@@ -448,6 +534,7 @@ export default function SeatingPage() {
             </CardContent>
           </Card>
 
+          {/* Seating Canvas Panel */}
           <Card className="md:col-span-2 xl:col-span-3 flex flex-col shadow-lg">
             <CardHeader className="flex-shrink-0 border-b">
               <div className="flex justify-between items-center">
@@ -461,11 +548,11 @@ export default function SeatingPage() {
               <CardDescription>Drag guests to tables. Max Capacity: {currentSelectedLayoutDetails.totalCapacity}</CardDescription>
             </CardHeader>
 
-            <div ref={editorCanvasContainerRef} className="flex flex-col flex-grow overflow-hidden">
+            <div ref={editorCanvasContainerRef} className="flex flex-col flex-grow overflow-hidden"> {/* Ensure flex-grow and overflow-hidden */}
               <div
-                className="flex-grow bg-background border-r p-0 relative overflow-auto"
-                onDragOver={handleCanvasDragOver}
-                onDrop={handleCanvasDrop}
+                className="flex-grow bg-background border-r p-0 relative overflow-auto" // Changed from overflow-hidden to overflow-auto for scrolling if needed
+                onDragOver={handleCanvasDragOver} // Allow dropping on the canvas area
+                onDrop={handleCanvasDrop} // Handle drops on the canvas (e.g., to unassign if not on a chair)
               >
                 <Stage
                   ref={stageRef}
@@ -483,6 +570,7 @@ export default function SeatingPage() {
                   data-ai-hint={currentSelectedLayoutDetails.previewImageUrl ? "venue layout" : "grid background"}
                 >
                   <Layer>
+                    {/* Render Venue Elements */}
                     {currentSelectedLayoutDetails.tables.map(table => {
                       const isCircle = table.type === 'circle';
                       const tableWidthForText = table.width;
@@ -510,10 +598,10 @@ export default function SeatingPage() {
                               <Group
                                 key={chair.id}
                                 id={chair.id}
-                                name="chair-group"
+                                name="chair-group" // Used to identify chair group on drop
                                 x={chair.x}
                                 y={chair.y}
-                                listening={true}
+                                listening={true} // Ensure group is listening for events
                                 onClick={() => { if (assignment) unassignGuestFromChair(chair.id); }}
                                 onTap={() => { if (assignment) unassignGuestFromChair(chair.id); }}
                                 onMouseEnter={(e) => {
@@ -524,7 +612,7 @@ export default function SeatingPage() {
                                     if (pointerPosition) {
                                       setHoveredChairInfo({
                                         guestName: currentAssignment.guestName,
-                                        x: pointerPosition.x + 15,
+                                        x: pointerPosition.x + 15, // Offset tooltip slightly
                                         y: pointerPosition.y - 15,
                                       });
                                     }
@@ -535,10 +623,10 @@ export default function SeatingPage() {
                                   setHoveredChairInfo(null);
                                   e.target.getStage()?.container().style.setProperty('cursor', 'default');
                                 }}
-                                onDragOver={(e) => e.evt.preventDefault()}
-                                onDragEnter={(e) => e.evt.preventDefault()}
+                                onDragOver={(e) => e.evt.preventDefault()} // Allow drop
+                                onDragEnter={(e) => e.evt.preventDefault()} // Allow drop
                                 onDrop={(e) => {
-                                   e.evt.preventDefault();
+                                   e.evt.preventDefault(); // Prevent default drop behavior
                                    if (draggedGuestInfo) handleDropOnChair(chair.id);
                                 }}
                               >
@@ -554,21 +642,22 @@ export default function SeatingPage() {
                                 {assignment && (
                                   <Text
                                     text={guestInitials}
-                                    fontSize={CHAIR_RADIUS * 0.8}
+                                    fontSize={CHAIR_RADIUS * 0.8} // Scale font to chair size
                                     fill={CHAIR_TEXT_COLOR}
                                     align="center"
                                     verticalAlign="middle"
                                     width={CHAIR_RADIUS * 2}
                                     height={CHAIR_RADIUS * 2}
-                                    offsetX={CHAIR_RADIUS}
-                                    offsetY={CHAIR_RADIUS}
-                                    listening={false}
+                                    offsetX={CHAIR_RADIUS} // Center text
+                                    offsetY={CHAIR_RADIUS} // Center text
+                                    listening={false} // Text itself doesn't need to listen for events
                                     fontStyle="bold"
                                   />
                                 )}
                               </Group>
                             );
                           })}
+                          {/* Table Number/Label */}
                           {table.label ? (
                             <Text text={table.label} fontSize={fontSizeNumber} fill="#3e2723" fontStyle="bold" x={0} y={0} width={tableWidthForText} height={textBlockRenderHeightNumber} align="center" verticalAlign="middle" listening={false} offsetX={tableWidthForText / 2} />
                           ) : (
@@ -580,6 +669,7 @@ export default function SeatingPage() {
                         </Group>
                       );
                     })}
+                    {/* Tooltip Label */}
                     {hoveredChairInfo && (
                       <KonvaLabel x={hoveredChairInfo.x} y={hoveredChairInfo.y} opacity={0.9}>
                         <KonvaTag
@@ -591,7 +681,7 @@ export default function SeatingPage() {
                           shadowOpacity={0.3}
                           cornerRadius={4}
                         />
-                        <KonvaText
+                        <Text
                           text={hoveredChairInfo.guestName}
                           fontFamily="Arial, sans-serif"
                           fontSize={12}
@@ -610,51 +700,145 @@ export default function SeatingPage() {
     );
   }
 
+  // Render layout selection screen if no layout is selected for the wedding
   return (
     <div className="flex flex-col gap-6 md:gap-8">
-      <div className="flex items-center gap-3"> <Armchair className="h-8 w-8 text-primary" /> <div> <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Choose a Venue Layout</h1> <p className="text-muted-foreground mt-1"> Select a base layout for your seating arrangements or create a new one. </p> </div> </div>
+      <div className="flex items-center gap-3">
+        <Armchair className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Choose a Venue Layout</h1>
+          <p className="text-muted-foreground mt-1">
+            Select a base layout for your seating arrangements or create a new one.
+          </p>
+        </div>
+      </div>
+      {/* Search and Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6 items-center">
-        <div className="relative w-full sm:flex-grow"> <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" /> <Input placeholder="Search layouts by name or description..." className="pl-10 h-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /> </div>
-        <div className="flex gap-2"> <Button variant="outline" disabled> <ExternalLink className="mr-2 h-4 w-4" /> Request from Venue (Soon) </Button> <Button asChild> <Link href="/dashboard/seating/new"> <PlusCircle className="mr-2 h-4 w-4" /> Create New Layout </Link> </Button> </div>
+        <div className="relative w-full sm:flex-grow">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder="Search layouts by name or description..."
+            className="pl-10 h-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" disabled> {/* Disabled for now */}
+            <ExternalLink className="mr-2 h-4 w-4" /> Request from Venue (Soon)
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/seating/new">
+              <PlusCircle className="mr-2 h-4 w-4" /> Create New Layout
+            </Link>
+          </Button>
+        </div>
       </div>
 
+      {/* Display if a layout is already selected for the wedding */}
       {currentSelectedLayoutDetails && weddingData.selectedVenueLayoutId && (
-        <Alert variant="default" className="mb-6 border-primary/30 bg-primary/5"> <CheckCircle className="h-5 w-5 text-primary" /> <AlertTitle className="text-primary">Layout Selected: {currentSelectedLayoutDetails.name}</AlertTitle> <AlertDescription> You are currently using the '{currentSelectedLayoutDetails.name}' layout. Proceed to assign guests or{' '} <Button variant="link" className="p-0 h-auto text-sm text-primary hover:underline" onClick={handleClearSelection} disabled={isSavingSelection}> {isSavingSelection && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}change layout </Button>. </AlertDescription> </Alert>
+        <Alert variant="default" className="mb-6 border-primary/30 bg-primary/5">
+          <CheckCircle className="h-5 w-5 text-primary" />
+          <AlertTitle className="text-primary">Layout Selected: {currentSelectedLayoutDetails.name}</AlertTitle>
+          <AlertDescription>
+            You are currently using the '{currentSelectedLayoutDetails.name}' layout. Proceed to assign guests or{' '}
+            <Button variant="link" className="p-0 h-auto text-sm text-primary hover:underline" onClick={handleClearSelection} disabled={isSavingSelection}>
+              {isSavingSelection && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}change layout
+            </Button>.
+          </AlertDescription>
+        </Alert>
       )}
 
+      {/* Layout Cards */}
       {isLoadingLayouts ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {[...Array(3)].map((_, i) => ( <Card key={i}> <Skeleton className="h-48 w-full" /> <CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-1/2 mt-1" /></CardHeader> <CardContent><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6 mt-2" /></CardContent> <CardFooter><Skeleton className="h-10 w-full" /></CardFooter> </Card> ))} </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <Skeleton className="h-48 w-full" />
+              <CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-1/2 mt-1" /></CardHeader>
+              <CardContent><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6 mt-2" /></CardContent>
+              <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+            </Card>
+          ))}
+        </div>
       ) : filteredLayouts.length === 0 ? (
-        <Card className="p-8 text-center shadow-sm col-span-full"> <LayoutGrid className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" /> <CardTitle className="text-xl font-semibold mb-2">No Venue Layouts Found</CardTitle> <CardDescription className="text-muted-foreground mb-6 max-w-md mx-auto"> {searchTerm ? "No layouts match your search. " : "It seems there are no venue layouts available yet. "} Try adjusting your search or create a new one. </CardDescription> </Card>
+        <Card className="p-8 text-center shadow-sm col-span-full">
+          <LayoutGrid className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
+          <CardTitle className="text-xl font-semibold mb-2">No Venue Layouts Found</CardTitle>
+          <CardDescription className="text-muted-foreground mb-6 max-w-md mx-auto">
+            {searchTerm ? "No layouts match your search. " : "It seems there are no venue layouts available yet. "}
+            Try adjusting your search or create a new one.
+          </CardDescription>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredLayouts.map((layout) => (
             <Card key={layout.id} className={`shadow-lg hover:shadow-xl transition-shadow flex flex-col ${selectedLayoutId === layout.id ? 'border-2 border-primary ring-2 ring-primary ring-offset-2' : ''}`}>
               {layout.previewImageUrl ? (
-                <div className="relative w-full h-48 bg-secondary rounded-t-md overflow-hidden"> <Image src={layout.previewImageUrl} alt={layout.name || 'Venue layout preview'} fill style={{ objectFit: 'cover' }} data-ai-hint={layout.dataAiHint || "venue layout"} /> </div>
+                <div className="relative w-full h-48 bg-secondary rounded-t-md overflow-hidden">
+                  <Image
+                    src={layout.previewImageUrl}
+                    alt={layout.name || 'Venue layout preview'}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    data-ai-hint={layout.dataAiHint || "venue layout"}
+                  />
+                </div>
               ) : (
-                <div className="w-full h-48 bg-muted rounded-t-md flex items-center justify-center"> <LayoutGrid className="h-16 w-16 text-muted-foreground/50" /> </div>
+                <div className="w-full h-48 bg-muted rounded-t-md flex items-center justify-center">
+                  <LayoutGrid className="h-16 w-16 text-muted-foreground/50" />
+                </div>
               )}
-              <CardHeader> <CardTitle className="text-xl">{layout.name}</CardTitle> <CardDescription> {layout.totalCapacity && `Capacity: ${layout.totalCapacity} guests`} {layout.ownerId !== currentUser?.uid && layout.isPublic && <span className="text-xs block mt-1 text-green-600 dark:text-green-400">Public Template</span>} </CardDescription> </CardHeader>
-              <CardContent className="flex-grow"> <p className="text-sm text-muted-foreground line-clamp-3">{layout.description || "No description available."}</p> </CardContent>
+              <CardHeader>
+                <CardTitle className="text-xl">{layout.name}</CardTitle>
+                <CardDescription>
+                  {layout.totalCapacity && `Capacity: ${layout.totalCapacity} guests`}
+                  {layout.ownerId !== currentUser?.uid && layout.isPublic && <span className="text-xs block mt-1 text-green-600 dark:text-green-400">Public Template</span>}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <p className="text-sm text-muted-foreground line-clamp-3">{layout.description || "No description available."}</p>
+              </CardContent>
               <CardFooter className="flex-col items-stretch gap-2">
-                {selectedLayoutId === layout.id ? ( <Button className="w-full" variant="outline" disabled> <CheckCircle className="mr-2 h-4 w-4" /> Currently Selected </Button>
+                {selectedLayoutId === layout.id ? (
+                  <Button className="w-full" variant="outline" disabled>
+                    <CheckCircle className="mr-2 h-4 w-4" /> Currently Selected
+                  </Button>
                 ) : (
-                  <Button className="w-full" onClick={() => handleSelectLayout(layout.id!)} disabled={isSavingSelection || isLoadingUserWeddingData}> {(isSavingSelection || isLoadingUserWeddingData) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Select this Layout </Button>
+                  <Button className="w-full" onClick={() => handleSelectLayout(layout.id!)} disabled={isSavingSelection || isLoadingUserWeddingData}>
+                    {(isSavingSelection || isLoadingUserWeddingData) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Select this Layout
+                  </Button>
                 )}
                 {layout.ownerId === currentUser?.uid && (
                   <div className="flex gap-2 mt-2">
                     <Button variant="outline" size="sm" className="w-full text-xs" asChild>
-                      <Link href={`/dashboard/seating/edit/${layout.id}`}> <Edit className="mr-1.5 h-3 w-3" /> Edit </Link>
+                      <Link href={`/dashboard/seating/edit/${layout.id}`}>
+                        <Edit className="mr-1.5 h-3 w-3" /> Edit
+                      </Link>
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setLayoutToDelete(layout)}> <Trash2 className="mr-1.5 h-3 w-3" /> Delete </Button>
+                        <Button variant="outline" size="sm" className="w-full text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setLayoutToDelete(layout)}>
+                          <Trash2 className="mr-1.5 h-3 w-3" /> Delete
+                        </Button>
                       </AlertDialogTrigger>
                       {layoutToDelete && layoutToDelete.id === layout.id && (
                         <AlertDialogContent>
-                          <AlertDialogHeader> <AlertDialogTitle>Are you sure you want to delete "{layoutToDelete.name}"?</AlertDialogTitle> <AlertDialogDescription> This action cannot be undone. This will permanently delete the venue layout. If this layout is currently selected for your wedding, the selection will be cleared. </AlertDialogDescription> </AlertDialogHeader>
-                          <AlertDialogFooter> <AlertDialogCancel onClick={() => setLayoutToDelete(null)}>Cancel</AlertDialogCancel> <AlertDialogAction onClick={handleDeleteLayout} disabled={isDeletingLayout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90"> {isDeletingLayout && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete Layout </AlertDialogAction> </AlertDialogFooter>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure you want to delete "{layoutToDelete.name}"?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the venue layout.
+                              If this layout is currently selected for your wedding, the selection will be cleared.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setLayoutToDelete(null)}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteLayout} disabled={isDeletingLayout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              {isDeletingLayout && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              Delete Layout
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
                         </AlertDialogContent>
                       )}
                     </AlertDialog>
