@@ -31,10 +31,12 @@ export interface VenueLayout {
   name: string; // User-defined name for the layout (e.g., "Main Ballroom - Gala Setup")
   description?: string; // Optional description for the layout
   ownerId: string; // Firebase UID of the user who created/owns this layout
+  isPublic?: boolean; // True if this is a public template, false or undefined for private user layouts
   tables: TableElement[]; // Array of all table elements in this layout
   venueShape?: number[]; // Optional: Array of points defining the venue boundary polygon
   totalCapacity: number; // Sum of capacities of all tables in this layout
   previewImageUrl?: string; // Optional: URL for a thumbnail image of the layout
+  dataAiHint?: string; // For AI-assisted image searching for preview
   createdAt: Timestamp; // Firestore timestamp for when the layout was created
   updatedAt: Timestamp; // Firestore timestamp for when the layout was last updated
 }

@@ -4,49 +4,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can only read/write their own user document
+    // Users collection:
     match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null; // Allow user creation on signup
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
 
-    // Wedding documents
+    // Weddings collection:
     match /weddings/{weddingId} {
-      // Allow read if public, or if user is the owner (add more conditions as needed)
-      allow read: if true; // For simplicity, allow public read of wedding sites. Adjust if privacy is needed.
-      // Allow create, update, delete only by the authenticated owner
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-
-      // Guests subcollection for a wedding
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.slug is string
+                    && request.resource.data.title is string
+                    && request.resource.data.templateId is string;
+      
       match /guests/{guestId} {
-        // Only the wedding owner can read/write guests for their wedding
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/weddings/$(weddingId)).data.userId == request.auth.uid;
+        allow read, create, update, delete: if request.auth != null && get(/databases/$(database)/documents/weddings/$(weddingId)).data.userId == request.auth.uid;
       }
     }
 
-    // Venue Layouts
+    // VenueLayouts collection:
     match /venueLayouts/{layoutId} {
-      // Allow anyone to read layouts (e.g., for selection)
-      allow read: if true;
-      // Allow authenticated users to create layouts if they are the owner and provide required fields
-      allow create: if request.auth != null
+      allow read: if request.auth != null && 
+                     (resource.data.ownerId == request.auth.uid || resource.data.isPublic == true);
+      allow create: if request.auth != null 
                       && request.resource.data.ownerId == request.auth.uid
                       && request.resource.data.name is string
+                      && request.resource.data.name.size() > 0
                       && request.resource.data.tables is list
                       && request.resource.data.totalCapacity is number
-                      && request.resource.data.createdAt == request.time // Ensure server timestamp for creation
-                      && request.resource.data.updatedAt == request.time; // Ensure server timestamp for creation
-      // Allow authenticated owners to update or delete their layouts
-      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid
-                      && request.resource.data.name is string // Ensure required fields on update too
-                      && request.resource.data.tables is list
-                      && request.resource.data.totalCapacity is number
-                      && request.resource.data.updatedAt == request.time; // Ensure server timestamp for update
+                      && request.resource.data.isPublic == false; // User-created layouts must be private initially
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid;
+                      // Owner can update all fields, including isPublic.
+                      // Add more granular checks if needed:
+                      // e.g. && (request.resource.data.isPublic == resource.data.isPublic || canSetPublic())
       allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
     }
 
-    // Fallback: Deny all other access
+    // Default deny all other paths
     match /{document=**} {
       allow read, write: if false;
     }

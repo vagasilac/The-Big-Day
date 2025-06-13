@@ -86,7 +86,8 @@ const getChairSnapSide = (
     minDistance = distLeft;
     side = 'left';
   }
-  if (distRight < minDistance) {
+  if (distRight < minDistance) { // Corrected: ensure minDistance is updated if right is closer
+    minDistance = distRight; // Was missing this update
     side = 'right';
   }
   return side;
@@ -152,7 +153,7 @@ const alignChairsOnTable = (table: TableElement): Chair[] => {
                         finalY = variableCoordinate;
                         break;
                 }
-                alignedChairs.push({ ...chair, x: finalX, y: finalY });
+                alignedChairs.push({ ...chair, id: chair.id || uuidv4(), x: finalX, y: finalY });
             });
         });
         return alignedChairs;
@@ -176,68 +177,45 @@ const chairDragBoundFunc = (
   tableWidth: number,
   tableHeight: number,
   tableTransform: Konva.Transform
-) => {
-  const tableHalfWidth = tableWidth / 2;
-  const tableHalfHeight = tableHeight / 2;
+): Konva.Vector2d => {
+    const tableHalfWidth = tableWidth / 2;
+    const tableHalfHeight = tableHeight / 2;
 
-  // Convert absolute drag position to the table's local coordinate space
-  const inverted = tableTransform.copy().invert();
-  const local = inverted.point(pos);
+    const inverted = tableTransform.copy().invert();
+    const localPos = inverted.point(pos);
 
-  const newX = local.x;
-  const newY = local.y;
+    const trackTopY = -tableHalfHeight - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+    const trackBottomY = tableHalfHeight + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
+    const trackLeftX = -tableHalfWidth - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
+    const trackRightX = tableHalfWidth + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
 
-  // Define the tracks (lines where chair centers should be)
-  const trackTopY = -tableHalfHeight - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-  const trackBottomY = tableHalfHeight + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-  const trackLeftX = -tableHalfWidth - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-  const trackRightX = tableHalfWidth + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
+    const targetSide = getChairSnapSide(localPos.x, localPos.y, tableWidth, tableHeight);
 
-  // Determine which side the cursor is on/closest to
-  const targetSide = getChairSnapSide(newX, newY, tableWidth, tableHeight);
+    let newLocalX = localPos.x;
+    let newLocalY = localPos.y;
 
-  let constrainedX = newX;
-  let constrainedY = newY;
+    const effectiveWidthForChairs = tableWidth - 2 * CHAIR_CORNER_MARGIN - 2 * CHAIR_RADIUS;
+    const effectiveHeightForChairs = tableHeight - 2 * CHAIR_CORNER_MARGIN - 2 * CHAIR_RADIUS;
 
-  const effectiveSideWidthForChairs =
-    tableWidth - 2 * CHAIR_CORNER_MARGIN - 2 * CHAIR_RADIUS;
-  const effectiveSideHeightForChairs =
-    tableHeight - 2 * CHAIR_CORNER_MARGIN - 2 * CHAIR_RADIUS;
-
-  switch (targetSide) {
-    case 'top':
-      constrainedY = trackTopY;
-      constrainedX = Math.max(
-        -effectiveSideWidthForChairs / 2,
-        Math.min(effectiveSideWidthForChairs / 2, newX)
-      );
-      break;
-    case 'bottom':
-      constrainedY = trackBottomY;
-      constrainedX = Math.max(
-        -effectiveSideWidthForChairs / 2,
-        Math.min(effectiveSideWidthForChairs / 2, newX)
-      );
-      break;
-    case 'left':
-      constrainedX = trackLeftX;
-      constrainedY = Math.max(
-        -effectiveSideHeightForChairs / 2,
-        Math.min(effectiveSideHeightForChairs / 2, newY)
-      );
-      break;
-    case 'right':
-      constrainedX = trackRightX;
-      constrainedY = Math.max(
-        -effectiveSideHeightForChairs / 2,
-        Math.min(effectiveSideHeightForChairs / 2, newY)
-      );
-      break;
-  }
-
-  // Convert the constrained local position back to absolute coordinates
-  const absolute = tableTransform.point({ x: constrainedX, y: constrainedY });
-  return absolute;
+    switch (targetSide) {
+        case 'top':
+            newLocalY = trackTopY;
+            newLocalX = effectiveWidthForChairs <= 0 ? 0 : Math.max(-effectiveWidthForChairs / 2, Math.min(effectiveWidthForChairs / 2, newLocalX));
+            break;
+        case 'bottom':
+            newLocalY = trackBottomY;
+            newLocalX = effectiveWidthForChairs <= 0 ? 0 : Math.max(-effectiveWidthForChairs / 2, Math.min(effectiveWidthForChairs / 2, newLocalX));
+            break;
+        case 'left':
+            newLocalX = trackLeftX;
+            newLocalY = effectiveHeightForChairs <= 0 ? 0 : Math.max(-effectiveHeightForChairs / 2, Math.min(effectiveHeightForChairs / 2, newLocalY));
+            break;
+        case 'right':
+            newLocalX = trackRightX;
+            newLocalY = effectiveHeightForChairs <= 0 ? 0 : Math.max(-effectiveHeightForChairs / 2, Math.min(effectiveHeightForChairs / 2, newLocalY));
+            break;
+    }
+    return tableTransform.point({ x: newLocalX, y: newLocalY });
 };
 
 
@@ -266,61 +244,19 @@ export default function NewLayoutPage() {
   const [layoutNameInput, setLayoutNameInput] = useState<string>("");
   const [isSavingLayout, setIsSavingLayout] = useState(false);
 
-  const generateChairs = useCallback((tableBase: Omit<TableElement, 'id' | 'chairs' | 'displayOrderNumber' | 'rotation'>): Chair[] => {
-    const { type, width, height, radius, capacity } = tableBase;
-    const chairs: Chair[] = [];
+  const generateInitialChairs = useCallback((tableBase: Omit<TableElement, 'id' | 'chairs' | 'displayOrderNumber' | 'rotation'>): Chair[] => {
+    const capacity = tableBase.capacity;
+    if (capacity <= 0) return [];
 
-    if (capacity <= 0) return chairs;
-
-    if (type === 'rect') {
-      const perSideBase = Math.floor(capacity / 4);
-      const remainder = capacity % 4;
-      const sides = ['top', 'right', 'bottom', 'left'] as const;
-      sides.forEach((side, idx) => {
-        const count = perSideBase + (remainder > idx ? 1 : 0);
-        if (count === 0) return;
-
-        const primaryLength = (side === 'top' || side === 'bottom') ? width : height;
-        const effectiveLength = primaryLength - 2 * CHAIR_RADIUS - 2 * CHAIR_CORNER_MARGIN;
-
-        for (let i = 0; i < count; i++) {
-          const variable = (count === 1 || effectiveLength <= 0)
-            ? 0
-            : (i * (effectiveLength / (count - 1))) - (effectiveLength / 2);
-          let x = 0; let y = 0;
-          switch (side) {
-            case 'top':
-              y = -height / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-              x = variable;
-              break;
-            case 'bottom':
-              y = height / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-              x = variable;
-              break;
-            case 'left':
-              x = -width / 2 - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE;
-              y = variable;
-              break;
-            case 'right':
-              x = width / 2 + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE;
-              y = variable;
-              break;
-          }
-          chairs.push({ id: uuidv4(), x, y });
-        }
-      });
-    } else if (type === 'circle' && radius) {
-      for (let i = 0; i < capacity; i++) {
-        const angle = (2 * Math.PI * i) / capacity;
-        chairs.push({
-          id: uuidv4(),
-          x: Math.cos(angle) * (radius + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE),
-          y: Math.sin(angle) * (radius + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE)
-        });
-      }
-    }
-
-    return chairs;
+    // Create a dummy table element to pass to alignChairsOnTable
+    const dummyTable: TableElement = {
+        ...tableBase,
+        id: 'dummy', // Temporary ID
+        chairs: Array(capacity).fill(null).map(() => ({ id: uuidv4(), x: 0, y: 0 })), // Placeholder chairs
+        displayOrderNumber: 0, // Not relevant for initial chair generation
+        rotation: 0, // Not relevant for initial chair generation
+    };
+    return alignChairsOnTable(dummyTable);
   }, []);
 
 
@@ -357,7 +293,7 @@ export default function NewLayoutPage() {
       return;
     }
     
-    const chairs = generateChairs(newTableBase);
+    const chairs = generateInitialChairs(newTableBase);
     const newTable: TableElement = {
         ...newTableBase,
         id: uuidv4(),
@@ -528,12 +464,11 @@ export default function NewLayoutPage() {
         if (tableIndex === -1) return prevTables;
         const table = prevTables[tableIndex];
 
-        // Create a temporary chair array where the dragged chair has its raw end position
-        const tempChairs = table.chairs.map(chair =>
+        const tempChairsWithDraggedPos = table.chairs.map(chair =>
             chair.id === chairId ? { ...chair, x: draggedChairRawX, y: draggedChairRawY } : chair
         );
         
-        const realignedChairs = alignChairsOnTable({ ...table, chairs: tempChairs });
+        const realignedChairs = alignChairsOnTable({ ...table, chairs: tempChairsWithDraggedPos });
 
         const newTables = [...prevTables];
         newTables[tableIndex] = { ...table, chairs: realignedChairs };
@@ -558,8 +493,6 @@ export default function NewLayoutPage() {
         description: "You must be logged in to save a layout. Please refresh and try again.",
         variant: "destructive",
       });
-      // Optionally, trigger re-authentication or redirect
-      // router.push('/auth');
       return;
     }
 
@@ -567,19 +500,28 @@ export default function NewLayoutPage() {
 
     const totalCapacity = tables.reduce((sum, table) => sum + table.capacity, 0);
 
-    const tablesToStore: StoredTableElement[] = tables.map(table => ({
-      ...table,
-      chairs: table.chairs.map(chair => ({ ...chair } as StoredChair))
-    }));
+    const tablesToStore: StoredTableElement[] = tables.map(currentTable => {
+      const tableData: Partial<StoredTableElement> = { // Use Partial for constructing
+        ...currentTable,
+        chairs: currentTable.chairs.map(chair => ({ ...chair } as StoredChair))
+      };
+      // Only include radius if it's a circle and radius is a valid number
+      if (currentTable.type === 'circle' && typeof currentTable.radius === 'number') {
+        tableData.radius = currentTable.radius;
+      } else {
+        delete tableData.radius; // Ensure radius is not undefined
+      }
+      return tableData as StoredTableElement; // Cast to full type after construction
+    });
 
-    const newLayoutData = { // Explicitly type to match Firestore structure, omit fields Firestore generates
+
+    const newLayoutData = { 
       name: layoutNameInput.trim(),
       ownerId: currentUser.uid,
+      isPublic: false, // User-created layouts are private by default
       tables: tablesToStore,
-      venueShape: venueShape.length > 0 ? venueShape : [], // Store empty array if not defined
+      venueShape: venueShape.length > 0 ? venueShape : [], 
       totalCapacity,
-      // previewImageUrl: "...", // Optional: placeholder or logic to generate this
-      // description: "...", // Optional
     };
 
     try {
@@ -590,11 +532,11 @@ export default function NewLayoutPage() {
       });
       toast({
         title: "Layout Saved!",
-        description: `Layout "${layoutNameInput.trim()}" (ID: ${docRef.id}) has been successfully saved.`,
+        description: `Layout "${layoutNameInput.trim()}" has been successfully saved.`,
       });
       setIsSaveLayoutDialogOpen(false);
       setLayoutNameInput("");
-      // router.push('/dashboard/seating'); // Consider redirecting after save
+      // router.push('/dashboard/seating'); 
     } catch (error: any) {
       console.error("Error saving layout:", error);
       toast({
@@ -640,10 +582,8 @@ export default function NewLayoutPage() {
             <Separator className="my-2" />
             <Button
               className="w-full"
-              variant={'outline'} // Keep outline, or 'secondary' if drawingVenue is true
+              variant={'outline'} 
               onClick={() => {
-                // setVenueShape([]); // Logic for drawing venue shape
-                // setDrawingVenue(d => !d);
                 toast({ title: "Coming Soon", description: "Drawing venue shape feature is not yet implemented."})
               }}
             >
@@ -673,8 +613,10 @@ export default function NewLayoutPage() {
                 const numberTextHeightEstimate = fontSizeNumber; 
                 const capacityTextHeightEstimate = fontSizeCapacity;
                 const totalTextContentHeight = numberTextHeightEstimate + TEXT_VERTICAL_GAP + capacityTextHeightEstimate;
+                
                 const yPosNumberText = - (totalTextContentHeight / 2) + (numberTextHeightEstimate / 2);
                 const yPosCapacityText = (totalTextContentHeight / 2) - (capacityTextHeightEstimate / 2);
+                
                 const textBlockRenderHeightNumber = fontSizeNumber * 1.5; 
                 const textBlockRenderHeightCapacity = fontSizeCapacity * 1.5;
 
@@ -686,6 +628,8 @@ export default function NewLayoutPage() {
                   y={table.y}
                   rotation={table.rotation}
                   draggable={true}
+                  offsetX={0} // Rects draw from top-left of group
+                  offsetY={0} // Circles draw from center of group with radius
                   ref={node => { 
                     if (node) {
                       tableNodeRefs.current.set(table.id, node);
@@ -694,7 +638,7 @@ export default function NewLayoutPage() {
                     }
                   }}
                   onDragEnd={(e) => {
-                    if (selectedTableId === table.id) { return; } // Let Transformer handle if selected
+                    if (selectedTableId === table.id) { return; } 
                     
                     const newTables = tables.map(t =>
                         t.id === table.id ? { ...t, x: e.target.x(), y: e.target.y() } : t
@@ -728,7 +672,6 @@ export default function NewLayoutPage() {
                                 width: newWidth,
                                 height: newHeight,
                                 radius: newRadius,
-                               // Chairs are already part of 't', alignChairsOnTable will use them
                                };
                                const realignedChairs = alignChairsOnTable(transformedTableState);
                                return { ...transformedTableState, chairs: realignedChairs };
@@ -743,8 +686,8 @@ export default function NewLayoutPage() {
                 >
                   {table.type === 'rect' ? (
                     <Rect
-                      x={-table.width / 2}
-                      y={-table.height / 2}
+                      x={-table.width / 2} // Center the rect within the group
+                      y={-table.height / 2} // Center the rect within the group
                       width={table.width}
                       height={table.height}
                       fill="#d7ccc8" 
@@ -785,13 +728,13 @@ export default function NewLayoutPage() {
                             if (table.type === 'rect') {
                                 const tableNode = tableNodeRefs.current.get(table.id);
                                 const transform = tableNode
-                                  ? tableNode.getAbsoluteTransform().copy()
+                                  ? tableNode.getAbsoluteTransform().copy() // Use absolute transform of the group
                                   : new Konva.Transform();
                                 return chairDragBoundFunc(
                                   pos,
                                   table.width,
                                   table.height,
-                                  transform
+                                  transform // Pass the group's transform
                                 );
                             }
                             return pos;
@@ -803,25 +746,27 @@ export default function NewLayoutPage() {
                     fontSize={fontSizeNumber}
                     fill="#3e2723"
                     fontStyle="bold"
-                    x={-tableWidthForText / 2}
+                    x={0} // Centered within group
                     y={yPosNumberText}
                     width={tableWidthForText}
                     height={textBlockRenderHeightNumber}
                     align="center"
                     verticalAlign="middle"
                     listening={false}
+                    offsetX={tableWidthForText / 2} // Center text content
                   />
                   <Text
                     text={`(${table.capacity}pp)`}
                     fontSize={fontSizeCapacity}
                     fill="#5d4037"
-                    x={-tableWidthForText / 2}
+                    x={0} // Centered within group
                     y={yPosCapacityText}
                     width={tableWidthForText}
                     height={textBlockRenderHeightCapacity}
                     align="center"
                     verticalAlign="middle"
                     listening={false}
+                    offsetX={tableWidthForText / 2} // Center text content
                   />
                 </Group>
                 );

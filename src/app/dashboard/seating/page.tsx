@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, orderBy, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, orderBy, deleteDoc, Timestamp, or } from 'firebase/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { VenueLayout } from '@/types/venue';
 import type { Guest } from '@/types/guest';
@@ -81,10 +81,12 @@ export default function SeatingPage() {
     setIsLoadingLayouts(true);
     try {
       const layoutsRef = collection(db, 'venueLayouts');
-      // Fetch layouts owned by the current user OR system layouts (if any)
       const qLayouts = query(
         layoutsRef,
-        where('ownerId', 'in', [user.uid, 'system']), // 'system' for predefined templates
+        or(
+          where('ownerId', '==', user.uid), // Layouts owned by the user
+          where('isPublic', '==', true)      // Public templates
+        ),
         orderBy('createdAt', 'desc')
       );
       const layoutSnapshot = await getDocs(qLayouts);
@@ -93,15 +95,18 @@ export default function SeatingPage() {
         return {
           id: doc.id,
           ...data,
-          // Ensure Timestamps are handled if necessary, though not directly displayed on card
           createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : undefined,
           updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : undefined,
         } as VenueLayout;
       });
       setVenueLayouts(fetchedLayouts);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching venue layouts:", error);
-      toast({ title: 'Error Loading Layouts', description: 'Could not fetch venue layouts.', variant: 'destructive' });
+      if (error.code === 'failed-precondition') {
+         toast({ title: 'Indexing Required', description: 'Firestore needs an index for this query. Please check the Firebase console for instructions to create it.', variant: 'destructive', duration: 10000 });
+      } else {
+        toast({ title: 'Error Loading Layouts', description: 'Could not fetch venue layouts. ' + error.message, variant: 'destructive' });
+      }
       setVenueLayouts([]);
     } finally {
       setIsLoadingLayouts(false);
@@ -195,7 +200,7 @@ export default function SeatingPage() {
     if (!searchTerm) return venueLayouts;
     return venueLayouts.filter(layout =>
       layout.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      layout.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      (layout.description && layout.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [venueLayouts, searchTerm]);
 
@@ -427,8 +432,7 @@ export default function SeatingPage() {
                 <CardTitle className="text-xl">{layout.name}</CardTitle>
                 <CardDescription>
                   {layout.totalCapacity && `Capacity: ${layout.totalCapacity} guests`}
-                  {layout.ownerId !== currentUser?.uid && layout.ownerId === 'system' && <span className="text-xs block mt-1 text-muted-foreground/80">System Template</span>}
-                  {layout.ownerId !== currentUser?.uid && layout.ownerId !== 'system' && <span className="text-xs block mt-1 text-muted-foreground/80">Shared/Venue Provided</span>}
+                  {layout.ownerId !== currentUser?.uid && layout.isPublic && <span className="text-xs block mt-1 text-green-600 dark:text-green-400">Public Template</span>}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -458,5 +462,3 @@ export default function SeatingPage() {
     </div>
   );
 }
-
-    
