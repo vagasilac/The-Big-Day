@@ -1,0 +1,46 @@
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Venue Layout Previews
+    // Path: /venue_layout_previews/{userId}/{layoutId}/{fileName}
+    match /venue_layout_previews/{userId}/{layoutId}/{fileName} {
+      // Allow read if:
+      // 1. The layout is marked as public in Firestore OR
+      // 2. The requester is the owner of the layout.
+      allow read: if (
+        exists(/databases/(default)/documents/venueLayouts/$(layoutId)) &&
+        get(/databases/(default)/documents/venueLayouts/$(layoutId)).data.isPublic == true
+      ) || (
+        request.auth != null && request.auth.uid == userId
+      );
+
+      // Allow write (create, update, delete) only if the user is the owner.
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Wedding Cover Photos
+    // Path: /cover_photos/{userId}/{pathSegment}/{fileName}
+    // Example pathSegment could be weddingId or a timestamp for new uploads.
+    match /cover_photos/{userId}/{pathSegment}/{fileName} {
+      // Allow public read for simplicity. This could be further restricted
+      // based on whether the wedding site itself is public or if the
+      // requesting user is a guest of that wedding, etc.
+      allow read: if true;
+
+      // Allow write (create, update, delete) only if the user is the owner.
+      // This assumes the {userId} in the path is the owner of the wedding details.
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Default deny all other paths if not explicitly matched.
+    // It's good practice to have a default deny, but often Storage rules
+    // are additive. If you only have the rules above, unmatched paths
+    // will implicitly be denied.
+    // match /{allPaths=**} {
+    //   allow read, write: if false;
+    // }
+  }
+}
