@@ -425,12 +425,11 @@ export default function SeatingPage() {
                 onDragOver={handleCanvasDragOver}
                 onDrop={handleCanvasDrop}
               >
-                <Stage
-                  ref={stageRef}
-                  width={stageDimensions.width}
-                  height={stageDimensions.height}
+                <Stage 
+                  ref={stageRef} 
+                  width={stageDimensions.width} 
+                  height={stageDimensions.height} 
                   className="bg-white rounded-b-md shadow-inner"
-                  
                   style={{
                       backgroundImage: currentSelectedLayoutDetails.previewImageUrl 
                         ? `url(${currentSelectedLayoutDetails.previewImageUrl})`
