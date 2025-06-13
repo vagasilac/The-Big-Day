@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -11,55 +11,28 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2, RectangleHorizontal, Circle as CircleIcon, Minimize2, Ruler, Settings2, Trash2, Undo2, Redo2, Save } from 'lucide-react';
+import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, orderBy, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { VenueLayout } from '@/types/venue';
 import type { Guest } from '@/types/guest';
-
-// Mock data for venue layouts - replace with Firestore fetching later
-const MOCK_VENUE_LAYOUTS: VenueLayout[] = [
-  {
-    id: 'layout-1',
-    name: 'The Grand Ballroom',
-    description: 'A spacious and elegant ballroom suitable for large weddings. Features a large dance floor and stage area.',
-    capacity: 250,
-    previewImageUrl: 'https://placehold.co/600x400.png?text=Grand+Ballroom',
-    ownerId: 'system',
-    dataAiHint: 'ballroom wedding venue'
-  },
-  {
-    id: 'layout-2',
-    name: 'Rustic Barn Charm',
-    description: 'A cozy barn setting with wooden beams and string lights, perfect for a rustic themed wedding.',
-    capacity: 120,
-    previewImageUrl: 'https://placehold.co/600x400.png?text=Rustic+Barn',
-    ownerId: 'system',
-    dataAiHint: 'barn wedding venue'
-  },
-  {
-    id: 'layout-3',
-    name: 'Modern City View Loft',
-    description: 'A chic loft with panoramic city views, ideal for a contemporary and stylish event.',
-    capacity: 80,
-    previewImageUrl: 'https://placehold.co/600x400.png?text=City+Loft',
-    ownerId: 'venue-owner-123', // Example of a venue-owner provided layout
-    dataAiHint: 'modern loft venue'
-  },
-];
 
 export default function SeatingPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [weddingData, setWeddingData] = useState<Wedding | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [venueLayouts, setVenueLayouts] = useState<VenueLayout[]>(MOCK_VENUE_LAYOUTS);
+  const [isLoadingUserWeddingData, setIsLoadingUserWeddingData] = useState(true);
+  
+  const [venueLayouts, setVenueLayouts] = useState<VenueLayout[]>([]);
+  const [isLoadingLayouts, setIsLoadingLayouts] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
   const [selectedLayoutId, setSelectedLayoutId] = useState<string | null | undefined>(null);
   const [isSavingSelection, setIsSavingSelection] = useState(false);
 
@@ -70,7 +43,7 @@ export default function SeatingPage() {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
-        setIsLoading(true);
+        setIsLoadingUserWeddingData(true);
         try {
           const weddingsRef = collection(db, 'weddings');
           const q = query(weddingsRef, where('userId', '==', user.uid));
@@ -91,18 +64,56 @@ export default function SeatingPage() {
           setWeddingData(null);
           setSelectedLayoutId(null);
         } finally {
-          setIsLoading(false);
+          setIsLoadingUserWeddingData(false);
         }
       } else {
         setCurrentUser(null);
         setWeddingData(null);
         setSelectedLayoutId(null);
         router.push('/auth');
-        setIsLoading(false);
+        setIsLoadingUserWeddingData(false);
       }
     });
     return () => unsubscribeAuth();
   }, [router, toast]);
+
+  const fetchLayouts = useCallback(async (user: User) => {
+    setIsLoadingLayouts(true);
+    try {
+      const layoutsRef = collection(db, 'venueLayouts');
+      // Fetch layouts owned by the current user OR system layouts (if any)
+      const qLayouts = query(
+        layoutsRef,
+        where('ownerId', 'in', [user.uid, 'system']), // 'system' for predefined templates
+        orderBy('createdAt', 'desc')
+      );
+      const layoutSnapshot = await getDocs(qLayouts);
+      const fetchedLayouts = layoutSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Ensure Timestamps are handled if necessary, though not directly displayed on card
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : undefined,
+          updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : undefined,
+        } as VenueLayout;
+      });
+      setVenueLayouts(fetchedLayouts);
+    } catch (error) {
+      console.error("Error fetching venue layouts:", error);
+      toast({ title: 'Error Loading Layouts', description: 'Could not fetch venue layouts.', variant: 'destructive' });
+      setVenueLayouts([]);
+    } finally {
+      setIsLoadingLayouts(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchLayouts(currentUser);
+    }
+  }, [currentUser, fetchLayouts]);
+
 
   const fetchGuests = useCallback(async (weddingId: string) => {
     if (!weddingId) return;
@@ -166,11 +177,11 @@ export default function SeatingPage() {
     try {
         const weddingRef = doc(db, 'weddings', weddingData.id);
         await updateDoc(weddingRef, {
-            selectedVenueLayoutId: null, // Set to null or use deleteField()
+            selectedVenueLayoutId: null, 
         });
         setSelectedLayoutId(null);
         setWeddingData(prev => prev ? ({ ...prev, selectedVenueLayoutId: undefined }) : null);
-        setGuests([]); // Clear guests when layout is cleared
+        setGuests([]); 
         toast({ title: "Layout Cleared", description: "Venue layout selection has been cleared." });
     } catch (error) {
         console.error("Error clearing layout selection:", error);
@@ -180,8 +191,15 @@ export default function SeatingPage() {
     }
   };
 
+  const filteredLayouts = useMemo(() => {
+    if (!searchTerm) return venueLayouts;
+    return venueLayouts.filter(layout =>
+      layout.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      layout.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [venueLayouts, searchTerm]);
 
-  if (isLoading) {
+  if (isLoadingUserWeddingData) {
     return (
       <div className="flex flex-col gap-6 md:gap-8">
         <div className="flex items-center gap-3">
@@ -242,17 +260,16 @@ export default function SeatingPage() {
   
   const currentSelectedLayoutDetails = venueLayouts.find(layout => layout.id === selectedLayoutId);
 
-  // If a layout is selected, show the two-pane planner UI
   if (selectedLayoutId && currentSelectedLayoutDetails) {
     return (
-      <div className="flex flex-col gap-6 md:gap-8 h-[calc(100vh-10rem)]"> {/* Adjust height as needed */}
+      <div className="flex flex-col gap-6 md:gap-8 h-[calc(100vh-10rem)]">
         <div className="flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
                 <Armchair className="h-8 w-8 text-primary" />
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Seating Chart: {weddingData.title}</h1>
                     <p className="text-muted-foreground mt-1">
-                    Venue Layout: <span className="font-semibold text-primary">{currentSelectedLayoutDetails.name}</span> (Capacity: {currentSelectedLayoutDetails.capacity})
+                    Venue Layout: <span className="font-semibold text-primary">{currentSelectedLayoutDetails.name}</span> (Capacity: {currentSelectedLayoutDetails.totalCapacity})
                     </p>
                 </div>
             </div>
@@ -263,7 +280,6 @@ export default function SeatingPage() {
         </div>
 
         <div className="flex-grow grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6 overflow-hidden">
-          {/* Left Pane: Guest List */}
           <Card className="md:col-span-1 xl:col-span-1 flex flex-col shadow-lg">
             <CardHeader className="flex-shrink-0">
               <CardTitle className="flex items-center gap-2"><UsersIcon className="h-5 w-5 text-primary" /> Guest List</CardTitle>
@@ -275,7 +291,7 @@ export default function SeatingPage() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : guests.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">No guests found for this wedding yet. Add guests in the Guest Management section.</p>
+                <p className="text-muted-foreground text-center py-4">No guests found. Add guests in Guest Management.</p>
               ) : (
                 guests.map(guest => (
                   <div key={guest.id} className="p-3 border rounded-md bg-background hover:bg-secondary cursor-grab">
@@ -287,89 +303,37 @@ export default function SeatingPage() {
             </CardContent>
           </Card>
 
-          {/* Right Pane: Visual Layout Editor */}
           <Card className="md:col-span-2 xl:col-span-3 flex flex-col shadow-lg">
             <CardHeader className="flex-shrink-0 border-b">
-              <CardTitle className="flex items-center gap-2"><LayoutGrid className="h-5 w-5 text-primary" /> Venue Layout Editor</CardTitle>
-              <CardDescription>Design your venue: {currentSelectedLayoutDetails.name}</CardDescription>
+              <CardTitle className="flex items-center gap-2"><LayoutGrid className="h-5 w-5 text-primary" /> Venue: {currentSelectedLayoutDetails.name}</CardTitle>
+               <div className="flex justify-between items-center">
+                <CardDescription>Drag guests to tables. Max Capacity: {currentSelectedLayoutDetails.totalCapacity}</CardDescription>
+                <Button variant="outline" size="sm" disabled>
+                    <Edit className="mr-2 h-3 w-3"/> Edit This Layout (Soon)
+                </Button>
+               </div>
             </CardHeader>
             
             <div className="flex flex-col flex-grow overflow-hidden">
-              {/* Toolbar */}
-              <div className="p-2 border-b bg-muted/50 flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" disabled title="Add Rectangle Table (coming soon)">
-                    <RectangleHorizontal className="mr-2 h-4 w-4" /> Table
-                  </Button>
-                  <Button variant="outline" size="sm" disabled title="Add Round Table (coming soon)">
-                    <CircleIcon className="mr-2 h-4 w-4" /> Round Table
-                  </Button>
-                  <Button variant="outline" size="sm" disabled title="Add Stage (coming soon)">
-                    <Minimize2 className="mr-2 h-4 w-4 transform rotate-45" /> Stage
-                  </Button>
-                   <Button variant="outline" size="sm" disabled title="Add Wall/Divider (coming soon)">
-                    <Ruler className="mr-2 h-4 w-4" /> Wall
-                  </Button>
-                  <Separator orientation="vertical" className="h-6 mx-2" />
-                  <Button variant="ghost" size="icon" disabled title="Undo (coming soon)">
-                    <Undo2 className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" disabled title="Redo (coming soon)">
-                    <Redo2 className="h-4 w-4" />
-                  </Button>
-                   <Separator orientation="vertical" className="h-6 mx-2" />
-                   <Button variant="ghost" size="icon" disabled title="Save Layout (coming soon)">
-                    <Save className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Canvas Area & Properties Panel (simplified side-by-side) */}
-              <div className="flex flex-grow overflow-hidden">
-                {/* Main Canvas Area */}
-                <div className="flex-grow bg-background border-r p-4 relative overflow-auto">
+              <div className="flex-grow bg-background border-r p-4 relative overflow-auto">
                   <div 
                     className="w-full h-full min-h-[400px] bg-white rounded-md shadow-inner"
                     style={{
-                      backgroundImage: 'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)',
-                      backgroundSize: '20px 20px',
+                      backgroundImage: currentSelectedLayoutDetails.previewImageUrl 
+                        ? `url(${currentSelectedLayoutDetails.previewImageUrl})`
+                        : 'linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)',
+                      backgroundSize: currentSelectedLayoutDetails.previewImageUrl ? 'contain' : '20px 20px',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'center'
                     }}
                   >
-                    {/* Layout elements will be rendered here */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <p className="text-muted-foreground p-4 bg-background/80 rounded-md">Layout Editor Canvas Area</p>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-sm">
+                      <p className="text-muted-foreground p-4 bg-background/80 rounded-md text-lg">
+                        Interactive Seating Editor Area (Coming Soon)
+                      </p>
                     </div>
                   </div>
                 </div>
-
-                {/* Properties Panel Placeholder */}
-                <div className="w-64 p-4 border-l bg-muted/30 flex-shrink-0 overflow-y-auto">
-                  <h3 className="text-sm font-semibold mb-3 text-foreground flex items-center">
-                    <Settings2 className="mr-2 h-4 w-4 text-primary" /> Element Properties
-                  </h3>
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground text-center py-4">
-                      Select an element on the canvas to edit its properties. (Coming Soon)
-                    </p>
-                    {/* Example property fields (disabled) */}
-                    <div>
-                      <label htmlFor="element-name" className="text-xs font-medium">Name</label>
-                      <Input id="element-name" size="sm" disabled placeholder="Table 1" className="mt-1"/>
-                    </div>
-                     <div>
-                      <label htmlFor="element-width" className="text-xs font-medium">Width</label>
-                      <Input id="element-width" type="number" size="sm" disabled placeholder="120" className="mt-1"/>
-                    </div>
-                     <div>
-                      <label htmlFor="element-height" className="text-xs font-medium">Height</label>
-                      <Input id="element-height" type="number" size="sm" disabled placeholder="60" className="mt-1"/>
-                    </div>
-                     <Button size="sm" variant="outline" className="w-full text-destructive hover:text-destructive" disabled>
-                        <Trash2 className="mr-2 h-4 w-4"/> Delete Element
-                    </Button>
-                  </div>
-                </div>
-              </div>
             </div>
           </Card>
         </div>
@@ -394,7 +358,12 @@ export default function SeatingPage() {
       <div className="flex flex-col sm:flex-row gap-4 mb-6 items-center">
         <div className="relative w-full sm:flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input placeholder="Search layouts..." className="pl-10 h-10" />
+            <Input 
+              placeholder="Search layouts by name or description..." 
+              className="pl-10 h-10" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
         </div>
         <div className="flex gap-2">
             <Button variant="outline" disabled>
@@ -421,59 +390,73 @@ export default function SeatingPage() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {venueLayouts.map((layout) => (
-          <Card key={layout.id} className={`shadow-lg hover:shadow-xl transition-shadow flex flex-col ${selectedLayoutId === layout.id ? 'border-2 border-primary ring-2 ring-primary ring-offset-2' : ''}`}>
-            {layout.previewImageUrl && (
-                <div className="relative w-full h-48 bg-secondary rounded-t-md overflow-hidden">
-                 <Image src={layout.previewImageUrl} alt={layout.name} layout="fill" objectFit="cover" data-ai-hint={layout.dataAiHint || "venue layout"} />
-                </div>
-            )}
-            <CardHeader>
-              <CardTitle className="text-xl">{layout.name}</CardTitle>
-              <CardDescription>
-                {layout.capacity && `Capacity: ${layout.capacity} guests`}
-                {layout.ownerId !== 'system' && <span className="text-xs block mt-1 text-muted-foreground/80">Provided by venue</span>}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-              <p className="text-sm text-muted-foreground line-clamp-3">{layout.description || "No description available."}</p>
-            </CardContent>
-            <CardFooter>
-              {selectedLayoutId === layout.id ? ( 
-                <Button className="w-full" variant="outline" disabled>
-                    <CheckCircle className="mr-2 h-4 w-4" /> Currently Selected
-                </Button>
-              ) : (
-                <Button className="w-full" onClick={() => handleSelectLayout(layout.id)} disabled={isSavingSelection || isLoading}>
-                    {(isSavingSelection || isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Select this Layout
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {venueLayouts.length === 0 && (
-         <Card className="p-8 text-center shadow-sm">
+      {isLoadingLayouts ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i}>
+                <Skeleton className="h-48 w-full" />
+                <CardHeader><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-1/2 mt-1" /></CardHeader>
+                <CardContent><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-5/6 mt-2" /></CardContent>
+                <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+              </Card>
+            ))}
+        </div>
+      ) : filteredLayouts.length === 0 ? (
+        <Card className="p-8 text-center shadow-sm col-span-full">
             <LayoutGrid className="h-12 w-12 mx-auto text-muted-foreground/40 mb-4" />
             <CardTitle className="text-xl font-semibold mb-2">No Venue Layouts Found</CardTitle>
             <CardDescription className="text-muted-foreground mb-6 max-w-md mx-auto">
-                It seems there are no venue layouts available yet. You can create one or request it from your venue.
+                {searchTerm ? "No layouts match your search. " : "It seems there are no venue layouts available yet. "}
+                Try adjusting your search or create a new one.
             </CardDescription>
         </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredLayouts.map((layout) => (
+            <Card key={layout.id} className={`shadow-lg hover:shadow-xl transition-shadow flex flex-col ${selectedLayoutId === layout.id ? 'border-2 border-primary ring-2 ring-primary ring-offset-2' : ''}`}>
+              {layout.previewImageUrl ? (
+                  <div className="relative w-full h-48 bg-secondary rounded-t-md overflow-hidden">
+                  <Image src={layout.previewImageUrl} alt={layout.name} layout="fill" objectFit="cover" data-ai-hint={layout.dataAiHint || "venue layout"} />
+                  </div>
+              ) : (
+                <div className="w-full h-48 bg-muted rounded-t-md flex items-center justify-center">
+                  <LayoutGrid className="h-16 w-16 text-muted-foreground/50" />
+                </div>
+              )}
+              <CardHeader>
+                <CardTitle className="text-xl">{layout.name}</CardTitle>
+                <CardDescription>
+                  {layout.totalCapacity && `Capacity: ${layout.totalCapacity} guests`}
+                  {layout.ownerId !== currentUser?.uid && layout.ownerId === 'system' && <span className="text-xs block mt-1 text-muted-foreground/80">System Template</span>}
+                  {layout.ownerId !== currentUser?.uid && layout.ownerId !== 'system' && <span className="text-xs block mt-1 text-muted-foreground/80">Shared/Venue Provided</span>}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <p className="text-sm text-muted-foreground line-clamp-3">{layout.description || "No description available."}</p>
+              </CardContent>
+              <CardFooter className="flex-col items-stretch gap-2">
+                {selectedLayoutId === layout.id ? ( 
+                  <Button className="w-full" variant="outline" disabled>
+                      <CheckCircle className="mr-2 h-4 w-4" /> Currently Selected
+                  </Button>
+                ) : (
+                  <Button className="w-full" onClick={() => handleSelectLayout(layout.id!)} disabled={isSavingSelection || isLoadingUserWeddingData}>
+                      {(isSavingSelection || isLoadingUserWeddingData) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Select this Layout
+                  </Button>
+                )}
+                 {layout.ownerId === currentUser?.uid && (
+                    <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground hover:text-destructive" disabled>
+                        <Trash2 className="mr-1.5 h-3 w-3" /> Delete My Layout (Soon)
+                    </Button>
+                 )}
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
 }
-
-// Missing Undo2, Redo2, Save icons - import them if available or use alternatives
-// For now, let's assume they are available or will be handled.
-// If not, I'll need to remove or replace them. Let's use generic placeholders for now if they don't exist.
-// For simplicity, I will remove them for now from the imports if they are not already standard in lucide-react.
-// Looking at lucide-react, Undo2, Redo2, Save are available.
-
-    
 
     
