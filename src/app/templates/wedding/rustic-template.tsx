@@ -3,6 +3,7 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
+import type { Timestamp } from 'firebase/firestore';
 import BaseTemplate from './base-template';
 import { nunitoSans, caveat } from '../../../lib/fonts'; 
 import { Calendar, MapPin, Heart, Users, Gift, Leaf, Clock, Camera } from 'lucide-react';
@@ -12,6 +13,13 @@ interface RusticTemplateProps {
   wedding: Partial<Wedding>;
   isPreviewMode?: boolean;
 }
+
+const toDate = (val?: Timestamp | string | Date | null) => {
+  if (!val) return undefined;
+  if (val instanceof Date) return val;
+  if (typeof val === 'string' || typeof val === 'number') return new Date(val);
+  return val.toDate();
+};
 
 const RusticTemplate: React.FC<RusticTemplateProps> = ({ wedding, isPreviewMode }) => {
   return (
@@ -40,14 +48,14 @@ const RusticTemplate: React.FC<RusticTemplateProps> = ({ wedding, isPreviewMode 
                   <h3 className="text-xl sm:text-2xl font-semibold mb-3 text-[#5d4037]" style={{ fontFamily: "'Times New Roman', Times, serif" }}>When</h3>
                   <p className="text-base sm:text-lg text-[#6d4c41] mb-1">
                     {wedding.date
-                      ? new Date(wedding.date).toLocaleDateString('en-US', {
+                      ? toDate(wedding.date)?.toLocaleDateString('en-US', {
                           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                         })
                       : 'Date to be announced'}
                   </p>
                   <p className="text-base sm:text-lg text-[#6d4c41]">
                     {wedding.date
-                      ? new Date(wedding.date).toLocaleTimeString('en-US', {
+                      ? toDate(wedding.date)?.toLocaleTimeString('en-US', {
                           hour: 'numeric', minute: '2-digit', hour12: true,
                         })
                       : 'Time to be announced'}
@@ -154,7 +162,7 @@ const RusticTemplate: React.FC<RusticTemplateProps> = ({ wedding, isPreviewMode 
               Will You Be There?
             </h2>
             <p className="text-base sm:text-lg text-[#5d4037] mb-6 md:mb-8 max-w-xl mx-auto">
-              We&apos;d be overjoyed to share our special day with you. Please let us know if you can make it by {wedding.rsvpDeadline ? new Date(wedding.rsvpDeadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric'}) : 'the deadline'}.
+              We&apos;d be overjoyed to share our special day with you. Please let us know if you can make it by {wedding.rsvpDeadline ? toDate(wedding.rsvpDeadline)?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric'}) : 'the deadline'}.
             </p>
             <button className="px-8 sm:px-10 py-2 sm:py-3 bg-[#795548] text-white rounded-md shadow-lg hover:bg-[#6d4c41] transition-colors text-base sm:text-lg font-semibold">
               RSVP

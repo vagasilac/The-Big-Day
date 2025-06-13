@@ -3,6 +3,7 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
+import type { Timestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Heart } from 'lucide-react';
 import Image from 'next/image';
@@ -13,9 +14,16 @@ interface BaseTemplateProps {
   isPreviewMode?: boolean;
 }
 
+const toDate = (val?: Timestamp | string | Date | null) => {
+  if (!val) return undefined;
+  if (val instanceof Date) return val;
+  if (typeof val === 'string' || typeof val === 'number') return new Date(val);
+  return val.toDate();
+};
+
 const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children, isPreviewMode }) => {
   const formattedDate = wedding.date
-    ? format(new Date(wedding.date), "EEEE, MMMM do, yyyy 'at' h:mm a")
+    ? format(toDate(wedding.date)!, "EEEE, MMMM do, yyyy 'at' h:mm a")
     : 'Date to be announced';
 
   const titleClassName = isPreviewMode

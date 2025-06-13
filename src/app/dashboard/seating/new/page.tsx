@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Konva from 'konva';
 import { Stage, Layer, Rect, Circle as KonvaCircle, Group, Line, Text, Transformer } from 'react-konva';
 import { v4 as uuidv4 } from 'uuid';
@@ -25,7 +25,7 @@ import { Square, Circle as CircleIcon, ArrowLeft, Save, Loader2 } from 'lucide-r
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config'; // Import auth and db
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import type { VenueLayout as StoredVenueLayout, TableElement as StoredTableElement, Chair as StoredChair } from '@/types/venue';
 
 
@@ -221,6 +221,9 @@ const chairDragBoundFunc = (
 
 export default function NewLayoutPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const layoutId = searchParams.get('layoutId');
+  const isEditMode = !!layoutId;
   const { toast } = useToast();
   const [tables, setTables] = useState<TableElement[]>([]);
   const [venueShape, setVenueShape] = useState<number[]>([]); // Not used for saving yet
@@ -243,6 +246,36 @@ export default function NewLayoutPage() {
   const [isSaveLayoutDialogOpen, setIsSaveLayoutDialogOpen] = useState(false);
   const [layoutNameInput, setLayoutNameInput] = useState<string>("");
   const [isSavingLayout, setIsSavingLayout] = useState(false);
+  const [isLoadingLayout, setIsLoadingLayout] = useState(isEditMode);
+
+  useEffect(() => {
+    const fetchLayout = async () => {
+      if (!isEditMode || !layoutId) {
+        setIsLoadingLayout(false);
+        return;
+      }
+      try {
+        const docRef = doc(db, 'venueLayouts', layoutId);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          const data = snap.data() as StoredVenueLayout;
+          setTables(data.tables || []);
+          setVenueShape(data.venueShape || []);
+          setLayoutNameInput(data.name || '');
+        } else {
+          toast({ title: 'Not Found', description: 'Venue layout does not exist', variant: 'destructive' });
+          router.back();
+        }
+      } catch (error: any) {
+        console.error('Error fetching layout', error);
+        toast({ title: 'Error', description: 'Unable to fetch layout.', variant: 'destructive' });
+        router.back();
+      } finally {
+        setIsLoadingLayout(false);
+      }
+    };
+    fetchLayout();
+  }, [isEditMode, layoutId, router, toast]);
 
   const generateInitialChairs = useCallback((tableBase: Omit<TableElement, 'id' | 'chairs' | 'displayOrderNumber' | 'rotation'>): Chair[] => {
     const capacity = tableBase.capacity;
@@ -525,30 +558,51 @@ export default function NewLayoutPage() {
     };
 
     try {
-      const docRef = await addDoc(collection(db, "venueLayouts"), {
-        ...newLayoutData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      toast({
-        title: "Layout Saved!",
-        description: `Layout "${layoutNameInput.trim()}" has been successfully saved.`,
-      });
+      if (isEditMode && layoutId) {
+        const docRef = doc(db, 'venueLayouts', layoutId);
+        await updateDoc(docRef, {
+          ...newLayoutData,
+          updatedAt: serverTimestamp(),
+        });
+        toast({
+          title: 'Layout Updated',
+          description: `Layout "${layoutNameInput.trim()}" has been updated.`,
+        });
+      } else {
+        await addDoc(collection(db, 'venueLayouts'), {
+          ...newLayoutData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        toast({
+          title: 'Layout Saved!',
+          description: `Layout "${layoutNameInput.trim()}" has been successfully saved.`,
+        });
+      }
       setIsSaveLayoutDialogOpen(false);
-      setLayoutNameInput("");
-      // router.push('/dashboard/seating'); 
+      if (!isEditMode) {
+        setLayoutNameInput('');
+      }
     } catch (error: any) {
-      console.error("Error saving layout:", error);
+      console.error('Error saving layout:', error);
       toast({
-        title: "Save Failed",
+        title: 'Save Failed',
         description: `Could not save layout. ${error.message || 'Unknown error.'}`,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setIsSavingLayout(false);
     }
   };
 
+
+  if (isLoadingLayout) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 md:gap-8 h-[calc(100vh-8rem)]">
@@ -557,9 +611,9 @@ export default function NewLayoutPage() {
             <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl font-bold tracking-tight">Create New Venue Layout</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{isEditMode ? 'Edit Venue Layout' : 'Create New Venue Layout'}</h1>
         </div>
-        <Button variant="default" onClick={() => setIsSaveLayoutDialogOpen(true)} disabled={tables.length === 0 || isSavingLayout}>
+        <Button variant="default" onClick={() => setIsSaveLayoutDialogOpen(true)} disabled={tables.length === 0 || isSavingLayout || isLoadingLayout}>
           {isSavingLayout ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Save Layout
         </Button> 
@@ -874,7 +928,7 @@ export default function NewLayoutPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button" variant="outline" onClick={() => setLayoutNameInput("")}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => { if (!isEditMode) setLayoutNameInput(""); }}>Cancel</Button>
             </DialogClose>
             <Button type="button" onClick={handleSaveLayout} disabled={isSavingLayout || !layoutNameInput.trim()}>
               {isSavingLayout && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
