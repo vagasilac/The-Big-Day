@@ -40,9 +40,9 @@ const FONT_SIZE_CAPACITY_RECT = 10;
 const FONT_SIZE_NUMBER_CIRCLE = 16;
 const FONT_SIZE_CAPACITY_CIRCLE = 12;
 const TEXT_VERTICAL_GAP = 4;
-const CHAIR_RADIUS = 10; // Slightly larger for easier dropping
-const ASSIGNED_CHAIR_FILL = '#a5d6a7'; // Soft green for assigned
-const CHAIR_TEXT_COLOR = '#1b5e20'; // Dark green for text on assigned chair
+const CHAIR_RADIUS = 10; 
+const ASSIGNED_CHAIR_FILL = '#a5d6a7'; 
+const CHAIR_TEXT_COLOR = '#1b5e20'; 
 
 export default function SeatingPage() {
   const router = useRouter();
@@ -91,7 +91,7 @@ export default function SeatingPage() {
             robserver.unobserve(editorCanvasContainerRef.current);
         }
     }
-  }, [selectedLayoutId]); // Rerun when a layout is selected to ensure container is measured
+  }, [selectedLayoutId]); 
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
@@ -108,8 +108,6 @@ export default function SeatingPage() {
             const currentWeddingData = { id: weddingDoc.id, ...weddingDoc.data() } as Wedding;
             setWeddingData(currentWeddingData);
             setSelectedLayoutId(currentWeddingData.selectedVenueLayoutId);
-            // TODO: Fetch saved seating assignments for this wedding and layout if they exist
-            // setSeatingAssignments(fetchedAssignments); 
           } else {
             setWeddingData(null);
             setSelectedLayoutId(null);
@@ -182,7 +180,7 @@ export default function SeatingPage() {
     const guestsRef = collection(db, 'weddings', weddingId, 'guests');
     const unsubscribeGuests = onSnapshot(guestsRef, (snapshot) => {
       const guestList: Guest[] = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Guest, 'id'>) }));
-      setGuests(guestList.filter(g => g.rsvpStatus === 'accepted')); // Only show accepted guests for seating
+      setGuests(guestList.filter(g => g.rsvpStatus === 'accepted')); 
       setIsLoadingGuests(false);
     }, (error) => {
       console.error("Error fetching guests:", error);
@@ -199,7 +197,7 @@ export default function SeatingPage() {
         unsubscribeGuests = await fetchGuests(weddingData.id);
       })();
     } else {
-      setGuests([]); // Clear guests if no layout or wedding
+      setGuests([]); 
     }
     return () => {
       if (unsubscribeGuests) {
@@ -221,7 +219,7 @@ export default function SeatingPage() {
       });
       setSelectedLayoutId(layoutId);
       setWeddingData(prev => prev ? ({ ...prev, selectedVenueLayoutId: layoutId }) : null);
-      setSeatingAssignments({}); // Reset assignments when changing layout
+      setSeatingAssignments({}); 
       toast({ title: "Layout Selected", description: "Venue layout has been updated for your wedding." });
     } catch (error) {
       console.error("Error selecting layout:", error);
@@ -302,7 +300,6 @@ export default function SeatingPage() {
         return newAssignments;
     });
     setDraggedGuestInfo(null);
-    // Consider toasting success or providing other feedback
   };
 
   const assignedGuestIds = useMemo(() => {
@@ -361,7 +358,7 @@ export default function SeatingPage() {
                       className={`p-3 border rounded-md cursor-grab transition-opacity ${isAssigned ? 'bg-muted/70 opacity-60 hover:opacity-80' : 'bg-background hover:bg-secondary'}`}
                       draggable={!isAssigned}
                       onDragStart={() => !isAssigned && setDraggedGuestInfo({ guestId: guest.id!, guestName: guest.name })}
-                      onDragEnd={() => setDraggedGuestInfo(null)} // Clear on drag end regardless of drop
+                      onDragEnd={() => setDraggedGuestInfo(null)} 
                       title={isAssigned ? `${guest.name} is already seated` : `Drag ${guest.name} to a seat`}
                     >
                       <div className="flex items-center justify-between">
@@ -396,7 +393,8 @@ export default function SeatingPage() {
                   width={stageDimensions.width} 
                   height={stageDimensions.height} 
                   className="bg-white rounded-b-md shadow-inner"
-                  onDragOver={(e) => e.evt.preventDefault()} // Allow dropping on the stage itself if needed, or on specific layers/groups
+                  onDragOver={(e) => e.evt.preventDefault()}
+                  onDrop={(e) => e.evt.preventDefault()} // Added to Stage as well
                   style={{
                       backgroundImage: currentSelectedLayoutDetails.previewImageUrl 
                         ? `url(${currentSelectedLayoutDetails.previewImageUrl})`
@@ -432,11 +430,21 @@ export default function SeatingPage() {
                             const assignment = seatingAssignments[chair.id];
                             const guestInitials = assignment ? assignment.guestName.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() : '';
                             return (
-                              <Group key={chair.id} x={chair.x} y={chair.y} 
+                              <Group 
+                                key={chair.id} 
+                                x={chair.x} 
+                                y={chair.y} 
+                                listening={true} // Ensure group is listening
+                                onDragEnter={(e) => e.evt.preventDefault()} // Added onDragEnter
                                 onDragOver={(e) => e.evt.preventDefault()}
-                                onDrop={(e) => { e.evt.preventDefault(); handleDropOnChair(chair.id); }}
+                                onDrop={(e) => { 
+                                  e.evt.preventDefault(); 
+                                  if (draggedGuestInfo) {
+                                    handleDropOnChair(chair.id);
+                                  }
+                                }}
                                 onClick={() => { if(assignment) unassignGuestFromChair(chair.id); }}
-                                onTap={() => { if(assignment) unassignGuestFromChair(chair.id); }} // For touch devices
+                                onTap={() => { if(assignment) unassignGuestFromChair(chair.id); }}
                                 >
                                 <KonvaCircle
                                   radius={CHAIR_RADIUS} 
@@ -544,4 +552,3 @@ export default function SeatingPage() {
     </div>
   );
 }
-
