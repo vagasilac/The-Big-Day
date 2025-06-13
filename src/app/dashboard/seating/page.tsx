@@ -302,6 +302,29 @@ export default function SeatingPage() {
     setDraggedGuestInfo(null);
   };
 
+  const handleCanvasDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!draggedGuestInfo || !stageRef.current) return;
+
+    const stage = stageRef.current;
+    const rect = stage.container().getBoundingClientRect();
+    const point = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+    const shape = stage.getIntersection(point);
+    if (shape) {
+      const chairGroup = shape.findAncestor('.chair-group', true);
+      if (chairGroup) {
+        handleDropOnChair(chairGroup.id());
+      }
+    }
+  };
+
+  const handleCanvasDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
   const assignedGuestIds = useMemo(() => {
     return new Set(Object.values(seatingAssignments).map(a => a.guestId));
   }, [seatingAssignments]);
@@ -357,7 +380,17 @@ export default function SeatingPage() {
                       key={guest.id} 
                       className={`p-3 border rounded-md cursor-grab transition-opacity ${isAssigned ? 'bg-muted/70 opacity-60 hover:opacity-80' : 'bg-background hover:bg-secondary'}`}
                       draggable={!isAssigned}
-                      onDragStart={() => !isAssigned && setDraggedGuestInfo({ guestId: guest.id!, guestName: guest.name })}
+                      onDragStart={(e) => {
+                        if (!isAssigned) {
+                          try {
+                            e.dataTransfer.setData('text/plain', guest.id!);
+                            e.dataTransfer.effectAllowed = 'move';
+                          } catch (err) {
+                            // ignore unsupported browser errors
+                          }
+                          setDraggedGuestInfo({ guestId: guest.id!, guestName: guest.name });
+                        }
+                      }}
                       onDragEnd={() => setDraggedGuestInfo(null)} 
                       title={isAssigned ? `${guest.name} is already seated` : `Drag ${guest.name} to a seat`}
                     >
@@ -387,14 +420,17 @@ export default function SeatingPage() {
             </CardHeader>
             
             <div ref={editorCanvasContainerRef} className="flex flex-col flex-grow overflow-hidden">
-              <div className="flex-grow bg-background border-r p-0 relative overflow-auto">
-                <Stage 
-                  ref={stageRef} 
-                  width={stageDimensions.width} 
-                  height={stageDimensions.height} 
+              <div
+                className="flex-grow bg-background border-r p-0 relative overflow-auto"
+                onDragOver={handleCanvasDragOver}
+                onDrop={handleCanvasDrop}
+              >
+                <Stage
+                  ref={stageRef}
+                  width={stageDimensions.width}
+                  height={stageDimensions.height}
                   className="bg-white rounded-b-md shadow-inner"
-                  onDragOver={(e) => e.evt.preventDefault()}
-                  onDrop={(e) => e.evt.preventDefault()} // Added to Stage as well
+                  
                   style={{
                       backgroundImage: currentSelectedLayoutDetails.previewImageUrl 
                         ? `url(${currentSelectedLayoutDetails.previewImageUrl})`
@@ -430,19 +466,13 @@ export default function SeatingPage() {
                             const assignment = seatingAssignments[chair.id];
                             const guestInitials = assignment ? assignment.guestName.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() : '';
                             return (
-                              <Group 
-                                key={chair.id} 
-                                x={chair.x} 
-                                y={chair.y} 
-                                listening={true} // Ensure group is listening
-                                onDragEnter={(e) => e.evt.preventDefault()} // Added onDragEnter
-                                onDragOver={(e) => e.evt.preventDefault()}
-                                onDrop={(e) => { 
-                                  e.evt.preventDefault(); 
-                                  if (draggedGuestInfo) {
-                                    handleDropOnChair(chair.id);
-                                  }
-                                }}
+                              <Group
+                                key={chair.id}
+                                id={chair.id}
+                                name="chair-group"
+                                x={chair.x}
+                                y={chair.y}
+                                listening={true}
                                 onClick={() => { if(assignment) unassignGuestFromChair(chair.id); }}
                                 onTap={() => { if(assignment) unassignGuestFromChair(chair.id); }}
                                 >
