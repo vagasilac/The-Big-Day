@@ -33,6 +33,8 @@ export interface Wedding {
   rsvpDeadline?: Timestamp | null;
   selectedVenueLayoutId?: string; // ID of the VenueLayout selected for seating
   seatingArrangementId?: string; // ID of the specific SeatingArrangement document
+  seatingAssignments?: Record<string, { guestId: string; guestName: string }>; // Stores chairId -> guest mapping
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
+
