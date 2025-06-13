@@ -1,17 +1,18 @@
+
 'use client';
 
 import React, { useEffect, useState, ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Trash2, LayoutGrid as LayoutGridIcon } from 'lucide-react'; // Added LayoutGridIcon
 import Image from 'next/image';
 
-import { auth, db, storage } from '@/lib/firebase-config'; // Assuming storage might be needed for preview images
+import { auth, db, storage } from '@/lib/firebase-config';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 
-import type { VenueLayout, TableElement as StoredTableElement, Chair as StoredChair } from '@/types/venue'; // Assuming types
+import type { VenueLayout } from '@/types/venue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,14 +31,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils'; // Ensure cn is imported if used by FormDescription
 
-
-// Helper to ensure Timestamps are converted to ISO strings or Date objects
+// Helper to ensure Timestamps are converted
 const ensureDateFields = (data: any): VenueLayout => {
+  const convertTimestamp = (ts: any) => ts?.toDate ? ts.toDate().toISOString() : ts;
   return {
     ...data,
-    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
-    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt,
+    createdAt: convertTimestamp(data.createdAt),
+    updatedAt: convertTimestamp(data.updatedAt),
   } as VenueLayout;
 };
 
@@ -48,13 +50,14 @@ export default function EditVenueLayoutPage() {
   const { toast } = useToast();
   
   const [layout, setLayout] = useState<VenueLayout | null>(null);
-  const [layoutName, setLayoutName] = useState('');
+  const [layoutName, setLayoutName] = useState(''); // This is for the input field
   const [layoutDescription, setLayoutDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [previewImageFile, setPreviewImageFile] = useState<File | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
-  const [currentPreviewImageUrl, setCurrentPreviewImageUrl] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null); // For local preview before upload
+  const [currentPreviewImageUrl, setCurrentPreviewImageUrl] = useState<string | null>(null); // Stored URL
   const [dataAiHint, setDataAiHint] = useState<string>('');
+
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -77,7 +80,7 @@ export default function EditVenueLayoutPage() {
   useEffect(() => {
     const fetchLayout = async () => {
       if (!layoutId || !currentUserId) {
-        if (!layoutId) setIsLoading(false); // Only stop loading if layoutId is definitively missing
+        if (!layoutId && !isLoading) setIsLoading(false); 
         return;
       }
       setIsLoading(true);
@@ -92,12 +95,13 @@ export default function EditVenueLayoutPage() {
             return;
           }
           setLayout(data);
-          setLayoutName(data.name);
+          setLayoutName(data.name); // Update input field state
           setLayoutDescription(data.description || '');
           setIsPublic(data.isPublic || false);
           setCurrentPreviewImageUrl(data.previewImageUrl || null);
-          setPreviewImageUrl(data.previewImageUrl || null); // for display
+          setPreviewImageUrl(data.previewImageUrl || null); // For display
           setDataAiHint(data.dataAiHint || '');
+
 
         } else {
           toast({ title: 'Not Found', description: 'Venue layout does not exist.', variant: 'destructive' });
@@ -113,7 +117,8 @@ export default function EditVenueLayoutPage() {
     if (layoutId && currentUserId) {
         fetchLayout();
     }
-  }, [layoutId, currentUserId, router, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutId, currentUserId, router, toast]); 
 
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -127,47 +132,41 @@ export default function EditVenueLayoutPage() {
       reader.readAsDataURL(file);
     } else {
       setPreviewImageFile(null);
-       // If file is removed, revert to original stored URL or null if none was stored
-      setPreviewImageUrl(currentPreviewImageUrl);
+      setPreviewImageUrl(currentPreviewImageUrl); 
     }
   };
   
   const handleRemovePreviewImage = async () => {
     let imagePathToDelete: string | null = null;
 
-    if (previewImageFile) { // User selected a new file but wants to remove it before saving
+    if (previewImageFile) { 
         setPreviewImageFile(null);
-        setPreviewImageUrl(currentPreviewImageUrl); // Revert to original if it exists
+        setPreviewImageUrl(currentPreviewImageUrl); 
         return;
     }
     
     if (currentPreviewImageUrl && layout?.previewImageUrl === currentPreviewImageUrl) {
-        // User wants to remove an existing image that's stored in Firebase
         imagePathToDelete = currentPreviewImageUrl;
     }
 
     if (imagePathToDelete) {
-        setIsUploading(true); // Reuse for disabling during deletion
+        setIsUploading(true); 
         try {
             const imageStorageRef = storageRef(storage, imagePathToDelete);
             await deleteObject(imageStorageRef);
             toast({ title: 'Image Removed', description: 'Preview image removed from storage.' });
             
-            // Update Firestore immediately for this change, or handle it within main save
             const docRef = doc(db, 'venueLayouts', layoutId);
             await updateDoc(docRef, {
-              previewImageUrl: '', // Or delete the field: deleteField()
+              previewImageUrl: '', 
               updatedAt: serverTimestamp()
             });
             setCurrentPreviewImageUrl(null);
             setPreviewImageUrl(null);
             if(layout) setLayout({...layout, previewImageUrl: undefined });
 
-
         } catch (error: any) {
             console.error("Error removing image from storage: ", error);
-            // If storage object not found, it might have been deleted already.
-            // Still proceed to clear it from Firestore.
             if (error.code === 'storage/object-not-found') {
                  toast({ title: 'Info', description: 'Image already removed from storage or not found. Updated record.', variant: 'default' });
                  const docRef = doc(db, 'venueLayouts', layoutId);
@@ -185,7 +184,6 @@ export default function EditVenueLayoutPage() {
             setIsUploading(false);
         }
     } else {
-        // No image was previously stored or it was already cleared
         setPreviewImageUrl(null);
     }
 };
@@ -200,14 +198,14 @@ export default function EditVenueLayoutPage() {
       toast({ title: 'Permission Denied', description: 'You do not have permission to update this layout.', variant: 'destructive' });
       return;
     }
-    if (!layoutName.trim()) {
+    if (!layoutName.trim()) { // Use layoutName (from input state) for validation
       toast({ title: 'Name Required', description: 'Please provide a layout name.', variant: 'destructive' });
       return;
     }
     setIsSaving(true);
     setIsUploading(false);
 
-    let finalImageUrl = currentPreviewImageUrl; // Start with the existing URL
+    let finalImageUrl = currentPreviewImageUrl; 
 
     if (previewImageFile) {
       setIsUploading(true);
@@ -231,33 +229,32 @@ export default function EditVenueLayoutPage() {
             }
           );
         });
-        setCurrentPreviewImageUrl(finalImageUrl); // Update current for subsequent saves
-        setPreviewImageFile(null); // Clear file after successful upload
+        setCurrentPreviewImageUrl(finalImageUrl);
+        setPreviewImageFile(null); 
         toast({ title: 'Image Uploaded', description: 'Preview image updated successfully.' });
       } catch (error: any) {
         console.error('Error uploading preview image:', error);
         toast({ title: 'Image Upload Failed', description: 'Could not upload preview image. ' + error.message, variant: 'destructive' });
         setIsUploading(false);
         setIsSaving(false);
-        return; // Stop save if image upload fails
+        return;
       } finally {
         setIsUploading(false);
       }
     } else if (previewImageUrl === null && currentPreviewImageUrl !== null) {
-      // This means the user explicitly removed an existing image without uploading a new one
-      finalImageUrl = ''; // Set to empty string to signify removal in Firestore
+      finalImageUrl = ''; 
     }
 
 
     try {
       const docRef = doc(db, 'venueLayouts', layoutId);
       const dataToUpdate: Partial<VenueLayout> = {
-        name: layoutName.trim(),
+        name: layoutName.trim(), // Save the name from the input field state
         description: layoutDescription || '',
         isPublic,
-        previewImageUrl: finalImageUrl || '', // Store empty string if null
+        previewImageUrl: finalImageUrl || '', 
         dataAiHint: dataAiHint || '',
-        updatedAt: serverTimestamp() as any, // Firestore handles the actual Timestamp
+        updatedAt: serverTimestamp() as any, 
       };
 
       await updateDoc(docRef, dataToUpdate);
@@ -282,7 +279,7 @@ export default function EditVenueLayoutPage() {
   if (!layout) {
     return (
       <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 max-w-2xl text-center">
-        <p className="text-xl text-muted-foreground">Venue layout not found or you don't have permission to view it.</p>
+        <p className="text-xl text-muted-foreground">Venue layout not found or you don&apos;t have permission to view it.</p>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/dashboard/seating">Go back to Seating</Link>
         </Button>
@@ -301,7 +298,7 @@ export default function EditVenueLayoutPage() {
             </Link>
           </Button>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {`Edit Layout: ${layout.name}`}
+            {`Edit Layout: ${layout ? layout.name : (isLoading ? 'Loading name...' : 'Details')}`}
           </h1>
         </div>
         <Button onClick={handleSave} disabled={isSaving || isUploading}>
@@ -323,7 +320,7 @@ export default function EditVenueLayoutPage() {
             </Label>
             <Input
               id="layout-name"
-              value={layoutName}
+              value={layoutName} // Use layoutName state for input
               onChange={(e) => setLayoutName(e.target.value)}
               placeholder="e.g., Grand Ballroom - Wedding Setup"
             />
@@ -349,7 +346,7 @@ export default function EditVenueLayoutPage() {
                     <Image src={previewImageUrl} alt="Layout preview" layout="fill" objectFit="contain" />
                 ) : (
                     <div className="text-center text-muted-foreground p-2">
-                    <LayoutGrid className="mx-auto h-10 w-10" />
+                    <LayoutGridIcon className="mx-auto h-10 w-10" /> {/* Use imported icon */}
                     <p className="text-xs mt-1">No preview image.</p>
                     </div>
                 )}
@@ -378,7 +375,7 @@ export default function EditVenueLayoutPage() {
                 Upload an image to represent this layout (e.g., a screenshot or diagram).
             </FormDescription>
           </div>
-
+          
           <div>
             <Label htmlFor="data-ai-hint" className="block text-sm font-medium mb-1">
               Image Search Hint (Optional)
@@ -398,7 +395,7 @@ export default function EditVenueLayoutPage() {
               id="is-public"
               checked={isPublic}
               onCheckedChange={(checked) => setIsPublic(checked as boolean)}
-              disabled={layout.ownerId !== currentUserId} // Only owner can change public status
+              disabled={!layout || layout.ownerId !== currentUserId}
             />
             <Label htmlFor="is-public" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Make this layout a public template
@@ -417,7 +414,7 @@ export default function EditVenueLayoutPage() {
         <CardContent>
              <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={layout.ownerId !== currentUserId || isSaving || isUploading}>
+                    <Button variant="destructive" disabled={!layout || layout.ownerId !== currentUserId || isSaving || isUploading}>
                         <Trash2 className="mr-2 h-4 w-4" /> Delete This Layout
                     </Button>
                 </AlertDialogTrigger>
@@ -426,7 +423,7 @@ export default function EditVenueLayoutPage() {
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
                         This action cannot be undone. This will permanently delete the
-                        <strong> {layoutName || 'this layout'}</strong> and all its associated data.
+                        <strong> {layoutName || (layout ? layout.name : 'this layout')}</strong> and all its associated data.
                         If this layout is currently selected for any wedding, that selection will be cleared.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -434,26 +431,25 @@ export default function EditVenueLayoutPage() {
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={async () => {
-                             if (!layoutId || !currentUserId || layout.ownerId !== currentUserId) return;
+                             if (!layoutId || !currentUserId || !layout || layout.ownerId !== currentUserId) return;
                             setIsSaving(true);
                             try {
-                                // Delete associated preview image from storage if it exists
                                 if (layout.previewImageUrl) {
                                     try {
                                         const imageStorageRef = storageRef(storage, layout.previewImageUrl);
                                         await deleteObject(imageStorageRef);
                                     } catch (imgError: any) {
-                                        // Log error but don't block layout deletion if image deletion fails (e.g., already deleted)
                                         console.warn("Could not delete preview image from storage:", imgError);
                                     }
                                 }
                                 await deleteDoc(doc(db, 'venueLayouts', layoutId));
-                                toast({ title: 'Layout Deleted', description: `Layout "${layoutName}" was successfully deleted.`});
+                                toast({ title: 'Layout Deleted', description: `Layout "${layoutName || layout.name}" was successfully deleted.`});
                                 router.push('/dashboard/seating');
                             } catch (error: any) {
                                 toast({ title: 'Deletion Failed', description: error.message, variant: 'destructive' });
-                                setIsSaving(false);
+                                setIsSaving(false); // Ensure saving is reset on error
                             }
+                            // No finally setIsSaving(false) here because router.push might unmount
                         }}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         disabled={isSaving}
@@ -473,18 +469,7 @@ export default function EditVenueLayoutPage() {
   );
 }
 
-// Minimal LayoutGrid icon for placeholder
-const LayoutGrid = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <rect width="7" height="7" x="3" y="3" rx="1"></rect>
-    <rect width="7" height="7" x="14" y="3" rx="1"></rect>
-    <rect width="7" height="7" x="14" y="14" rx="1"></rect>
-    <rect width="7" height="7" x="3" y="14" rx="1"></rect>
-  </svg>
-);
-
-// FormDescription component if not globally available
+// FormDescription component (if not globally available from ui/form)
 const FormDescription = ({ className, children }: { className?: string, children: React.ReactNode }) => (
     <p className={cn("text-sm text-muted-foreground", className)}>{children}</p>
 );
-
