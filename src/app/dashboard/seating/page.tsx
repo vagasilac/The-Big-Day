@@ -109,8 +109,9 @@ export default function SeatingPage() {
         return {
           id: doc.id,
           ...data,
-          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : undefined,
-          updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : undefined,
+          // Ensure Timestamps are converted if they exist, otherwise keep as is or undefined
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+          updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
         } as VenueLayout;
       });
       setVenueLayouts(fetchedLayouts);
@@ -220,7 +221,7 @@ export default function SeatingPage() {
         await deleteDoc(doc(db, 'venueLayouts', layoutToDelete.id));
 
         if (weddingData?.selectedVenueLayoutId === layoutToDelete.id) {
-            await handleClearSelection(); // This will also clear local selectedLayoutId and weddingData.selectedVenueLayoutId
+            await handleClearSelection(); 
         }
         
         setVenueLayouts(prevLayouts => prevLayouts.filter(l => l.id !== layoutToDelete.id));
@@ -230,7 +231,7 @@ export default function SeatingPage() {
         toast({ title: "Deletion Failed", description: `Could not delete layout. ${error.message || 'Unknown error.'}`, variant: "destructive" });
     } finally {
         setIsDeletingLayout(false);
-        setLayoutToDelete(null); // Close dialog
+        setLayoutToDelete(null); 
     }
   };
 
@@ -351,8 +352,10 @@ export default function SeatingPage() {
               <CardTitle className="flex items-center gap-2"><LayoutGrid className="h-5 w-5 text-primary" /> Venue: {currentSelectedLayoutDetails.name}</CardTitle>
                <div className="flex justify-between items-center">
                 <CardDescription>Drag guests to tables. Max Capacity: {currentSelectedLayoutDetails.totalCapacity}</CardDescription>
-                <Button variant="outline" size="sm" onClick={() => toast({ title: "Coming Soon", description: "Editing this layout will be available soon!"})} >
-                    <Edit className="mr-2 h-3 w-3"/> Edit This Layout
+                <Button variant="outline" size="sm" asChild>
+                    <Link href={`/dashboard/seating/edit/${currentSelectedLayoutDetails.id}`}>
+                      <Edit className="mr-2 h-3 w-3"/> Edit This Layout
+                    </Link>
                 </Button>
                </div>
             </CardHeader>
@@ -463,8 +466,8 @@ export default function SeatingPage() {
                   <Image 
                     src={layout.previewImageUrl} 
                     alt={layout.name || 'Venue layout preview'} 
-                    layout="fill" 
-                    objectFit="cover" 
+                    fill
+                    style={{ objectFit: 'cover' }}
                     data-ai-hint={layout.dataAiHint || "venue layout"} />
                   </div>
               ) : (
@@ -495,14 +498,40 @@ export default function SeatingPage() {
                 )}
                  {layout.ownerId === currentUser?.uid && (
                     <div className="flex gap-2 mt-2">
-                        <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => toast({ title: "Coming Soon", description: "Editing layouts will be available soon!"})}>
+                        <Button variant="outline" size="sm" className="w-full text-xs" asChild>
+                          <Link href={`/dashboard/seating/edit/${layout.id}`}>
                             <Edit className="mr-1.5 h-3 w-3" /> Edit
+                          </Link>
                         </Button>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="w-full text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setLayoutToDelete(layout)}>
-                                <Trash2 className="mr-1.5 h-3 w-3" /> Delete
-                            </Button>
-                        </AlertDialogTrigger>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="w-full text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setLayoutToDelete(layout)}>
+                                  <Trash2 className="mr-1.5 h-3 w-3" /> Delete
+                              </Button>
+                          </AlertDialogTrigger>
+                          {layoutToDelete && layoutToDelete.id === layout.id && (
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure you want to delete "{layoutToDelete.name}"?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete the venue layout.
+                                        If this layout is currently selected for your wedding, the selection will be cleared.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setLayoutToDelete(null)}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={handleDeleteLayout}
+                                        disabled={isDeletingLayout}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        {isDeletingLayout && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Delete Layout
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                          )}                       
+                        </AlertDialog>
                     </div>
                  )}
               </CardFooter>
@@ -510,31 +539,6 @@ export default function SeatingPage() {
           ))}
         </div>
       )}
-      {layoutToDelete && (
-        <AlertDialog open={!!layoutToDelete} onOpenChange={(open) => { if (!open) setLayoutToDelete(null); }}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure you want to delete "{layoutToDelete.name}"?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the venue layout.
-                        If this layout is currently selected for your wedding, the selection will be cleared.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setLayoutToDelete(null)}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={handleDeleteLayout}
-                        disabled={isDeletingLayout}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                        {isDeletingLayout && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Delete Layout
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-      )}
     </div>
   );
 }
-
