@@ -22,6 +22,7 @@ export interface TableElement {
   capacity: number; // Number of guests this table can accommodate
   chairs: Chair[]; // Array of chairs belonging to this table
   displayOrderNumber: number; // User-assigned number for display (e.g., Table #1)
+  label?: string; // Optional label for non-table elements like stages or stations
   // assignedGuests?: string[]; // Optional: For later when assigning guests
 }
 

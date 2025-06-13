@@ -21,7 +21,19 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { Square, Circle as CircleIcon, ArrowLeft, Save, Loader2 } from 'lucide-react'; // Added Save, Loader2
+import {
+  Square,
+  Circle as CircleIcon,
+  ArrowLeft,
+  Save,
+  Loader2,
+  Candy,
+  CupSoda,
+  Presentation,
+  Footprints,
+  Shapes,
+  Trash2,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config'; // Import auth and db
@@ -47,6 +59,7 @@ interface TableElement {
   capacity: number;
   chairs: Chair[];
   displayOrderNumber: number;
+  label?: string;
 }
 
 const FONT_SIZE_NUMBER_RECT = 14;
@@ -241,6 +254,10 @@ export default function NewLayoutPage() {
   const tableNodeRefs = useRef<Map<string, Konva.Group>>(new Map());
   const transformerRef = useRef<Konva.Transformer>(null);
   const stageRef = useRef<Konva.Stage>(null);
+
+  // Custom element dialog
+  const [isAddElementDialogOpen, setIsAddElementDialogOpen] = useState(false);
+  const [newElementLabel, setNewElementLabel] = useState<string>("");
   
   // State for Save Layout Dialog
   const [isSaveLayoutDialogOpen, setIsSaveLayoutDialogOpen] = useState(false);
@@ -340,6 +357,50 @@ export default function NewLayoutPage() {
     setTableTypeToAdd(null);
   };
 
+  const addElement = (
+    label: string,
+    opts: { type?: 'rect' | 'circle'; width?: number; height?: number; radius?: number }
+  ) => {
+    const initialX = stageDimensions.width / 2 + Math.random() * 20 - 10;
+    const initialY = stageDimensions.height / 2 + Math.random() * 20 - 10;
+    const base: Omit<TableElement, 'id' | 'chairs' | 'displayOrderNumber' | 'rotation'> = {
+      type: opts.type ?? 'rect',
+      x: initialX,
+      y: initialY,
+      width: opts.width ?? (opts.radius ? opts.radius * 2 : 80),
+      height: opts.height ?? (opts.radius ? opts.radius * 2 : 80),
+      radius: opts.radius,
+      capacity: 0,
+    };
+    const newElement: TableElement = {
+      ...base,
+      id: uuidv4(),
+      chairs: [],
+      displayOrderNumber: tables.length + 1,
+      rotation: 0,
+      label,
+    };
+    setTables(t => [...t, newElement]);
+  };
+
+  const handleAddCustomElement = () => {
+    if (!newElementLabel.trim()) return;
+    addElement(newElementLabel.trim(), { type: 'rect', width: 80, height: 80 });
+    setNewElementLabel('');
+    setIsAddElementDialogOpen(false);
+  };
+
+  const addCandyBar = () => addElement('Candy Bar', { type: 'rect', width: 100, height: 50 });
+  const addChocolateFountain = () => addElement('Chocolate Fountain', { type: 'circle', radius: 40 });
+  const addStage = () => addElement('Stage', { type: 'rect', width: 250, height: 120 });
+  const addDanceFloor = () => addElement('Dance Floor', { type: 'rect', width: 200, height: 200 });
+
+  const handleDeleteSelected = () => {
+    if (!selectedTableId) return;
+    setTables(prev => prev.filter(t => t.id !== selectedTableId));
+    setSelectedTableId(null);
+  };
+
   const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
     if (e.target === stage || e.target.getParent() === stage) { 
@@ -368,7 +429,7 @@ export default function NewLayoutPage() {
 
   const handleTableDblClick = (tableId: string) => {
     const tableToEdit = tables.find(t => t.id === tableId);
-    if (tableToEdit) {
+    if (tableToEdit && tableToEdit.capacity > 0 && !tableToEdit.label) {
       setEditingTableIdForNumber(tableId);
       setNewTableNumberInput(tableToEdit.displayOrderNumber.toString());
       setIsEditTableNumberDialogOpen(true);
@@ -611,7 +672,9 @@ export default function NewLayoutPage() {
             <Button variant="outline" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-2xl font-bold tracking-tight">{isEditMode ? 'Edit Venue Layout' : 'Create New Venue Layout'}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {isEditMode ? `Editing: ${layoutNameInput || 'Venue Layout'}` : 'Create New Venue Layout'}
+            </h1>
         </div>
         <Button variant="default" onClick={() => setIsSaveLayoutDialogOpen(true)} disabled={tables.length === 0 || isSavingLayout || isLoadingLayout}>
           {isSavingLayout ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -633,10 +696,29 @@ export default function NewLayoutPage() {
             <Button className="w-full" onClick={() => openGuestNumberDialog('circle')}>
               <CircleIcon className="mr-2 h-4 w-4" /> Add Round Table
             </Button>
+            <Button className="w-full" onClick={addCandyBar}>
+              <Candy className="mr-2 h-4 w-4" /> Add CandyBar
+            </Button>
+            <Button className="w-full" onClick={addChocolateFountain}>
+              <CupSoda className="mr-2 h-4 w-4" /> Add Chocolate Fountain
+            </Button>
+            <Button className="w-full" onClick={() => setIsAddElementDialogOpen(true)}>
+              <Shapes className="mr-2 h-4 w-4" /> Add...
+            </Button>
+            <Button className="w-full" onClick={addStage}>
+              <Presentation className="mr-2 h-4 w-4" /> Add Stage
+            </Button>
+            <Button className="w-full" onClick={addDanceFloor}>
+              <Footprints className="mr-2 h-4 w-4" /> Add Dance Floor
+            </Button>
+            <Separator className="my-2" />
+            <Button className="w-full" variant="destructive" onClick={handleDeleteSelected} disabled={!selectedTableId}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete Selected
+            </Button>
             <Separator className="my-2" />
             <Button
               className="w-full"
-              variant={'outline'} 
+              variant={'outline'}
               onClick={() => {
                 toast({ title: "Coming Soon", description: "Drawing venue shape feature is not yet implemented."})
               }}
@@ -795,33 +877,52 @@ export default function NewLayoutPage() {
                         }}
                     />
                   ))}
-                  <Text
-                    text={`#${table.displayOrderNumber}`}
-                    fontSize={fontSizeNumber}
-                    fill="#3e2723"
-                    fontStyle="bold"
-                    x={0} // Centered within group
-                    y={yPosNumberText}
-                    width={tableWidthForText}
-                    height={textBlockRenderHeightNumber}
-                    align="center"
-                    verticalAlign="middle"
-                    listening={false}
-                    offsetX={tableWidthForText / 2} // Center text content
-                  />
-                  <Text
-                    text={`(${table.capacity}pp)`}
-                    fontSize={fontSizeCapacity}
-                    fill="#5d4037"
-                    x={0} // Centered within group
-                    y={yPosCapacityText}
-                    width={tableWidthForText}
-                    height={textBlockRenderHeightCapacity}
-                    align="center"
-                    verticalAlign="middle"
-                    listening={false}
-                    offsetX={tableWidthForText / 2} // Center text content
-                  />
+                  {table.label ? (
+                    <Text
+                      text={table.label}
+                      fontSize={fontSizeNumber}
+                      fill="#3e2723"
+                      fontStyle="bold"
+                      x={0}
+                      y={0}
+                      width={tableWidthForText}
+                      height={textBlockRenderHeightNumber}
+                      align="center"
+                      verticalAlign="middle"
+                      listening={false}
+                      offsetX={tableWidthForText / 2}
+                    />
+                  ) : (
+                    <>
+                      <Text
+                        text={`#${table.displayOrderNumber}`}
+                        fontSize={fontSizeNumber}
+                        fill="#3e2723"
+                        fontStyle="bold"
+                        x={0}
+                        y={yPosNumberText}
+                        width={tableWidthForText}
+                        height={textBlockRenderHeightNumber}
+                        align="center"
+                        verticalAlign="middle"
+                        listening={false}
+                        offsetX={tableWidthForText / 2}
+                      />
+                      <Text
+                        text={`(${table.capacity}pp)`}
+                        fontSize={fontSizeCapacity}
+                        fill="#5d4037"
+                        x={0}
+                        y={yPosCapacityText}
+                        width={tableWidthForText}
+                        height={textBlockRenderHeightCapacity}
+                        align="center"
+                        verticalAlign="middle"
+                        listening={false}
+                        offsetX={tableWidthForText / 2}
+                      />
+                    </>
+                  )}
                 </Group>
                 );
               })}
@@ -867,6 +968,32 @@ export default function NewLayoutPage() {
               <Button type="button" variant="outline">Cancel</Button>
             </DialogClose>
             <Button type="button" onClick={handleConfirmAddTable}>Add Table</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddElementDialogOpen} onOpenChange={setIsAddElementDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Element</DialogTitle>
+            <DialogDescription>Enter a label for the new element.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="element-label" className="text-right">Label</Label>
+              <Input
+                id="element-label"
+                value={newElementLabel}
+                onChange={(e) => setNewElementLabel(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="button" onClick={handleAddCustomElement}>Add</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
