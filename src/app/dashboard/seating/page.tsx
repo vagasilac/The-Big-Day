@@ -353,7 +353,7 @@ export default function SeatingPage() {
                <div className="flex justify-between items-center">
                 <CardDescription>Drag guests to tables. Max Capacity: {currentSelectedLayoutDetails.totalCapacity}</CardDescription>
                 <Button variant="outline" size="sm" asChild>
-                    <Link href={`/dashboard/seating/edit/${currentSelectedLayoutDetails.id}`}>
+                    <Link href={`/dashboard/seating/new?layoutId=${currentSelectedLayoutDetails.id}`}> 
                       <Edit className="mr-2 h-3 w-3"/> Edit This Layout
                     </Link>
                 </Button>
@@ -499,7 +499,7 @@ export default function SeatingPage() {
                  {layout.ownerId === currentUser?.uid && (
                     <div className="flex gap-2 mt-2">
                         <Button variant="outline" size="sm" className="w-full text-xs" asChild>
-                          <Link href={`/dashboard/seating/edit/${layout.id}`}>
+                          <Link href={`/dashboard/seating/new?layoutId=${layout.id}`}> 
                             <Edit className="mr-1.5 h-3 w-3" /> Edit
                           </Link>
                         </Button>

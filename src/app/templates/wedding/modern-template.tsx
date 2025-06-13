@@ -3,6 +3,7 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
+import type { Timestamp } from 'firebase/firestore';
 import BaseTemplate from './base-template'; 
 import { Calendar, MapPin, Heart, Camera, Music, Users, Gift, ListChecks } from 'lucide-react';
 import Image from 'next/image';
@@ -11,6 +12,13 @@ interface ModernTemplateProps {
   wedding: Partial<Wedding>;
   isPreviewMode?: boolean;
 }
+
+const toDate = (val?: Timestamp | string | Date | null) => {
+  if (!val) return undefined;
+  if (val instanceof Date) return val;
+  if (typeof val === 'string' || typeof val === 'number') return new Date(val);
+  return val.toDate();
+};
 
 const ModernTemplate: React.FC<ModernTemplateProps> = ({ wedding, isPreviewMode }) => {
   return (
@@ -32,14 +40,14 @@ const ModernTemplate: React.FC<ModernTemplateProps> = ({ wedding, isPreviewMode 
                 </div>
                 <p className="text-sm sm:text-base text-muted-foreground mb-1">
                   {wedding.date
-                    ? new Date(wedding.date).toLocaleDateString('en-US', {
+                    ? toDate(wedding.date)?.toLocaleDateString('en-US', {
                         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                       })
                     : 'Date TBA'}
                 </p>
                 <p className="text-sm sm:text-base text-muted-foreground">
                   {wedding.date
-                    ? new Date(wedding.date).toLocaleTimeString('en-US', {
+                    ? toDate(wedding.date)?.toLocaleTimeString('en-US', {
                         hour: 'numeric', minute: '2-digit', hour12: true,
                       })
                     : 'Time TBA'}
@@ -131,7 +139,7 @@ const ModernTemplate: React.FC<ModernTemplateProps> = ({ wedding, isPreviewMode 
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Join Our Celebration</h2>
             <p className="text-base sm:text-lg md:text-xl opacity-90 mb-8 md:mb-10 max-w-xl mx-auto">
-              We&apos;re excited to celebrate with you. Please let us know if you can make it by {wedding.rsvpDeadline ? new Date(wedding.rsvpDeadline).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'the deadline'}!
+              We&apos;re excited to celebrate with you. Please let us know if you can make it by {wedding.rsvpDeadline ? toDate(wedding.rsvpDeadline)?.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'the deadline'}!
             </p>
             <button className="px-8 sm:px-10 py-2 sm:py-3 bg-primary-foreground text-primary font-bold rounded-md shadow-lg hover:bg-background hover:text-foreground transition-colors text-base sm:text-lg">
               RSVP NOW

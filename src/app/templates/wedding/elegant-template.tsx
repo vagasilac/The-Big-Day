@@ -3,6 +3,7 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
+import type { Timestamp } from 'firebase/firestore';
 import BaseTemplate from './base-template';
 import { greatVibes, cormorantGaramond } from '../../../lib/fonts'; 
 import { Calendar, MapPin, Heart, Camera, Users, Gift } from 'lucide-react';
@@ -12,6 +13,13 @@ interface ElegantTemplateProps {
   wedding: Partial<Wedding>;
   isPreviewMode?: boolean;
 }
+
+const toDate = (val?: Timestamp | string | Date | null) => {
+  if (!val) return undefined;
+  if (val instanceof Date) return val;
+  if (typeof val === 'string' || typeof val === 'number') return new Date(val);
+  return val.toDate();
+};
 
 const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMode }) => {
   return (
@@ -31,7 +39,7 @@ const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMod
                 <h3 className="text-lg sm:text-xl md:text-2xl font-semibold mb-3 text-card-foreground" style={{ fontFamily: "'Times New Roman', Times, serif" }}>Ceremony & Reception</h3>
                 <p className="text-base sm:text-lg text-muted-foreground mb-1">
                   {wedding.date
-                    ? new Date(wedding.date).toLocaleDateString('en-US', {
+                    ? toDate(wedding.date)?.toLocaleDateString('en-US', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -41,7 +49,7 @@ const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMod
                 </p>
                 <p className="text-base sm:text-lg text-muted-foreground">
                   {wedding.date
-                    ? new Date(wedding.date).toLocaleTimeString('en-US', {
+                    ? toDate(wedding.date)?.toLocaleTimeString('en-US', {
                         hour: 'numeric',
                         minute: '2-digit',
                         hour12: true,
@@ -135,7 +143,7 @@ const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMod
               Will You Be Joining Us?
             </h2>
             <p className="text-lg sm:text-xl text-muted-foreground mb-6 md:mb-8">
-              Please RSVP by {wedding.rsvpDeadline ? new Date(wedding.rsvpDeadline).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'the deadline'} so we can finalize our arrangements.
+              Please RSVP by {wedding.rsvpDeadline ? toDate(wedding.rsvpDeadline)?.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'the deadline'} so we can finalize our arrangements.
             </p>
             <button className="px-8 sm:px-10 py-3 sm:py-4 bg-primary text-primary-foreground rounded-lg shadow-md hover:bg-primary/90 transition-colors text-base sm:text-lg font-semibold">
               RSVP Now
