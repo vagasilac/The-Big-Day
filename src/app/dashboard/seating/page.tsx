@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from 'next/image'; // Added Image import
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2, Trash2, Edit } from 'lucide-react';
+import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCircle, Info, Users as UsersIcon, Loader2, Trash2, Edit } from 'lucide-react'; // Added LayoutGrid
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
@@ -84,8 +84,8 @@ export default function SeatingPage() {
       const qLayouts = query(
         layoutsRef,
         or(
-          where('ownerId', '==', user.uid), // Layouts owned by the user
-          where('isPublic', '==', true)      // Public templates
+          where('ownerId', '==', user.uid), 
+          where('isPublic', '==', true)      
         ),
         orderBy('createdAt', 'desc')
       );
@@ -421,7 +421,12 @@ export default function SeatingPage() {
             <Card key={layout.id} className={`shadow-lg hover:shadow-xl transition-shadow flex flex-col ${selectedLayoutId === layout.id ? 'border-2 border-primary ring-2 ring-primary ring-offset-2' : ''}`}>
               {layout.previewImageUrl ? (
                   <div className="relative w-full h-48 bg-secondary rounded-t-md overflow-hidden">
-                  <Image src={layout.previewImageUrl} alt={layout.name} layout="fill" objectFit="cover" data-ai-hint={layout.dataAiHint || "venue layout"} />
+                  <Image 
+                    src={layout.previewImageUrl} 
+                    alt={layout.name || 'Venue layout preview'} 
+                    layout="fill" 
+                    objectFit="cover" 
+                    data-ai-hint={layout.dataAiHint || "venue layout"} />
                   </div>
               ) : (
                 <div className="w-full h-48 bg-muted rounded-t-md flex items-center justify-center">
@@ -462,3 +467,4 @@ export default function SeatingPage() {
     </div>
   );
 }
+
