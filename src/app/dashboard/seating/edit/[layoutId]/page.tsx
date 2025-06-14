@@ -282,6 +282,8 @@ export default function EditVenueLayoutPage() {
   const tableNodeRefs = useRef<Map<string, Konva.Group>>(new Map());
   const transformerRef = useRef<Konva.Transformer>(null);
   const stageRef = useRef<Konva.Stage>(null);
+  const [stageScale, setStageScale] = useState(1);
+  const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [isAddElementDialogOpen, setIsAddElementDialogOpen] = useState(false);
   const [newElementLabel, setNewElementLabel] = useState<string>("");
   const [isSavingStructure, setIsSavingStructure] = useState(false);
@@ -728,6 +730,28 @@ export default function EditVenueLayoutPage() {
     });
   };
 
+  const handleStageWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
+    const stage = stageRef.current;
+    if (!stage) return;
+    const scaleBy = 1.05;
+    const oldScale = stageScale;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const mousePointTo = {
+      x: (pointer.x - stagePos.x) / oldScale,
+      y: (pointer.y - stagePos.y) / oldScale,
+    };
+    const direction = e.evt.deltaY > 0 ? -1 : 1;
+    const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+    const newPos = {
+      x: pointer.x - mousePointTo.x * newScale,
+      y: pointer.y - mousePointTo.y * newScale,
+    };
+    setStageScale(newScale);
+    setStagePos(newPos);
+  };
+
   const refreshLayout = async () => {
     if (!layoutId) return;
     try {
@@ -925,7 +949,18 @@ export default function EditVenueLayoutPage() {
                   </CardContent>
                 </Card>
                 <div ref={editorCanvasContainerRef} className="flex-grow relative bg-muted/30 rounded-md border border-input overflow-hidden">
-                <Stage ref={stageRef} width={stageDimensions.width} height={stageDimensions.height} onMouseDown={handleStageMouseDown} className="bg-white">
+                <Stage
+                  ref={stageRef}
+                  width={stageDimensions.width}
+                  height={stageDimensions.height}
+                  scaleX={stageScale}
+                  scaleY={stageScale}
+                  x={stagePos.x}
+                  y={stagePos.y}
+                  onMouseDown={handleStageMouseDown}
+                  onWheel={handleStageWheel}
+                  className="bg-white"
+                >
                     <Layer>
                     {venueShape.length >= 4 && (<Line points={venueShape} closed stroke="#a1887f" strokeWidth={2} fill="#efebe9" listening={false} />)}
                     {editorTables.map(table => {
