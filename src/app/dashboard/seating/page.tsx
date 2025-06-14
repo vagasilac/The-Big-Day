@@ -85,6 +85,16 @@ export default function SeatingPage() {
     }
   }, [dragOverChairId]);
 
+  
+  useEffect(() => {
+    if (dragOverChairId) {
+      const interval = setInterval(() => setFlashToggle(prev => !prev), 300);
+      return () => clearInterval(interval);
+    } else {
+      setFlashToggle(false);
+    }
+  }, [dragOverChairId]);
+
 
   useEffect(() => {
     const updateDimensions = () => {
