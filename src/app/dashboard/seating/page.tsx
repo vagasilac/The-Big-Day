@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Konva from 'konva';
-import { Stage, Layer, Rect as KonvaRect, Circle as KonvaCircle, Group, Text, Line, Label as KonvaLabel, Tag as KonvaTag } from 'react-konva';
+import { Stage, KonvaDialog, Layer, Rect as KonvaRect, Circle as KonvaCircle, Group, Text, Line, Label as KonvaLabel, Tag as KonvaTag } from 'react-konva';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';

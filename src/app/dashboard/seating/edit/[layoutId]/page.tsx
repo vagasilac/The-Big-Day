@@ -39,17 +39,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
-  DialogContent as KonvaDialogContent, // Alias to avoid clash with AlertDialogContent
-  DialogHeader as KonvaDialogHeader,
-  DialogTitle as KonvaDialogTitle,
-  DialogDescription as KonvaDialogDescription,
-  DialogFooter as KonvaDialogFooter,
-  DialogClose as KonvaDialogClose,
-} from '@/components/ui/dialog'; // For Konva editor dialogs
+  DialogContent as EditorDialogContent, 
+  DialogHeader as EditorDialogHeader,
+  DialogTitle as EditorDialogTitle,
+  DialogDescription as EditorDialogDescription,
+  DialogFooter as EditorDialogFooter,
+  DialogClose as EditorDialogClose,
+} from '@/components/ui/dialog'; 
 import { cn } from '@/lib/utils';
 
 
-// Konva Editor specific types (can be moved to a separate file later if needed)
+// Konva Editor specific types 
 interface Chair {
   id: string;
   x: number;
@@ -755,7 +755,7 @@ export default function EditVenueLayoutPage() {
             </Link>
           </Button>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {`Edit Layout: ${layout ? layout.name : (isLoading ? 'Loading name...' : 'Details')}`}
+             {`Edit Layout: ${layout ? layout.name : (isLoading ? 'Loading name...' : 'Details')}`}
           </h1>
         </div>
       </div>
@@ -938,40 +938,42 @@ export default function EditVenueLayoutPage() {
       </Tabs>
 
       {/* Dialogs for Editor Tab */}
-      <KonvaDialog open={isGuestNumberDialogOpen} onOpenChange={setIsGuestNumberDialogOpen}>
-        <KonvaDialogContent><KonvaDialogHeader><KonvaDialogTitle>Set Table Capacity</KonvaDialogTitle>
-            <KonvaDialogDescription>How many guests will this {tableTypeToAdd} table accommodate?</KonvaDialogDescription></KonvaDialogHeader>
+      <Dialog open={isGuestNumberDialogOpen} onOpenChange={setIsGuestNumberDialogOpen}>
+        <EditorDialogContent><EditorDialogHeader><EditorDialogTitle>Set Table Capacity</EditorDialogTitle>
+            <EditorDialogDescription>How many guests will this {tableTypeToAdd} table accommodate?</EditorDialogDescription></EditorDialogHeader>
           <div className="grid gap-4 py-4"><div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="guest-count-editor" className="text-right">Guests</Label>
               <Input id="guest-count-editor" type="number" value={guestCountInput} onChange={(e) => setGuestCountInput(e.target.value)} className="col-span-3" min="1"/>
           </div></div>
-          <KonvaDialogFooter><KonvaDialogClose asChild><Button type="button" variant="outline">Cancel</Button></KonvaDialogClose>
-            <Button type="button" onClick={handleConfirmAddTable}>Add Table</Button></KonvaDialogFooter>
-        </KonvaDialogContent>
-      </KonvaDialog>
-      <KonvaDialog open={isAddElementDialogOpen} onOpenChange={setIsAddElementDialogOpen}>
-        <KonvaDialogContent><KonvaDialogHeader><KonvaDialogTitle>Add Element</KonvaDialogTitle>
-            <KonvaDialogDescription>Enter a label for the new element.</KonvaDialogDescription></KonvaDialogHeader>
+          <EditorDialogFooter><EditorDialogClose asChild><Button type="button" variant="outline">Cancel</Button></EditorDialogClose>
+            <Button type="button" onClick={handleConfirmAddTable}>Add Table</Button></EditorDialogFooter>
+        </EditorDialogContent>
+      </Dialog>
+      <Dialog open={isAddElementDialogOpen} onOpenChange={setIsAddElementDialogOpen}>
+        <EditorDialogContent><EditorDialogHeader><EditorDialogTitle>Add Element</EditorDialogTitle>
+            <EditorDialogDescription>Enter a label for the new element.</EditorDialogDescription></EditorDialogHeader>
           <div className="grid gap-4 py-4"><div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="element-label-editor" className="text-right">Label</Label>
               <Input id="element-label-editor" value={newElementLabel} onChange={(e) => setNewElementLabel(e.target.value)} className="col-span-3"/>
           </div></div>
-          <KonvaDialogFooter><KonvaDialogClose asChild><Button type="button" variant="outline">Cancel</Button></KonvaDialogClose>
-            <Button type="button" onClick={handleAddCustomElement}>Add</Button></KonvaDialogFooter>
-        </KonvaDialogContent>
-      </KonvaDialog>
-      <KonvaDialog open={isEditTableNumberDialogOpen} onOpenChange={setIsEditTableNumberDialogOpen}>
-        <KonvaDialogContent><KonvaDialogHeader><KonvaDialogTitle>Edit Table Number</KonvaDialogTitle>
-            <KonvaDialogDescription>Enter the new number for this table. If the number is in use, tables will swap numbers.</KonvaDialogDescription></KonvaDialogHeader>
+          <EditorDialogFooter><EditorDialogClose asChild><Button type="button" variant="outline">Cancel</Button></EditorDialogClose>
+            <Button type="button" onClick={handleAddCustomElement}>Add</Button></EditorDialogFooter>
+        </EditorDialogContent>
+      </Dialog>
+      <Dialog open={isEditTableNumberDialogOpen} onOpenChange={setIsEditTableNumberDialogOpen}>
+        <EditorDialogContent><EditorDialogHeader><EditorDialogTitle>Edit Table Number</EditorDialogTitle>
+            <EditorDialogDescription>Enter the new number for this table. If the number is in use, tables will swap numbers.</EditorDialogDescription></EditorDialogHeader>
           <div className="grid gap-4 py-4"><div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="table-number-edit-editor" className="text-right">Table #</Label>
               <Input id="table-number-edit-editor" type="number" value={newTableNumberInput} onChange={(e) => setNewTableNumberInput(e.target.value)} className="col-span-3" min="1"/>
           </div></div>
-          <KonvaDialogFooter><KonvaDialogClose asChild><Button type="button" variant="outline" onClick={() => setEditingTableIdForNumber(null)}>Cancel</Button></KonvaDialogClose>
-            <Button type="button" onClick={handleSaveTableNumber}>Save Number</Button></KonvaDialogFooter>
-        </KonvaDialogContent>
-      </KonvaDialog>
+          <EditorDialogFooter><EditorDialogClose asChild><Button type="button" variant="outline" onClick={() => setEditingTableIdForNumber(null)}>Cancel</Button></EditorDialogClose>
+            <Button type="button" onClick={handleSaveTableNumber}>Save Number</Button></EditorDialogFooter>
+        </EditorDialogContent>
+      </Dialog>
 
     </div>
   );
 }
+
+    
