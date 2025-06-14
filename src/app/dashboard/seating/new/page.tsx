@@ -37,7 +37,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config'; // Import auth and db
-import { addDoc, collection, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 import type { VenueLayout as StoredVenueLayout, TableElement as StoredTableElement, Chair as StoredChair } from '@/types/venue';
 
 
@@ -609,29 +609,32 @@ export default function NewLayoutPage() {
     });
 
 
-    const newLayoutData = { 
+    // Base data for the layout. When creating a new layout we include ownerId
+    // and default isPublic. For updates, we only send the fields that may
+    // actually change so existing values like `isPublic` remain untouched.
+    const baseLayoutData = {
       name: layoutNameInput.trim(),
-      ownerId: currentUser.uid,
-      isPublic: false, // User-created layouts are private by default
       tables: tablesToStore,
-      venueShape: venueShape.length > 0 ? venueShape : [], 
+      venueShape: venueShape.length > 0 ? venueShape : [],
       totalCapacity,
     };
 
     try {
       if (isEditMode && layoutId) {
         const docRef = doc(db, 'venueLayouts', layoutId);
-        await updateDoc(docRef, {
-          ...newLayoutData,
+        await setDoc(docRef, {
+          ...baseLayoutData,
           updatedAt: serverTimestamp(),
-        });
+        }, { merge: true });
         toast({
           title: 'Layout Updated',
           description: `Layout "${layoutNameInput.trim()}" has been updated.`,
         });
       } else {
         await addDoc(collection(db, 'venueLayouts'), {
-          ...newLayoutData,
+          ...baseLayoutData,
+          ownerId: currentUser.uid,
+          isPublic: false, // User-created layouts are private by default
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
