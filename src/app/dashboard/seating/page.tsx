@@ -33,6 +33,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, orderBy, deleteDoc, Timestamp, or, serverTimestamp } from 'firebase/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { VenueLayout, TableElement as VenueTableElement, Chair as VenueChair } from '@/types/venue';
+import { normalizeVenueLayout } from '@/lib/utils';
 import type { Guest } from '@/types/guest';
 
 const FONT_SIZE_NUMBER_RECT = 14;
@@ -155,7 +156,8 @@ export default function SeatingPage() {
       );
       const layoutSnapshot = await getDocs(qLayouts);
       const fetchedLayouts = layoutSnapshot.docs.map(doc => {
-        const data = doc.data();
+        const raw = doc.data();
+        const data = normalizeVenueLayout(raw);
         return {
           id: doc.id,
           ...data,

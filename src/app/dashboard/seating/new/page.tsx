@@ -38,6 +38,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config'; // Import auth and db
 import { addDoc, collection, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
+import { normalizeVenueLayout } from '@/lib/utils';
 import type { VenueLayout as StoredVenueLayout, TableElement as StoredTableElement, Chair as StoredChair } from '@/types/venue';
 
 
@@ -275,7 +276,8 @@ export default function NewLayoutPage() {
         const docRef = doc(db, 'venueLayouts', layoutId);
         const snap = await getDoc(docRef);
         if (snap.exists()) {
-          const data = snap.data() as StoredVenueLayout;
+          const raw = snap.data() as StoredVenueLayout;
+          const data = normalizeVenueLayout(raw);
           setTables(data.tables || []);
           setVenueShape(data.venueShape || []);
           setLayoutNameInput(data.name || '');

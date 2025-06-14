@@ -14,6 +14,7 @@ import { ArrowLeft, Save, Loader2, Trash2, LayoutGrid as LayoutGridIcon, Square,
 import { auth, db, storage } from '@/lib/firebase-config';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { normalizeVenueLayout } from '@/lib/utils';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject as deleteFileObject } from "firebase/storage"; // Renamed to avoid conflict
 
 import type { VenueLayout, TableElement as StoredTableElement, Chair as StoredChair } from '@/types/venue'; // Use Stored types for clarity
@@ -312,8 +313,9 @@ export default function EditVenueLayoutPage() {
         const docRef = doc(db, 'venueLayouts', layoutId);
         const snap = await getDoc(docRef);
         if (snap.exists()) {
-          const data = ensureDateFields(snap.data()) as VenueLayout;
-           if (data.ownerId !== currentUserId) {
+          const raw = snap.data();
+          const data = normalizeVenueLayout(ensureDateFields(raw));
+          if (data.ownerId !== currentUserId) {
             toast({ title: 'Access Denied', description: 'You do not own this layout.', variant: 'destructive' });
             router.push('/dashboard/seating');
             return;
