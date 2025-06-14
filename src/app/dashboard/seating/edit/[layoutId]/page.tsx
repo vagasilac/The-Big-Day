@@ -13,7 +13,7 @@ import { ArrowLeft, Save, Loader2, Trash2, LayoutGrid as LayoutGridIcon, Square,
 
 import { auth, db, storage } from '@/lib/firebase-config';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { normalizeVenueLayout } from '@/lib/utils';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject as deleteFileObject } from "firebase/storage"; // Renamed to avoid conflict
 
@@ -702,20 +702,33 @@ export default function EditVenueLayoutPage() {
     setIsSavingStructure(true);
     const totalCapacity = editorTables.reduce((sum, table) => sum + table.capacity, 0);
     const tablesToStore: StoredTableElement[] = editorTables.map(currentTable => {
-      const tableData: Partial<StoredTableElement> = { ...currentTable, chairs: currentTable.chairs.map(chair => ({ ...chair } as StoredChair)) };
-      if (currentTable.type === 'circle' && typeof currentTable.radius === 'number') tableData.radius = currentTable.radius;
-      else delete tableData.radius;
+      const tableData: Partial<StoredTableElement> = {
+        ...currentTable,
+        chairs: currentTable.chairs.map(chair => ({ ...chair } as StoredChair))
+      };
+      if (currentTable.type === 'circle' && typeof currentTable.radius === 'number') {
+        tableData.radius = currentTable.radius;
+      } else {
+        delete tableData.radius;
+      }
+      if (currentTable.label === undefined) {
+        delete (tableData as any).label;
+      }
       return tableData as StoredTableElement;
     });
 
     try {
       const docRef = doc(db, 'venueLayouts', layoutId);
-      await updateDoc(docRef, {
-        tables: tablesToStore,
-        venueShape: venueShape.length > 0 ? venueShape : [],
-        totalCapacity,
-        updatedAt: serverTimestamp(),
-      });
+      await setDoc(
+        docRef,
+        {
+          tables: tablesToStore,
+          venueShape: venueShape.length > 0 ? venueShape : [],
+          totalCapacity,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
       toast({ title: 'Layout Structure Updated', description: 'The visual layout has been saved.' });
       setLayout(prev => prev ? { ...prev, tables: tablesToStore, totalCapacity } : null);
     } catch (error: any) {

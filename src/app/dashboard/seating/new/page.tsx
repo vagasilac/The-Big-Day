@@ -597,17 +597,24 @@ export default function NewLayoutPage() {
     const totalCapacity = tables.reduce((sum, table) => sum + table.capacity, 0);
 
     const tablesToStore: StoredTableElement[] = tables.map(currentTable => {
-      const tableData: Partial<StoredTableElement> = { // Use Partial for constructing
+      const tableData: Partial<StoredTableElement> = {
         ...currentTable,
         chairs: currentTable.chairs.map(chair => ({ ...chair } as StoredChair))
       };
+
       // Only include radius if it's a circle and radius is a valid number
       if (currentTable.type === 'circle' && typeof currentTable.radius === 'number') {
         tableData.radius = currentTable.radius;
       } else {
-        delete tableData.radius; // Ensure radius is not undefined
+        delete tableData.radius;
       }
-      return tableData as StoredTableElement; // Cast to full type after construction
+
+      // Remove label if not present to avoid storing undefined
+      if (currentTable.label === undefined) {
+        delete (tableData as any).label;
+      }
+
+      return tableData as StoredTableElement;
     });
 
 
