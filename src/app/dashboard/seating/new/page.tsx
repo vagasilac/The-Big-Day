@@ -786,8 +786,6 @@ export default function NewLayoutPage() {
                     }
                   }}
                   onDragEnd={(e) => {
-                    if (selectedTableId === table.id) { return; } 
-                    
                     const newTables = tables.map(t =>
                         t.id === table.id ? { ...t, x: e.target.x(), y: e.target.y() } : t
                     );
