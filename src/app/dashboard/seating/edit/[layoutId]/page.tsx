@@ -515,10 +515,46 @@ export default function EditVenueLayoutPage() {
   const generateInitialChairs = useCallback((tableBase: Omit<TableElement, 'id' | 'chairs' | 'displayOrderNumber' | 'rotation'>): Chair[] => {
     const capacity = tableBase.capacity;
     if (capacity <= 0) return [];
+
+    let chairs: Chair[] = [];
+
+    if (tableBase.type === 'rect') {
+      const baseCount = Math.floor(capacity / 4);
+      let remainder = capacity - baseCount * 4;
+      const counts = { top: baseCount, bottom: baseCount, left: baseCount, right: baseCount } as Record<'top' | 'bottom' | 'left' | 'right', number>;
+      const order: ('top' | 'bottom' | 'left' | 'right')[] = ['top', 'bottom', 'left', 'right'];
+      let i = 0;
+      while (remainder > 0) {
+        counts[order[i % order.length]]++;
+        remainder--;
+        i++;
+      }
+      const halfWidth = tableBase.width / 2;
+      const halfHeight = tableBase.height / 2;
+      const positions: Record<'top' | 'bottom' | 'left' | 'right', { x: number; y: number }> = {
+        top: { x: 0, y: -halfHeight - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE },
+        bottom: { x: 0, y: halfHeight + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE },
+        left: { x: -halfWidth - CHAIR_RADIUS - CHAIR_SPACING_FROM_TABLE, y: 0 },
+        right: { x: halfWidth + CHAIR_RADIUS + CHAIR_SPACING_FROM_TABLE, y: 0 },
+      };
+
+      for (const side of order) {
+        for (let j = 0; j < counts[side]; j++) {
+          chairs.push({ id: uuidv4(), x: positions[side].x, y: positions[side].y });
+        }
+      }
+    } else {
+      chairs = Array(capacity).fill(null).map(() => ({ id: uuidv4(), x: 0, y: 0 }));
+    }
+
     const dummyTable: TableElement = {
-        ...tableBase, id: 'dummy', chairs: Array(capacity).fill(null).map(() => ({ id: uuidv4(), x: 0, y: 0 })),
-        displayOrderNumber: 0, rotation: 0,
+      ...tableBase,
+      id: 'dummy',
+      chairs,
+      displayOrderNumber: 0,
+      rotation: 0,
     };
+
     return alignChairsOnTable(dummyTable);
   }, []);
 
