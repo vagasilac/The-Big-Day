@@ -73,6 +73,17 @@ export default function SeatingPage() {
 
   const [hoveredChairInfo, setHoveredChairInfo] = useState<{ guestName: string; x: number; y: number } | null>(null);
   const [isSavingAssignments, setIsSavingAssignments] = useState(false);
+  const [dragOverChairId, setDragOverChairId] = useState<string | null>(null);
+  const [flashToggle, setFlashToggle] = useState(false);
+
+  useEffect(() => {
+    if (dragOverChairId) {
+      const interval = setInterval(() => setFlashToggle(prev => !prev), 300);
+      return () => clearInterval(interval);
+    } else {
+      setFlashToggle(false);
+    }
+  }, [dragOverChairId]);
 
 
   useEffect(() => {
@@ -625,15 +636,18 @@ export default function SeatingPage() {
                                   e.target.getStage()?.container().style.setProperty('cursor', 'default');
                                 }}
                                 onDragOver={(e) => e.evt.preventDefault()} // Allow drop
-                                onDragEnter={(e) => e.evt.preventDefault()} // Allow drop
+                                onDragEnter={(e) => { e.evt.preventDefault(); setDragOverChairId(chair.id); }}
+                                onDragLeave={(e) => { e.evt.preventDefault(); setDragOverChairId(prev => prev === chair.id ? null : prev); }}
                                 onDrop={(e) => {
                                    e.evt.preventDefault(); // Prevent default drop behavior
                                    if (draggedGuestInfo) handleDropOnChair(chair.id);
+                                   setDragOverChairId(null);
                                 }}
                               >
                                 <KonvaCircle
                                   radius={CHAIR_RADIUS}
-                                  fill={assignment ? ASSIGNED_CHAIR_FILL : "#f5f5f5"}
+                                  fill={assignment ? ASSIGNED_CHAIR_FILL :
+                                    (dragOverChairId === chair.id && flashToggle ? "#ffe082" : "#f5f5f5")}
                                   stroke={assignment ? CHAIR_TEXT_COLOR : "#a1887f"}
                                   strokeWidth={1}
                                   shadowBlur={assignment ? 2 : 0}
