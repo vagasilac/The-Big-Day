@@ -908,7 +908,6 @@ export default function EditVenueLayoutPage() {
                         <Group key={table.id} id={table.id} x={table.x} y={table.y} rotation={table.rotation} draggable={true} offsetX={0} offsetY={0}
                             ref={node => { if (node) tableNodeRefs.current.set(table.id, node); else tableNodeRefs.current.delete(table.id); }}
                             onDragEnd={(e) => {
-                                if (selectedTableId === table.id) return; 
                                 const newTables = editorTables.map(t => t.id === table.id ? { ...t, x: e.target.x(), y: e.target.y() } : t);
                                 const currentTableState = newTables.find(t => t.id === table.id);
                                 if (currentTableState) { const realignedChairs = alignChairsOnTable(currentTableState); setEditorTables(newTables.map(t => t.id === table.id ? { ...t, chairs: realignedChairs } : t));}
