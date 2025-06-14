@@ -17,28 +17,35 @@ export function normalizeVenueLayout(raw: any): VenueLayout {
     y: typeof c.y === 'string' ? parseFloat(c.y) : c.y ?? 0,
   });
 
-  const normalizeTable = (t: any): TableElement => ({
-    id: t.id,
-    type: t.type,
-    x: typeof t.x === 'string' ? parseFloat(t.x) : t.x ?? 0,
-    y: typeof t.y === 'string' ? parseFloat(t.y) : t.y ?? 0,
-    width: typeof t.width === 'string' ? parseFloat(t.width) : t.width ?? 0,
-    height: typeof t.height === 'string' ? parseFloat(t.height) : t.height ?? 0,
-    radius:
-      t.radius !== undefined
-        ? typeof t.radius === 'string'
-          ? parseFloat(t.radius)
-          : t.radius
-        : undefined,
-    rotation: typeof t.rotation === 'string' ? parseFloat(t.rotation) : t.rotation ?? 0,
-    capacity: typeof t.capacity === 'string' ? parseInt(t.capacity, 10) : t.capacity ?? 0,
-    chairs: Array.isArray(t.chairs) ? t.chairs.map(normalizeChair) : [],
-    displayOrderNumber:
-      typeof t.displayOrderNumber === 'string'
-        ? parseInt(t.displayOrderNumber, 10)
-        : t.displayOrderNumber ?? 0,
-    label: t.label,
-  });
+  const normalizeTable = (t: any): TableElement => {
+    const table: TableElement = {
+      id: t.id,
+      type: t.type,
+      x: typeof t.x === 'string' ? parseFloat(t.x) : t.x ?? 0,
+      y: typeof t.y === 'string' ? parseFloat(t.y) : t.y ?? 0,
+      width: typeof t.width === 'string' ? parseFloat(t.width) : t.width ?? 0,
+      height: typeof t.height === 'string' ? parseFloat(t.height) : t.height ?? 0,
+      radius:
+        t.radius !== undefined
+          ? typeof t.radius === 'string'
+            ? parseFloat(t.radius)
+            : t.radius
+          : undefined,
+      rotation: typeof t.rotation === 'string' ? parseFloat(t.rotation) : t.rotation ?? 0,
+      capacity: typeof t.capacity === 'string' ? parseInt(t.capacity, 10) : t.capacity ?? 0,
+      chairs: Array.isArray(t.chairs) ? t.chairs.map(normalizeChair) : [],
+      displayOrderNumber:
+        typeof t.displayOrderNumber === 'string'
+          ? parseInt(t.displayOrderNumber, 10)
+          : t.displayOrderNumber ?? 0,
+    };
+
+    if (t.label !== undefined) {
+      table.label = t.label;
+    }
+
+    return table;
+  };
 
   return {
     ...raw,
