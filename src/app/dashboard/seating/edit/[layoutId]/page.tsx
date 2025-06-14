@@ -702,9 +702,18 @@ export default function EditVenueLayoutPage() {
     setIsSavingStructure(true);
     const totalCapacity = editorTables.reduce((sum, table) => sum + table.capacity, 0);
     const tablesToStore: StoredTableElement[] = editorTables.map(currentTable => {
-      const tableData: Partial<StoredTableElement> = { ...currentTable, chairs: currentTable.chairs.map(chair => ({ ...chair } as StoredChair)) };
-      if (currentTable.type === 'circle' && typeof currentTable.radius === 'number') tableData.radius = currentTable.radius;
-      else delete tableData.radius;
+      const tableData: Partial<StoredTableElement> = {
+        ...currentTable,
+        chairs: currentTable.chairs.map(chair => ({ ...chair } as StoredChair))
+      };
+      if (currentTable.type === 'circle' && typeof currentTable.radius === 'number') {
+        tableData.radius = currentTable.radius;
+      } else {
+        delete tableData.radius;
+      }
+      if (currentTable.label === undefined) {
+        delete (tableData as any).label;
+      }
       return tableData as StoredTableElement;
     });
 
