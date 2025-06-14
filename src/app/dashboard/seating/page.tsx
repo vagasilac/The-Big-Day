@@ -85,6 +85,16 @@ export default function SeatingPage() {
     }
   }, [dragOverChairId]);
 
+  
+  useEffect(() => {
+    if (dragOverChairId) {
+      const interval = setInterval(() => setFlashToggle(prev => !prev), 300);
+      return () => clearInterval(interval);
+    } else {
+      setFlashToggle(false);
+    }
+  }, [dragOverChairId]);
+
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -397,10 +407,28 @@ export default function SeatingPage() {
         handleDropOnChair(chairGroup.id());
       }
     }
+    setDragOverChairId(null);
   };
 
   const handleCanvasDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); // Necessary to allow dropping
+    if (!stageRef.current) return;
+    const stage = stageRef.current;
+    const rect = stage.container().getBoundingClientRect();
+    const point = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+    const shape = stage.getIntersection(point);
+    if (shape) {
+      const chairGroup = shape.findAncestor('.chair-group', true);
+      if (chairGroup) {
+        const chairId = chairGroup.id();
+        setDragOverChairId(prev => (prev !== chairId ? chairId : prev));
+        return;
+      }
+    }
+    setDragOverChairId(null);
   };
 
   const assignedGuestIds = useMemo(() => {
@@ -635,10 +663,10 @@ export default function SeatingPage() {
                                   setHoveredChairInfo(null);
                                   e.target.getStage()?.container().style.setProperty('cursor', 'default');
                                 }}
-                                onDragOver={(e) => e.evt.preventDefault()} // Allow drop
-                                onDragEnter={(e) => { e.evt.preventDefault(); setDragOverChairId(chair.id); }}
-                                onDragLeave={(e) => { e.evt.preventDefault(); setDragOverChairId(prev => prev === chair.id ? null : prev); }}
-                                onDrop={(e) => {
+                                onDragOver={(e: Konva.KonvaEventObject<DragEvent>) => e.evt.preventDefault()} // Allow drop
+                                onDragEnter={(e: Konva.KonvaEventObject<DragEvent>) => { e.evt.preventDefault(); setDragOverChairId(chair.id); }}
+                                onDragLeave={(e: Konva.KonvaEventObject<DragEvent>) => { e.evt.preventDefault(); setDragOverChairId(prev => prev === chair.id ? null : prev); }}
+                                onDrop={(e: Konva.KonvaEventObject<DragEvent>) => {
                                    e.evt.preventDefault(); // Prevent default drop behavior
                                    if (draggedGuestInfo) handleDropOnChair(chair.id);
                                    setDragOverChairId(null);
@@ -646,8 +674,13 @@ export default function SeatingPage() {
                               >
                                 <KonvaCircle
                                   radius={CHAIR_RADIUS}
-                                  fill={assignment ? ASSIGNED_CHAIR_FILL :
-                                    (dragOverChairId === chair.id && flashToggle ? "#ffe082" : "#f5f5f5")}
+                                  fill={
+                                    dragOverChairId === chair.id && flashToggle
+                                      ? "#ffe082"
+                                      : assignment
+                                        ? ASSIGNED_CHAIR_FILL
+                                        : "#f5f5f5"
+                                  }
                                   stroke={assignment ? CHAIR_TEXT_COLOR : "#a1887f"}
                                   strokeWidth={1}
                                   shadowBlur={assignment ? 2 : 0}
