@@ -562,14 +562,13 @@ export default function SeatingPage() {
                   height={stageDimensions.height}
                   className="bg-white rounded-b-md shadow-inner"
                   style={{
-                    backgroundImage: currentSelectedLayoutDetails.previewImageUrl
-                      ? `url(${currentSelectedLayoutDetails.previewImageUrl})`
-                      : 'linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)',
-                    backgroundSize: currentSelectedLayoutDetails.previewImageUrl ? 'contain' : '20px 20px',
-                    backgroundRepeat: currentSelectedLayoutDetails.previewImageUrl ? 'no-repeat' : 'repeat',
-                    backgroundPosition: 'center'
+                    backgroundImage:
+                      'linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)',
+                    backgroundSize: '20px 20px',
+                    backgroundRepeat: 'repeat',
+                    backgroundPosition: 'center',
                   }}
-                  data-ai-hint={currentSelectedLayoutDetails.previewImageUrl ? "venue layout" : "grid background"}
+                  data-ai-hint="grid background"
                 >
                   <Layer>
                     {/* Render Venue Elements */}

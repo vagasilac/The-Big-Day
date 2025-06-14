@@ -692,6 +692,23 @@ export default function EditVenueLayoutPage() {
     });
   };
 
+  const refreshLayout = async () => {
+    if (!layoutId) return;
+    try {
+      const docRef = doc(db, 'venueLayouts', layoutId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const raw = snap.data();
+        const data = normalizeVenueLayout(ensureDateFields(raw));
+        setLayout(data);
+        setEditorTables(data.tables || []);
+        setVenueShape(data.venueShape || []);
+      }
+    } catch (err) {
+      console.error('Failed to refresh layout', err);
+    }
+  };
+
   const handleSaveLayoutStructure = async () => {
     if (!layoutId || !currentUserId || !layout) {
       toast({ title: "Error", description: "Layout data or user session missing.", variant: "destructive" }); return;
@@ -730,7 +747,7 @@ export default function EditVenueLayoutPage() {
         { merge: true }
       );
       toast({ title: 'Layout Structure Updated', description: 'The visual layout has been saved.' });
-      setLayout(prev => prev ? { ...prev, tables: tablesToStore, totalCapacity } : null);
+      await refreshLayout();
     } catch (error: any) {
       console.error('Error saving layout structure:', error);
       toast({ title: 'Save Failed', description: error.message || 'Could not save layout structure.', variant: 'destructive' });
