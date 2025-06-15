@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GanttChart, Heart, PlusCircle } from 'lucide-react';
+import { addDays, differenceInCalendarDays, format } from 'date-fns';
+import { Rnd } from 'react-rnd';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
@@ -70,22 +73,47 @@ export default function PlannerPage() {
     return () => unsubscribe();
   }, [router]);
 
-  const totalTasks = plannerTasks.length;
-  const completedCount = plannerTasks.filter(t => completed[t.id]).length;
-  const progressPercent = Math.round((completedCount / totalTasks) * 100);
-  const nextTask = plannerTasks.find(t => !completed[t.id]);
+  const [ganttTasks, setGanttTasks] = useState<PlannerTask[]>(plannerTasks);
 
-  const baseStart = Math.min(...plannerTasks.map(t => t.startDays));
-  const ganttData = plannerTasks.map(t => ({
+  const totalTasks = ganttTasks.length;
+  const completedCount = ganttTasks.filter(t => completed[t.id]).length;
+  const progressPercent = Math.round((completedCount / totalTasks) * 100);
+  const nextTask = ganttTasks.find(t => !completed[t.id]);
+
+  const baseStart = Math.min(...ganttTasks.map(t => t.startDays));
+  const maxEnd = Math.max(...ganttTasks.map(t => t.startDays + t.durationDays));
+  const totalRange = Math.max(500, maxEnd - baseStart);
+  const ganttData = ganttTasks.map(t => ({
     ...t,
     offset: t.startDays - baseStart,
   }));
 
   const groupedTasks: Record<string, PlannerTask[]> = {};
-  plannerTasks.forEach(task => {
+  ganttTasks.forEach(task => {
     groupedTasks[task.phase] = groupedTasks[task.phase] || [];
     groupedTasks[task.phase].push(task);
   });
+
+  const ganttRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(600);
+
+  useEffect(() => {
+    const update = () => {
+      if (ganttRef.current) {
+        setContainerWidth(ganttRef.current.offsetWidth);
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const weddingDateObj = weddingData?.date ? weddingData.date.toDate() : new Date();
+  const chartStartDate = addDays(weddingDateObj, baseStart);
+  const headerTicks: Date[] = [];
+  for (let i = 0; i <= totalRange; i += 30) {
+    headerTicks.push(addDays(chartStartDate, i));
+  }
 
   if (isLoading) {
     return (
@@ -158,24 +186,92 @@ export default function PlannerPage() {
             <TabsContent value="gantt" className="mt-4">
               <div className="overflow-x-auto">
                 <div style={{ minWidth: 600 }}>
+                  <div className="relative mb-4 h-6 text-xs" ref={ganttRef}>
+                    {headerTicks.map((d, i) => (
+                      <div
+                        key={i}
+                        className="absolute top-0 border-r border-border/50 text-center"
+                        style={{
+                          left: `${(differenceInCalendarDays(d, chartStartDate) / totalRange) * 100}%`,
+                          width: `${(30 / totalRange) * 100}%`,
+                        }}
+                      >
+                        {format(d, 'MMM d')}
+                      </div>
+                    ))}
+                    <div
+                      className="absolute inset-y-0 w-px bg-blue-500"
+                      style={{
+                        left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
+                      }}
+                    />
+                    <div
+                      className="absolute inset-y-0 w-px bg-green-600"
+                      style={{
+                        left: `${(differenceInCalendarDays(new Date(), chartStartDate) / totalRange) * 100}%`,
+                      }}
+                    />
+                  </div>
                   <div className="relative space-y-1">
-                    {ganttData.map((task) => (
+                    {ganttData.map((task, idx) => (
                       <div key={task.id} className="flex items-center h-6 text-sm">
                         <span className="w-48 pr-2 truncate">{task.name}</span>
-                        <div className="flex-1 relative h-2 bg-muted">
-                          <div
-                            className={
-                              task.critical
-                                ? 'absolute h-2 bg-destructive'
-                                : task.softCritical
-                                ? 'absolute h-2 bg-orange-500'
-                                : 'absolute h-2 bg-primary'
-                            }
-                            style={{
-                              left: `${(task.offset / 500) * 100}%`,
-                              width: `${(task.durationDays / 500) * 100}%`,
-                            }}
-                          />
+                        <div className="flex-1 relative h-4 bg-muted">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Rnd
+                                bounds="parent"
+                                size={{
+                                  width: (task.durationDays / totalRange) * containerWidth,
+                                  height: 8,
+                                }}
+                                position={{
+                                  x: (task.offset / totalRange) * containerWidth,
+                                  y: 0,
+                                }}
+                                enableResizing={{ left: true, right: true }}
+                                dragAxis="x"
+                                onDragStop={(_, d) => {
+                                  const newStart =
+                                    Math.round((d.x / containerWidth) * totalRange) + baseStart;
+                                  setGanttTasks(prev =>
+                                    prev.map((t, i) =>
+                                      i === idx ? { ...t, startDays: newStart } : t
+                                    )
+                                  );
+                                }}
+                                onResizeStop={(_, __, ref, ___, pos) => {
+                                  const newStart =
+                                    Math.round((pos.x / containerWidth) * totalRange) + baseStart;
+                                  const newDuration = Math.max(
+                                    1,
+                                    Math.round((ref.offsetWidth / containerWidth) * totalRange)
+                                  );
+                                  setGanttTasks(prev =>
+                                    prev.map((t, i) =>
+                                      i === idx
+                                        ? { ...t, startDays: newStart, durationDays: newDuration }
+                                        : t
+                                    )
+                                  );
+                                }}
+                              >
+                                <div
+                                  className={
+                                    task.critical
+                                      ? 'h-full bg-destructive'
+                                      : task.softCritical
+                                      ? 'h-full bg-orange-500'
+                                      : 'h-full bg-primary'
+                                  }
+                                  style={{ width: '100%', height: '100%' }}
+                                />
+                              </Rnd>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {task.durationDays} days
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     ))}
