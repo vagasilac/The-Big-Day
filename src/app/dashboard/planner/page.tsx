@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { GanttChart, Heart, PlusCircle } from 'lucide-react';
 import { addDays, differenceInCalendarDays, format } from 'date-fns';
 import { Rnd } from 'react-rnd';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
@@ -78,12 +78,13 @@ export default function PlannerPage() {
 
   const totalTasks = ganttTasks.length;
   const completedCount = ganttTasks.filter(t => completed[t.id]).length;
-  const progressPercent = Math.round((completedCount / totalTasks) * 100);
+  const progressPercent = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
   const nextTask = ganttTasks.find(t => !completed[t.id]);
 
-  const baseStart = Math.min(...ganttTasks.map(t => t.startDays));
-  const maxEnd = Math.max(...ganttTasks.map(t => t.startDays + t.durationDays));
-  const totalRange = Math.max(500, maxEnd - baseStart);
+  const baseStart = ganttTasks.length > 0 ? Math.min(...ganttTasks.map(t => t.startDays)) : 0;
+  const maxEnd = ganttTasks.length > 0 ? Math.max(...ganttTasks.map(t => t.startDays + t.durationDays)) : 500;
+  const totalRange = Math.max(1, maxEnd - baseStart); // Ensure totalRange is at least 1 to avoid division by zero
+  
   const ganttData = ganttTasks.map(t => ({
     ...t,
     offset: t.startDays - baseStart,
@@ -112,9 +113,15 @@ export default function PlannerPage() {
   const weddingDateObj = weddingData?.date ? weddingData.date.toDate() : new Date();
   const chartStartDate = addDays(weddingDateObj, baseStart);
   const headerTicks: Date[] = [];
-  for (let i = 0; i <= totalRange; i += 30) {
-    headerTicks.push(addDays(chartStartDate, i));
+  if (totalRange > 0) {
+    for (let i = 0; i <= totalRange; i += Math.max(1, Math.floor(totalRange / 10))) { // Adjust tick frequency
+      headerTicks.push(addDays(chartStartDate, i));
+    }
+     if (!headerTicks.find(d => differenceInCalendarDays(d, addDays(chartStartDate, totalRange)) === 0)) {
+        headerTicks.push(addDays(chartStartDate, totalRange));
+    }
   }
+
 
   if (isLoading) {
     return (
@@ -156,7 +163,7 @@ export default function PlannerPage() {
           </Button>
         </Card>
       ) : (
-        <>
+        <TooltipProvider> {/* Added TooltipProvider here */}
           <div className="flex items-center gap-3">
             <GanttChart className="h-8 w-8 text-primary" />
             <div>
@@ -186,93 +193,100 @@ export default function PlannerPage() {
             </TabsList>
             <TabsContent value="gantt" className="mt-4">
               <div className="overflow-x-auto">
-                <div style={{ minWidth: 600 }}>
-                  <div className="relative mb-4 h-6 text-xs" ref={ganttRef}>
+                <div style={{ minWidth: Math.max(600, totalRange * 10) }} ref={ganttRef}> {/* Adjusted minWidth */}
+                  <div className="relative mb-4 h-6 text-xs">
                     {headerTicks.map((d, i) => (
                       <div
                         key={i}
-                        className="absolute top-0 border-r border-border/50 text-center"
+                        className="absolute top-0 border-r border-border/50 text-center whitespace-nowrap"
                         style={{
                           left: `${(differenceInCalendarDays(d, chartStartDate) / totalRange) * 100}%`,
-                          width: `${(30 / totalRange) * 100}%`,
+                           width: i < headerTicks.length -1 ? `${(differenceInCalendarDays(headerTicks[i+1], d) / totalRange) * 100}%` : `${(differenceInCalendarDays(addDays(chartStartDate, totalRange), d) / totalRange) * 100}%`,
                         }}
                       >
                         {format(d, 'MMM d')}
                       </div>
                     ))}
-                    <div
-                      className="absolute inset-y-0 w-px bg-blue-500"
-                      style={{
-                        left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
-                      }}
-                    />
-                    <div
-                      className="absolute inset-y-0 w-px bg-green-600"
-                      style={{
-                        left: `${(differenceInCalendarDays(new Date(), chartStartDate) / totalRange) * 100}%`,
-                      }}
-                    />
+                    {differenceInCalendarDays(weddingDateObj, chartStartDate) >=0 && differenceInCalendarDays(weddingDateObj, chartStartDate) <= totalRange && (
+                        <div
+                        className="absolute inset-y-0 w-px bg-blue-500 z-10"
+                        style={{
+                            left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
+                        }}
+                        />
+                    )}
+                    {differenceInCalendarDays(new Date(), chartStartDate) >=0 && differenceInCalendarDays(new Date(), chartStartDate) <= totalRange && (
+                        <div
+                        className="absolute inset-y-0 w-px bg-green-600 z-10"
+                        style={{
+                            left: `${(differenceInCalendarDays(new Date(), chartStartDate) / totalRange) * 100}%`,
+                        }}
+                        />
+                    )}
                   </div>
                   <div className="relative space-y-1">
                     {ganttData.map((task, idx) => (
                       <div key={task.id} className="flex items-center h-6 text-sm">
-                        <span className="w-48 pr-2 truncate">{task.name}</span>
-                        <div className="flex-1 relative h-4 bg-muted">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Rnd
-                                bounds="parent"
-                                size={{
-                                  width: (task.durationDays / totalRange) * containerWidth,
-                                  height: 8,
-                                }}
-                                position={{
-                                  x: (task.offset / totalRange) * containerWidth,
-                                  y: 0,
-                                }}
-                                enableResizing={{ left: true, right: true }}
-                                dragAxis="x"
-                                onDragStop={(_, d) => {
-                                  const newStart =
-                                    Math.round((d.x / containerWidth) * totalRange) + baseStart;
-                                  setGanttTasks(prev =>
-                                    prev.map((t, i) =>
-                                      i === idx ? { ...t, startDays: newStart } : t
-                                    )
-                                  );
-                                }}
-                                onResizeStop={(_, __, ref, ___, pos) => {
-                                  const newStart =
-                                    Math.round((pos.x / containerWidth) * totalRange) + baseStart;
-                                  const newDuration = Math.max(
-                                    1,
-                                    Math.round((ref.offsetWidth / containerWidth) * totalRange)
-                                  );
-                                  setGanttTasks(prev =>
-                                    prev.map((t, i) =>
-                                      i === idx
-                                        ? { ...t, startDays: newStart, durationDays: newDuration }
-                                        : t
-                                    )
-                                  );
-                                }}
-                              >
+                        <span className="w-48 pr-2 truncate" title={task.name}>{task.name}</span>
+                        <div className="flex-1 relative h-4 bg-muted rounded"> {/* Bar container */}
+                          <Rnd
+                            bounds="parent"
+                            size={{
+                              width: (task.durationDays / totalRange) * containerWidth,
+                              height: 16, // Full height of parent bar container
+                            }}
+                            position={{
+                              x: (task.offset / totalRange) * containerWidth,
+                              y: 0,
+                            }}
+                            enableResizing={{ left: true, right: true }}
+                            dragAxis="x"
+                            onDragStop={(_, d) => {
+                              const newStart =
+                                Math.round((d.x / containerWidth) * totalRange) + baseStart;
+                              setGanttTasks(prev =>
+                                prev.map((t, i) =>
+                                  i === idx ? { ...t, startDays: newStart } : t
+                                )
+                              );
+                            }}
+                            onResizeStop={(_, __, ref, ___, pos) => {
+                              const newStart =
+                                Math.round((pos.x / containerWidth) * totalRange) + baseStart;
+                              const newDuration = Math.max(
+                                1,
+                                Math.round((ref.offsetWidth / containerWidth) * totalRange)
+                              );
+                              setGanttTasks(prev =>
+                                prev.map((t, i) =>
+                                  i === idx
+                                    ? { ...t, startDays: newStart, durationDays: newDuration }
+                                    : t
+                                )
+                              );
+                            }}
+                          >
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                                 <div
                                   className={
                                     task.critical
-                                      ? 'h-full bg-destructive'
+                                      ? 'h-full bg-destructive rounded'
                                       : task.softCritical
-                                      ? 'h-full bg-orange-500'
-                                      : 'h-full bg-primary'
+                                      ? 'h-full bg-orange-500 rounded'
+                                      : 'h-full bg-primary rounded'
                                   }
-                                  style={{ width: '100%', height: '100%' }}
+                                  style={{ width: '100%', height: '100%', cursor: 'grab' }}
                                 />
-                              </Rnd>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {task.durationDays} days
-                            </TooltipContent>
-                          </Tooltip>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{task.name}</p>
+                                <p>Duration: {task.durationDays} day{task.durationDays > 1 ? 's' : ''}</p>
+                                <p>Starts: {format(addDays(weddingDateObj, task.startDays), 'MMM d, yyyy')}</p>
+                                <p>Ends: {format(addDays(weddingDateObj, task.startDays + task.durationDays -1), 'MMM d, yyyy')}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </Rnd>
                         </div>
                       </div>
                     ))}
@@ -288,12 +302,17 @@ export default function PlannerPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {tasks.map((task) => (
-                      <label key={task.id} className="flex items-start space-x-2">
-                        <Checkbox checked={!!completed[task.id]} onCheckedChange={() => toggleTask(task.id)} />
-                        <span className="flex-1">
-                          {task.name}
-                          {task.critical ? ' (critical)' : task.softCritical ? ' (important)' : ''}
-                        </span>
+                      <label key={task.id} className="flex items-start space-x-2 p-2 hover:bg-secondary rounded-md cursor-pointer">
+                        <Checkbox id={`task-${task.id}`} checked={!!completed[task.id]} onCheckedChange={() => toggleTask(task.id)} className="mt-1"/>
+                        <div className="flex-1">
+                          <span className={`${completed[task.id] ? 'line-through text-muted-foreground' : ''}`}>
+                            {task.name}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {task.critical ? '(Critical) ' : task.softCritical ? '(Important) ' : ''}
+                            Due around: {format(addDays(weddingDateObj, task.startDays + Math.floor(task.durationDays / 2)), 'MMM d, yyyy')}
+                          </span>
+                        </div>
                       </label>
                     ))}
                   </CardContent>
@@ -301,8 +320,9 @@ export default function PlannerPage() {
               ))}
             </TabsContent>
           </Tabs>
-        </>
+        </TooltipProvider> 
       )}
     </div>
   );
 }
+
