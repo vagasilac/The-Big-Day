@@ -7,7 +7,9 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Users, ListChecks, PlusCircle, Eye, Edit, Heart, Loader2, LayoutDashboard } from 'lucide-react';
+import { Clock, Users, ListChecks, PlusCircle, Eye, Edit, Heart, Loader2, LayoutDashboard, GanttChart } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { plannerTasks } from '@/lib/planner-data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
@@ -85,6 +87,15 @@ export default function DashboardPage() {
   const [declinedOtherGuestCount, setDeclinedOtherGuestCount] = useState(0);
 
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  const [plannerCompleted, setPlannerCompleted] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    const stored = localStorage.getItem('planner-completed');
+    if (stored) {
+      try { setPlannerCompleted(JSON.parse(stored)); } catch (_) {}
+    }
+  }, []);
+  const plannerProgress = Math.round((Object.keys(plannerCompleted).filter(k => plannerCompleted[k]).length / plannerTasks.length) * 100);
 
   const fetchWeddingAndGuestData = useCallback(async (user: User) => {
     setIsLoading(true);
@@ -450,6 +461,21 @@ export default function DashboardPage() {
                         )}
                     </>
                  )}
+              </CardContent>
+            </Card>
+            <Card className="shadow-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                  <GanttChart className="mr-2 h-4 w-4" />
+                  Planner Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-2 text-3xl font-bold text-foreground">{plannerProgress}%</div>
+                <Progress value={plannerProgress} />
+                <div className="mt-1 text-xs text-muted-foreground">
+                  <Link href="/dashboard/planner" className="underline">Open Planner</Link>
+                </div>
               </CardContent>
             </Card>
           </div>

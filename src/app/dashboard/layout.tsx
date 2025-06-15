@@ -34,6 +34,7 @@ import {
   Mail,
   ImageIcon,
   CalendarDays,
+  GanttChart,
   Palette,
   Heart,
   Music,
@@ -169,6 +170,7 @@ export default function DashboardLayout({
               <NavLink href="/dashboard/details" icon={<ScrollText />} tooltip="Wedding Details">Wedding Details</NavLink>
               <NavLink href="/dashboard/theme" icon={<Palette />} tooltip="Theme & Style">Theme & Style</NavLink>
               <NavLink href="/dashboard/schedule" icon={<CalendarDays />} tooltip="Event Schedule">Event Schedule</NavLink>
+              <NavLink href="/dashboard/planner" icon={<GanttChart />} tooltip="Planner">Planner</NavLink>
               <NavLink href="/dashboard/gallery" icon={<ImageIcon />} tooltip="Photo Gallery">Photo Gallery</NavLink>
             </SidebarMenu>
           </SidebarGroup>
