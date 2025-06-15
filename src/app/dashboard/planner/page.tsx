@@ -97,12 +97,13 @@ export default function PlannerPage() {
   });
 
   const ganttRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(600);
+  const LABEL_WIDTH = 192; // width of the task label column (w-48)
+  const [containerWidth, setContainerWidth] = useState(Math.max(600, totalRange * 10));
 
   useEffect(() => {
     const update = () => {
       if (ganttRef.current) {
-        setContainerWidth(ganttRef.current.offsetWidth);
+        setContainerWidth(Math.max(0, ganttRef.current.offsetWidth - LABEL_WIDTH));
       }
     };
     update();
@@ -193,8 +194,14 @@ export default function PlannerPage() {
             </TabsList>
             <TabsContent value="gantt" className="mt-4">
               <div className="overflow-x-auto">
-                <div style={{ minWidth: Math.max(600, totalRange * 10) }} ref={ganttRef}> {/* Adjusted minWidth */}
-                  <div className="relative mb-4 h-6 text-xs">
+                <div
+                  style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
+                  ref={ganttRef}
+                >
+                  <div
+                    className="relative mb-4 h-6 text-xs"
+                    style={{ marginLeft: LABEL_WIDTH, width: containerWidth }}
+                  >
                     {headerTicks.map((d, i) => (
                       <div
                         key={i}
@@ -208,12 +215,21 @@ export default function PlannerPage() {
                       </div>
                     ))}
                     {differenceInCalendarDays(weddingDateObj, chartStartDate) >=0 && differenceInCalendarDays(weddingDateObj, chartStartDate) <= totalRange && (
+                        <>
                         <div
-                        className="absolute inset-y-0 w-px bg-blue-500 z-10"
-                        style={{
+                          className="absolute inset-y-0 w-px bg-blue-500 z-10"
+                          style={{
                             left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
-                        }}
+                          }}
                         />
+                        <Heart
+                          className="absolute -top-3 h-4 w-4 text-blue-500 z-10"
+                          style={{
+                            left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
+                            transform: 'translateX(-50%)',
+                          }}
+                        />
+                        </>
                     )}
                     {differenceInCalendarDays(new Date(), chartStartDate) >=0 && differenceInCalendarDays(new Date(), chartStartDate) <= totalRange && (
                         <div
