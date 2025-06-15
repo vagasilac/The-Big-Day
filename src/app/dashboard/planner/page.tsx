@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -91,9 +91,16 @@ export default function PlannerPage() {
 
   const ganttRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const LABEL_WIDTH = 192; 
+  const LABEL_WIDTH = 192;
   const [containerWidth, setContainerWidth] = useState(Math.max(600, totalRange * 10));
 
+  const scrollToToday = () => {
+    if (scrollRef.current && chartStartDate && totalRange > 0 && containerWidth > 0) {
+      const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
+      const target = (todayOffset / totalRange) * containerWidth;
+      scrollRef.current.scrollLeft = Math.max(0, target + LABEL_WIDTH - scrollRef.current.clientWidth / 2);
+    }
+  };
 
   useEffect(() => {
     const update = () => {
@@ -104,15 +111,9 @@ export default function PlannerPage() {
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, []); // LABEL_WIDTH is constant, ganttRef.current changes don't need to be in deps
+  }, []);
 
-  useEffect(() => {
-    if (scrollRef.current && chartStartDate && totalRange > 0 && containerWidth > 0) { // Ensure chartStartDate and totalRange are valid
-      const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
-      const target = (todayOffset / totalRange) * containerWidth;
-      scrollRef.current.scrollLeft = Math.max(0, target + LABEL_WIDTH - scrollRef.current.clientWidth / 2);
-    }
-  }, [containerWidth, chartStartDate, totalRange]); // Dependencies are correct
+  useLayoutEffect(scrollToToday, [containerWidth, chartStartDate, totalRange]);
 
   const ganttData = ganttTasks.map(t => ({
     ...t,
@@ -160,7 +161,7 @@ export default function PlannerPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 md:gap-8">
+    <div className="flex flex-col gap-6 md:gap-8 h-full">
       {!weddingData ? (
         <Card className="border-dashed border-2 p-8 text-center shadow-sm">
           <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
@@ -204,8 +205,8 @@ export default function PlannerPage() {
               <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
             </TabsList>
-            <TabsContent value="gantt" className="mt-4">
-              <div ref={scrollRef} className="overflow-x-auto">
+            <TabsContent value="gantt" className="mt-4 flex-1 overflow-hidden">
+              <div ref={scrollRef} className="h-full overflow-auto">
                 <div
                   style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
                   ref={ganttRef}
