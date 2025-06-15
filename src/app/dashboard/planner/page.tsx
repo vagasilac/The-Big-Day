@@ -97,6 +97,7 @@ export default function PlannerPage() {
   });
 
   const ganttRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const LABEL_WIDTH = 192; // width of the task label column (w-48)
   const [containerWidth, setContainerWidth] = useState(Math.max(600, totalRange * 10));
 
@@ -110,6 +111,14 @@ export default function PlannerPage() {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
+      const target = (todayOffset / totalRange) * containerWidth;
+      scrollRef.current.scrollLeft = Math.max(0, target + LABEL_WIDTH - scrollRef.current.clientWidth / 2);
+    }
+  }, [containerWidth, chartStartDate, totalRange]);
 
   const weddingDateObj = weddingData?.date ? weddingData.date.toDate() : new Date();
   const chartStartDate = addDays(weddingDateObj, baseStart);
@@ -193,13 +202,13 @@ export default function PlannerPage() {
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
             </TabsList>
             <TabsContent value="gantt" className="mt-4">
-              <div className="overflow-x-auto">
+              <div ref={scrollRef} className="overflow-x-auto">
                 <div
                   style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
                   ref={ganttRef}
                 >
                   <div
-                    className="relative mb-4 h-6 text-xs"
+                    className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
                     style={{ marginLeft: LABEL_WIDTH, width: containerWidth }}
                   >
                     {headerTicks.map((d, i) => (
@@ -211,7 +220,7 @@ export default function PlannerPage() {
                            width: i < headerTicks.length -1 ? `${(differenceInCalendarDays(headerTicks[i+1], d) / totalRange) * 100}%` : `${(differenceInCalendarDays(addDays(chartStartDate, totalRange), d) / totalRange) * 100}%`,
                         }}
                       >
-                        {format(d, 'MMM d')}
+                        {format(d, 'MMM d, yyyy')}
                       </div>
                     ))}
                     {differenceInCalendarDays(weddingDateObj, chartStartDate) >=0 && differenceInCalendarDays(weddingDateObj, chartStartDate) <= totalRange && (
@@ -241,9 +250,23 @@ export default function PlannerPage() {
                     )}
                   </div>
                   <div className="relative space-y-1">
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{ marginLeft: LABEL_WIDTH }}
+                    >
+                      {headerTicks.map((d, i) => (
+                        <div
+                          key={i}
+                          className="absolute inset-y-0 border-r border-border/30"
+                          style={{
+                            left: `${(differenceInCalendarDays(d, chartStartDate) / totalRange) * 100}%`,
+                          }}
+                        />
+                      ))}
+                    </div>
                     {ganttData.map((task, idx) => (
                       <div key={task.id} className="flex items-center h-6 text-sm">
-                        <span className="w-48 pr-2 truncate" title={task.name}>{task.name}</span>
+                        <span className="w-48 pr-2 truncate sticky left-0 bg-background z-10" title={task.name}>{task.name}</span>
                         <div className="flex-1 relative h-4 bg-muted rounded"> {/* Bar container */}
                           <Rnd
                             bounds="parent"
