@@ -81,25 +81,19 @@ export default function PlannerPage() {
   const progressPercent = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
   const nextTask = ganttTasks.find(t => !completed[t.id]);
 
+  // Define Gantt chart calculation constants before they are used by useState or useEffect
   const baseStart = ganttTasks.length > 0 ? Math.min(...ganttTasks.map(t => t.startDays)) : 0;
   const maxEnd = ganttTasks.length > 0 ? Math.max(...ganttTasks.map(t => t.startDays + t.durationDays)) : 500;
-  const totalRange = Math.max(1, maxEnd - baseStart); // Ensure totalRange is at least 1 to avoid division by zero
-  
-  const ganttData = ganttTasks.map(t => ({
-    ...t,
-    offset: t.startDays - baseStart,
-  }));
+  const totalRange = Math.max(1, maxEnd - baseStart); 
 
-  const groupedTasks: Record<string, PlannerTask[]> = {};
-  ganttTasks.forEach(task => {
-    groupedTasks[task.phase] = groupedTasks[task.phase] || [];
-    groupedTasks[task.phase].push(task);
-  });
+  const weddingDateObj = weddingData?.date ? weddingData.date.toDate() : new Date();
+  const chartStartDate = addDays(weddingDateObj, baseStart);
 
   const ganttRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const LABEL_WIDTH = 192; // width of the task label column (w-48)
+  const LABEL_WIDTH = 192; 
   const [containerWidth, setContainerWidth] = useState(Math.max(600, totalRange * 10));
+
 
   useEffect(() => {
     const update = () => {
@@ -110,21 +104,30 @@ export default function PlannerPage() {
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, []);
+  }, []); // LABEL_WIDTH is constant, ganttRef.current changes don't need to be in deps
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && chartStartDate && totalRange > 0 && containerWidth > 0) { // Ensure chartStartDate and totalRange are valid
       const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
       const target = (todayOffset / totalRange) * containerWidth;
       scrollRef.current.scrollLeft = Math.max(0, target + LABEL_WIDTH - scrollRef.current.clientWidth / 2);
     }
-  }, [containerWidth, chartStartDate, totalRange]);
+  }, [containerWidth, chartStartDate, totalRange]); // Dependencies are correct
 
-  const weddingDateObj = weddingData?.date ? weddingData.date.toDate() : new Date();
-  const chartStartDate = addDays(weddingDateObj, baseStart);
+  const ganttData = ganttTasks.map(t => ({
+    ...t,
+    offset: t.startDays - baseStart,
+  }));
+
+  const groupedTasks: Record<string, PlannerTask[]> = {};
+  ganttTasks.forEach(task => {
+    groupedTasks[task.phase] = groupedTasks[task.phase] || [];
+    groupedTasks[task.phase].push(task);
+  });
+  
   const headerTicks: Date[] = [];
-  if (totalRange > 0) {
-    for (let i = 0; i <= totalRange; i += Math.max(1, Math.floor(totalRange / 10))) { // Adjust tick frequency
+  if (totalRange > 0 && chartStartDate) { // Ensure chartStartDate is valid
+    for (let i = 0; i <= totalRange; i += Math.max(1, Math.floor(totalRange / 10))) { 
       headerTicks.push(addDays(chartStartDate, i));
     }
      if (!headerTicks.find(d => differenceInCalendarDays(d, addDays(chartStartDate, totalRange)) === 0)) {
@@ -173,7 +176,7 @@ export default function PlannerPage() {
           </Button>
         </Card>
       ) : (
-        <TooltipProvider> {/* Added TooltipProvider here */}
+        <TooltipProvider>
           <div className="flex items-center gap-3">
             <GanttChart className="h-8 w-8 text-primary" />
             <div>
@@ -267,16 +270,14 @@ export default function PlannerPage() {
                     {ganttData.map((task, idx) => (
                       <div key={task.id} className="flex items-center h-6 text-sm">
                         <span className="w-48 pr-2 truncate sticky left-0 bg-background z-10" title={task.name}>{task.name}</span>
-                        <div className="flex-1 relative h-4 bg-muted rounded"> {/* Bar container */}
+                        <div className="flex-1 relative h-4 bg-muted rounded">
                           <Rnd
                             bounds="parent"
-                            size={{
-                              width: (task.durationDays / totalRange) * containerWidth,
-                              height: 16, // Full height of parent bar container
-                            }}
-                            position={{
+                            default={{
                               x: (task.offset / totalRange) * containerWidth,
                               y: 0,
+                              width: (task.durationDays / totalRange) * containerWidth,
+                              height: 16,
                             }}
                             enableResizing={{ left: true, right: true }}
                             dragAxis="x"
@@ -310,12 +311,12 @@ export default function PlannerPage() {
                                 <div
                                   className={
                                     task.critical
-                                      ? 'h-full bg-destructive rounded'
+                                      ? 'h-full bg-destructive rounded cursor-grab'
                                       : task.softCritical
-                                      ? 'h-full bg-orange-500 rounded'
-                                      : 'h-full bg-primary rounded'
+                                      ? 'h-full bg-orange-500 rounded cursor-grab'
+                                      : 'h-full bg-primary rounded cursor-grab'
                                   }
-                                  style={{ width: '100%', height: '100%', cursor: 'grab' }}
+                                  style={{ width: '100%', height: '100%' }}
                                 />
                               </TooltipTrigger>
                               <TooltipContent>
