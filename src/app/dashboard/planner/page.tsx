@@ -113,7 +113,13 @@ export default function PlannerPage() {
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  useLayoutEffect(scrollToToday, [containerWidth, chartStartDate, totalRange]);
+  const hasInitialScroll = useRef(false);
+  useLayoutEffect(() => {
+    if (!hasInitialScroll.current && containerWidth > 0) {
+      scrollToToday();
+      hasInitialScroll.current = true;
+    }
+  }, [containerWidth, chartStartDate, totalRange]);
 
   const ganttData = ganttTasks.map(t => ({
     ...t,
@@ -161,7 +167,7 @@ export default function PlannerPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 md:gap-8 h-full">
+    <div className="flex flex-col gap-6 md:gap-8 h-full overflow-hidden">
       {!weddingData ? (
         <Card className="border-dashed border-2 p-8 text-center shadow-sm">
           <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
@@ -200,7 +206,7 @@ export default function PlannerPage() {
             </CardContent>
           </Card>
 
-          <Tabs defaultValue="gantt">
+          <Tabs defaultValue="gantt" className="flex flex-col flex-1 overflow-hidden">
             <TabsList>
               <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
