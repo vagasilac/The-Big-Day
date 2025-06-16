@@ -121,6 +121,21 @@ export default function PlannerPage() {
     }
   }, [containerWidth, chartStartDate, totalRange]);
 
+  useEffect(() => {
+    const mainEl = scrollRef.current?.closest('main');
+    const prevOverflow = mainEl?.style.overflowY;
+    if (mainEl) {
+      mainEl.style.overflowY = 'hidden';
+    }
+    document.body.classList.add('overflow-hidden');
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+      if (mainEl) {
+        mainEl.style.overflowY = prevOverflow || '';
+      }
+    };
+  }, []);
+
   const ganttData = ganttTasks.map(t => ({
     ...t,
     offset: t.startDays - baseStart,
