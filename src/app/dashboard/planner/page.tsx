@@ -167,7 +167,7 @@ export default function PlannerPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 md:gap-8 h-full overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden">
       {!weddingData ? (
         <Card className="border-dashed border-2 p-8 text-center shadow-sm">
           <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
@@ -211,7 +211,7 @@ export default function PlannerPage() {
               <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
             </TabsList>
-            <TabsContent value="gantt" className="mt-4 flex-1 overflow-hidden">
+            <TabsContent value="gantt" className="flex-1 overflow-hidden mt-4">
               <div ref={scrollRef} className="h-full overflow-auto">
                 <div
                   style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
