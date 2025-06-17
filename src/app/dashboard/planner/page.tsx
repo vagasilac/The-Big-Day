@@ -212,8 +212,9 @@ export default function PlannerPage() {
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
             </TabsList>
             <TabsContent value="gantt" className="flex-1 overflow-hidden mt-4">
-              <div ref={scrollRef} className="h-full overflow-auto">
+              <div ref={scrollRef} className="h-full overflow-x-auto overflow-y-auto">
                 <div
+                  className="min-w-[1500px]"
                   style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
                   ref={ganttRef}
                 >
