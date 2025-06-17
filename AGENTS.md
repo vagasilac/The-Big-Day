@@ -1,58 +1,43 @@
-Please improve the wedding planner Gantt chart with the following two enhancements:
+Two issues remain to be fixed in the Gantt chart:
 
 ---
 
-### ✅ 1. Center the "Today" line on initial load
+### ✅ 1. Center the "Today" line on load
 
-When the planner page loads, the **horizontal scroll position** of the Gantt chart should be automatically set so that:
+The `scrollToToday()` function already exists, but it's not working properly. Fix it so that:
 
-- The vertical line representing **today’s date** is **centered** in the visible chart area.
-- The scroll should occur **after the layout is rendered**, so use `useLayoutEffect` if needed.
-- `scrollRef` should scroll so that the today-marker is in the **center of its scrollable area**, using:
-  ```ts
-  scrollRef.current.scrollLeft = targetOffset + LABEL_WIDTH - scrollRef.current.clientWidth / 2
+- The chart scrolls horizontally to **center the "Today" vertical line** on page load.
+- Make sure this runs inside `useLayoutEffect`, **after**:
+  - containerWidth is known
+  - scrollRef is populated
+  - chartStartDate and totalRange are all valid
 
+Example logic to use:
+```ts
+const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
+scrollRef.current.scrollLeft = 
+  (todayOffset / totalRange) * containerWidth + LABEL_WIDTH - scrollRef.current.clientWidth / 2;
+Use a hasScrolledRef.current flag to ensure it triggers only once.
 
-✅ This already exists as scrollToToday() in the code — just make sure:
+✅ 2. Prevent overlapping header date ticks
+Even though headerTicks are now correctly based on task boundaries, they sometimes render too close together, creating overlapping text.
 
-It runs on load (e.g., once containerWidth > 0).
+Fix this by:
 
-The scroll container and dimensions are ready when it’s triggered.
+Skipping ticks that would render less than ~50px apart from the previous one.
 
-✅ 2. Only show relevant date ticks in the header
-Currently, the timeline header shows overlapping, unnecessary dates at the end.
+In the .map() step, calculate where each tick would be positioned using:
+const leftPercent = offset / totalRange;
+const leftPx = leftPercent * containerWidth;
 
-Fix this so that:
+Only render ticks that are far enough apart from the last rendered tick.
 
-Only distinct, non-overlapping dates are shown.
+This will:
 
-The dates should be aligned with actual task bars — e.g., if tasks span March to July, the header should show only that range.
+Prevent overcrowding
 
-Avoid showing a date tick if it's not aligned with a new grid line or doesn’t match a task start or end.
+Maintain date clarity
 
-🔧 Implementation Notes
-Remove the logic that fills ticks every 10% of total range.
+Eliminate the overlapping cluster at the end of the chart
 
-Instead, derive the headerTicks array from the tasks:
-
-Collect all unique task.startDays and task.endDays
-
-Convert them into real dates using addDays(chartStartDate, dayOffset)
-
-Sort them and use as headerTicks
-
-✅ This will:
-
-Prevent overlapping labels
-
-Keep the header visually aligned with tasks
-
-Improve performance and clarity
-
-✅ Summary
-Center "today" on initial scroll load.
-
-Refactor headerTicks so only task-relevant, non-overlapping dates appear.
-
-
-I was hard to get to this point, so please try to keep everything as is, which is already working (page/chart scrolls)
+Please pay attention to not screw up anything which is already working fine! Thanks
