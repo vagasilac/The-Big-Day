@@ -115,13 +115,22 @@ export default function PlannerPage() {
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  const hasInitialScroll = useRef(false);
+  const hasScrolledRef = useRef(false);
   useLayoutEffect(() => {
-    if (!hasInitialScroll.current && containerWidth > 0) {
-      scrollToToday();
-      hasInitialScroll.current = true;
+    if (
+      !hasScrolledRef.current &&
+      containerWidth > 0 &&
+      scrollRef.current &&
+      totalRange > 0
+    ) {
+      const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
+      scrollRef.current.scrollLeft =
+        (todayOffset / totalRange) * containerWidth +
+        LABEL_WIDTH -
+        scrollRef.current.clientWidth / 2;
+      hasScrolledRef.current = true;
     }
-  }, [containerWidth, chartStartDate, totalRange]);
+  }, [containerWidth, totalRange, chartStartDate]);
 
   const ganttData = ganttTasks.map(t => ({
     ...t,
