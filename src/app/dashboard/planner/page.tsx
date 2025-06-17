@@ -11,9 +11,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GanttChart, Heart, PlusCircle } from 'lucide-react';
-import { addDays, differenceInCalendarDays, format } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, addMonths } from 'date-fns';
 import { Rnd } from 'react-rnd';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
@@ -28,21 +29,71 @@ export default function PlannerPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [weddingData, setWeddingData] = useState<Wedding | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [completed, setCompleted] = useState<Record<string, boolean>>({});
+  const [taskStatus, setTaskStatus] = useState<Record<string, number>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const stored = localStorage.getItem('planner-completed');
+    const stored = localStorage.getItem('planner-status');
     if (stored) {
-      try { setCompleted(JSON.parse(stored)); } catch (_) {}
+      try {
+        setTaskStatus(JSON.parse(stored));
+      } catch (_) {}
+    }
+    const storedNotes = localStorage.getItem('planner-notes');
+    if (storedNotes) {
+      try {
+        setNotes(JSON.parse(storedNotes));
+      } catch (_) {}
     }
   }, []);
 
-  const toggleTask = (id: string) => {
-    setCompleted(prev => {
-      const next = { ...prev, [id]: !prev[id] };
-      localStorage.setItem('planner-completed', JSON.stringify(next));
+  const cycleTaskStatus = (id: string) => {
+    setTaskStatus(prev => {
+      const next = { ...prev, [id]: ((prev[id] ?? 0) + 1) % 3 };
+      localStorage.setItem('planner-status', JSON.stringify(next));
       return next;
     });
+  };
+
+  const updateNote = (id: string, value: string) => {
+    setNotes(prev => {
+      const next = { ...prev, [id]: value };
+      localStorage.setItem('planner-notes', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleAddTask = () => {
+    if (!newTaskName) return;
+    const id = `custom-${Date.now()}`;
+    const due = newTaskDate ? new Date(newTaskDate) : weddingDateObj;
+    const startDays = differenceInCalendarDays(due, weddingDateObj);
+    const task: PlannerTask = {
+      id,
+      phase: 'Custom',
+      name: newTaskName,
+      startDays,
+      durationDays: 1,
+    };
+    setGanttTasks(prev => [...prev, task]);
+    setNewTaskName('');
+    setNewTaskDate('');
+  };
+
+  const startEditTask = (task: PlannerTask) => {
+    setEditTaskId(task.id);
+    setEditTaskName(task.name);
+  };
+
+  const saveEditTask = () => {
+    if (!editTaskId) return;
+    setGanttTasks(prev => prev.map(t => (t.id === editTaskId ? { ...t, name: editTaskName } : t)));
+    setEditTaskId(null);
+    setEditTaskName('');
+  };
+
+  const deleteTask = (id: string) => {
+    setGanttTasks(prev => prev.filter(t => t.id !== id));
   };
 
   useEffect(() => {
@@ -77,9 +128,9 @@ export default function PlannerPage() {
   const [ganttTasks, setGanttTasks] = useState<PlannerTask[]>(plannerTasks);
 
   const totalTasks = ganttTasks.length;
-  const completedCount = ganttTasks.filter(t => completed[t.id]).length;
+  const completedCount = ganttTasks.filter(t => taskStatus[t.id] === 2).length;
   const progressPercent = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
-  const nextTask = ganttTasks.find(t => !completed[t.id]);
+  const nextTask = ganttTasks.find(t => (taskStatus[t.id] ?? 0) !== 2);
 
   // Define Gantt chart calculation constants before they are used by useState or useEffect
   const baseStart = ganttTasks.length > 0 ? Math.min(...ganttTasks.map(t => t.startDays)) : 0;
@@ -93,6 +144,12 @@ export default function PlannerPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const LABEL_WIDTH = 192;
   const [containerWidth, setContainerWidth] = useState(Math.max(600, totalRange * 10));
+  const [openNote, setOpenNote] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('todo');
+  const [newTaskName, setNewTaskName] = useState('');
+  const [newTaskDate, setNewTaskDate] = useState('');
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
+  const [editTaskName, setEditTaskName] = useState('');
 
   const scrollToToday = () => {
     if (scrollRef.current && chartStartDate && totalRange > 0 && containerWidth > 0) {
@@ -114,6 +171,13 @@ export default function PlannerPage() {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = activeTab === 'gantt' ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activeTab]);
 
   const hasScrolledRef = useRef(false);
   useLayoutEffect(() => {
@@ -167,6 +231,18 @@ export default function PlannerPage() {
     });
     return result;
   }, [headerTicks, containerWidth, totalRange]);
+
+  const monthTicks = React.useMemo(() => {
+    const result: number[] = [];
+    const start = new Date(chartStartDate);
+    start.setDate(1);
+    let current = new Date(start);
+    while (differenceInCalendarDays(current, chartStartDate) <= totalRange) {
+      result.push(differenceInCalendarDays(current, chartStartDate));
+      current = addMonths(current, 1);
+    }
+    return result;
+  }, [chartStartDate, totalRange]);
 
 
   if (isLoading) {
@@ -232,10 +308,10 @@ export default function PlannerPage() {
             </CardContent>
           </Card>
 
-          <Tabs defaultValue="gantt" className="flex flex-col flex-1 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="todo" className="flex flex-col flex-1 overflow-hidden">
             <TabsList className="w-full max-w-screen">
-              <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
+              <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
             </TabsList>
             <TabsContent value="gantt" className="flex-1 overflow-hidden mt-4">
                 <div ref={scrollRef} className="h-full overflow-x-auto overflow-y-auto">
@@ -248,9 +324,9 @@ export default function PlannerPage() {
                     className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
                     style={{ marginLeft: LABEL_WIDTH, width: containerWidth }}
                   >
-                    {visibleHeaderTicks.map((off, i) => {
+                    {monthTicks.map((off, i) => {
                       const currentDate = addDays(chartStartDate, off);
-                      const nextOff = i < visibleHeaderTicks.length - 1 ? visibleHeaderTicks[i + 1] : totalRange;
+                      const nextOff = i < monthTicks.length - 1 ? monthTicks[i + 1] : totalRange;
                       return (
                         <div
                           key={i}
@@ -260,7 +336,7 @@ export default function PlannerPage() {
                             width: `${((nextOff - off) / totalRange) * 100}%`,
                           }}
                         >
-                          {format(currentDate, 'MMM d, yyyy')}
+                          {format(currentDate, currentDate.getMonth() === 0 || i === 0 ? 'MMM yyyy' : 'MMM')}
                         </div>
                       );
                     })}
@@ -295,13 +371,11 @@ export default function PlannerPage() {
                       className="absolute inset-0 pointer-events-none"
                       style={{ marginLeft: LABEL_WIDTH }}
                     >
-                      {visibleHeaderTicks.map((off, i) => (
+                      {monthTicks.map((off, i) => (
                         <div
                           key={i}
-                          className="absolute inset-y-0 border-r border-border/30"
-                          style={{
-                            left: `${(off / totalRange) * 100}%`,
-                          }}
+                          className="absolute inset-y-0 border-r border-muted/40"
+                          style={{ left: `${(off / totalRange) * 100}%` }}
                         />
                       ))}
                     </div>
@@ -348,20 +422,30 @@ export default function PlannerPage() {
                               <TooltipTrigger asChild>
                                 <div
                                   className={
-                                    task.critical
-                                      ? 'h-full bg-destructive rounded cursor-grab'
-                                      : task.softCritical
-                                      ? 'h-full bg-orange-500 rounded cursor-grab'
-                                      : 'h-full bg-primary rounded cursor-grab'
+                                    cn(
+                                      'h-full rounded cursor-grab',
+                                      taskStatus[task.id] === 2
+                                        ? 'bg-green-600'
+                                        : taskStatus[task.id] === 1
+                                        ? 'bg-blue-500'
+                                        : task.critical
+                                        ? 'bg-destructive'
+                                        : task.softCritical
+                                        ? 'bg-orange-500'
+                                        : 'bg-primary'
+                                    )
                                   }
                                   style={{ width: '100%', height: '100%' }}
                                 />
                               </TooltipTrigger>
-                              <TooltipContent>
+                              <TooltipContent className="z-50">
                                 <p>{task.name}</p>
                                 <p>Duration: {task.durationDays} day{task.durationDays > 1 ? 's' : ''}</p>
                                 <p>Starts: {format(addDays(weddingDateObj, task.startDays), 'MMM d, yyyy')}</p>
                                 <p>Ends: {format(addDays(weddingDateObj, task.startDays + task.durationDays -1), 'MMM d, yyyy')}</p>
+                                {notes[task.id] && (
+                                  <p className="whitespace-pre-line mt-1">{notes[task.id]}</p>
+                                )}
                               </TooltipContent>
                             </Tooltip>
                           </Rnd>
@@ -380,23 +464,94 @@ export default function PlannerPage() {
                     <CardTitle>{phase}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {tasks.map((task) => (
-                      <label key={task.id} className="flex items-start space-x-2 p-2 hover:bg-secondary rounded-md cursor-pointer">
-                        <Checkbox id={`task-${task.id}`} checked={!!completed[task.id]} onCheckedChange={() => toggleTask(task.id)} className="mt-1"/>
-                        <div className="flex-1">
-                          <span className={`${completed[task.id] ? 'line-through text-muted-foreground' : ''}`}>
-                            {task.name}
-                          </span>
-                          <span className="block text-xs text-muted-foreground">
-                            {task.critical ? '(Critical) ' : task.softCritical ? '(Important) ' : ''}
-                            Due around: {format(addDays(weddingDateObj, task.startDays + Math.floor(task.durationDays / 2)), 'MMM d, yyyy')}
-                          </span>
+                    {tasks.map((task) => {
+                      const status = taskStatus[task.id] ?? 0;
+                      const isOpen = openNote === task.id;
+                      return (
+                        <div key={task.id} className="space-y-1">
+                          <label className="flex items-start space-x-2 p-2 hover:bg-secondary rounded-md cursor-pointer">
+                            <Checkbox
+                              id={`task-${task.id}`}
+                              checked={status === 2 ? true : status === 1 ? 'indeterminate' : false}
+                              onCheckedChange={() => cycleTaskStatus(task.id)}
+                              className="mt-1"
+                            />
+                            <div className="flex-1">
+                              <span
+                                className={
+                                  status === 2
+                                    ? 'line-through text-muted-foreground'
+                                    : status === 1
+                                    ? 'text-blue-500'
+                                    : ''
+                                }
+                              >
+                                {task.name}
+                                {status === 1 && (
+                                  <span className="ml-2 text-xs italic text-blue-500">(Started)</span>
+                                )}
+                              </span>
+                              <span className="block text-xs text-muted-foreground">
+                                {task.critical ? '(Critical) ' : task.softCritical ? '(Important) ' : ''}
+                                Due around: {format(addDays(weddingDateObj, task.startDays + Math.floor(task.durationDays / 2)), 'MMM d, yyyy')}
+                              </span>
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setOpenNote(isOpen ? null : task.id)}>
+                              Notes
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => startEditTask(task)}>
+                              Edit
+                            </Button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => deleteTask(task.id)}>
+                              Delete
+                            </Button>
+                          </label>
+                          {isOpen && (
+                            <textarea
+                              className="w-full border rounded p-1 text-sm"
+                              value={notes[task.id] ?? ''}
+                              onChange={(e) => updateNote(task.id, e.target.value)}
+                              onBlur={(e) => updateNote(task.id, e.target.value)}
+                              rows={2}
+                            />
+                          )}
+                          {editTaskId === task.id && (
+                            <div className="flex gap-2 mt-1">
+                              <input
+                                className="flex-1 border rounded p-1 text-sm"
+                                value={editTaskName}
+                                onChange={(e) => setEditTaskName(e.target.value)}
+                              />
+                              <Button type="button" size="sm" onClick={saveEditTask}>Save</Button>
+                            </div>
+                          )}
                         </div>
-                      </label>
-                    ))}
+                      );
+                    })}
                   </CardContent>
                 </Card>
               ))}
+              <div className="mt-4 space-y-2">
+                <h3 className="font-semibold">Add Task</h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Task name"
+                    className="flex-1 border rounded p-1 text-sm"
+                    value={newTaskName}
+                    onChange={(e) => setNewTaskName(e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    className="border rounded p-1 text-sm"
+                    value={newTaskDate}
+                    onChange={(e) => setNewTaskDate(e.target.value)}
+                  />
+                  <Button type="button" onClick={handleAddTask}>
+                    Add
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </TooltipProvider> 
