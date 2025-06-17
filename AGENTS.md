@@ -1,40 +1,58 @@
-The Gantt chart area in the wedding planner page needs vertical scrolling restored.
+Please improve the wedding planner Gantt chart with the following two enhancements:
 
 ---
 
-### ✅ Goal
+### ✅ 1. Center the "Today" line on initial load
 
-Fix the layout so that the **Gantt chart section scrolls vertically** when the content overflows.  
-This scroll should be **inside the chart area only**, not the full page.
+When the planner page loads, the **horizontal scroll position** of the Gantt chart should be automatically set so that:
 
----
+- The vertical line representing **today’s date** is **centered** in the visible chart area.
+- The scroll should occur **after the layout is rendered**, so use `useLayoutEffect` if needed.
+- `scrollRef` should scroll so that the today-marker is in the **center of its scrollable area**, using:
+  ```ts
+  scrollRef.current.scrollLeft = targetOffset + LABEL_WIDTH - scrollRef.current.clientWidth / 2
 
-### ✅ Context
 
-- The outer page and header already fit the screen — this is correct, do not change.
-- The chart area correctly supports horizontal scrolling — keep this as-is.
-- But now, when many tasks are rendered, the user **cannot scroll down** the chart section. This is broken.
+✅ This already exists as scrollToToday() in the code — just make sure:
 
----
+It runs on load (e.g., once containerWidth > 0).
 
-### 🔧 Implementation Instructions
+The scroll container and dimensions are ready when it’s triggered.
 
-- Make sure the scroll container (`scrollRef`) has:  
-  `className="h-full overflow-x-auto overflow-y-auto"`
+✅ 2. Only show relevant date ticks in the header
+Currently, the timeline header shows overlapping, unnecessary dates at the end.
 
-- Its parent container (likely inside `<TabsContent value="gantt">`) should:
-  - Use `className="flex-1 overflow-hidden"`
-  - Be inside a `flex-col flex-1` layout chain up to the full height container
+Fix this so that:
 
-- Make sure any intermediate wrappers (e.g. tabs, cards, outer layout) allow the scroll container to grow in height:
-  - Add `flex-1` where necessary
-  - Avoid hard-coded `min-h`, `max-h`, or missing height settings
+Only distinct, non-overlapping dates are shown.
 
----
+The dates should be aligned with actual task bars — e.g., if tasks span March to July, the header should show only that range.
 
-### 📌 Final Checklist
+Avoid showing a date tick if it's not aligned with a new grid line or doesn’t match a task start or end.
 
-After your update:
-- ✅ The **page stays fixed**
-- ✅ The **header (progress + tab)** remains static and full-width
-- ✅ The **Gantt chart can scroll horizontally and vertically** **inside its section**
+🔧 Implementation Notes
+Remove the logic that fills ticks every 10% of total range.
+
+Instead, derive the headerTicks array from the tasks:
+
+Collect all unique task.startDays and task.endDays
+
+Convert them into real dates using addDays(chartStartDate, dayOffset)
+
+Sort them and use as headerTicks
+
+✅ This will:
+
+Prevent overlapping labels
+
+Keep the header visually aligned with tasks
+
+Improve performance and clarity
+
+✅ Summary
+Center "today" on initial scroll load.
+
+Refactor headerTicks so only task-relevant, non-overlapping dates appear.
+
+
+I was hard to get to this point, so please try to keep everything as is, which is already working (page/chart scrolls)
