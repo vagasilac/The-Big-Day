@@ -132,15 +132,18 @@ export default function PlannerPage() {
     groupedTasks[task.phase].push(task);
   });
   
-  const headerTicks: Date[] = [];
-  if (totalRange > 0 && chartStartDate) { // Ensure chartStartDate is valid
-    for (let i = 0; i <= totalRange; i += Math.max(1, Math.floor(totalRange / 10))) { 
-      headerTicks.push(addDays(chartStartDate, i));
-    }
-     if (!headerTicks.find(d => differenceInCalendarDays(d, addDays(chartStartDate, totalRange)) === 0)) {
-        headerTicks.push(addDays(chartStartDate, totalRange));
-    }
-  }
+  const headerTicks = React.useMemo(() => {
+    const offsets = new Set<number>();
+    ganttTasks.forEach(t => {
+      offsets.add(t.startDays - baseStart);
+      offsets.add(t.startDays + t.durationDays - baseStart);
+    });
+    offsets.add(0);
+    offsets.add(totalRange);
+    return Array.from(offsets)
+      .sort((a, b) => a - b)
+      .map(off => addDays(chartStartDate, off));
+  }, [ganttTasks, chartStartDate, baseStart, totalRange]);
 
 
   if (isLoading) {
