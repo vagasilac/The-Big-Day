@@ -1,50 +1,40 @@
-Fix the layout of the wedding planner page. These issues must be solved:
+The Gantt chart area in the wedding planner page needs vertical scrolling restored.
 
 ---
 
-### ✅ GOAL
+### ✅ Goal
 
-The page should:
-- Have **no page-level scroll** (both vertical and horizontal).
-- The **Progress Card** and **Tab Switcher** must fit **within the screen width** and always be visible.
-- The **Gantt chart area** must:
-  - Scroll **vertically** when chart content overflows in height ✅
-  - Scroll **horizontally** when chart is wider than viewport ✅
-  - Remain within the screen — must not overflow the page horizontally ❌
+Fix the layout so that the **Gantt chart section scrolls vertically** when the content overflows.  
+This scroll should be **inside the chart area only**, not the full page.
 
 ---
 
-### 🔧 TECHNICAL REQUIREMENTS
+### ✅ Context
 
-- The **chart scroll container** (`scrollRef`) should have:  
+- The outer page and header already fit the screen — this is correct, do not change.
+- The chart area correctly supports horizontal scrolling — keep this as-is.
+- But now, when many tasks are rendered, the user **cannot scroll down** the chart section. This is broken.
+
+---
+
+### 🔧 Implementation Instructions
+
+- Make sure the scroll container (`scrollRef`) has:  
   `className="h-full overflow-x-auto overflow-y-auto"`
 
-- Inside `scrollRef`, the direct child should be:  
-  `className="w-max min-w-full"`  
-  to enable horizontal scrolling **without pushing the entire page wider**.
+- Its parent container (likely inside `<TabsContent value="gantt">`) should:
+  - Use `className="flex-1 overflow-hidden"`
+  - Be inside a `flex-col flex-1` layout chain up to the full height container
 
-- Ensure the outer page layout and all parent wrappers:
-  - Have `overflow-x-hidden` to prevent page scroll.
-  - Are constrained to `w-full max-w-screen` so that no section pushes beyond the viewport width.
-
-- The vertical scroll issue is likely caused by a missing `flex-1` or height constraint on a parent.  
-  Please verify that:
-  - The wrapper around `TabsContent` has `flex-1 overflow-hidden`
-  - And that `scrollRef` is allowed to stretch vertically (`h-full`) inside that context.
+- Make sure any intermediate wrappers (e.g. tabs, cards, outer layout) allow the scroll container to grow in height:
+  - Add `flex-1` where necessary
+  - Avoid hard-coded `min-h`, `max-h`, or missing height settings
 
 ---
 
-### ❗ DO NOT
+### 📌 Final Checklist
 
-- Do not allow the page body to scroll.
-- Do not use `min-w-[1500px]` directly, as it causes the whole page to overflow.
-- Do not let any container inside the page push the layout wider than the viewport.
-
----
-
-### 📌 Test Checklist
-
-After the fix:
-- The page should never scroll horizontally.
-- The header content (progress card, toggle) must always fit.
-- The Gantt chart area must be scrollable both vertically and horizontally **within its container only**.
+After your update:
+- ✅ The **page stays fixed**
+- ✅ The **header (progress + tab)** remains static and full-width
+- ✅ The **Gantt chart can scroll horizontally and vertically** **inside its section**
