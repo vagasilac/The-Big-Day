@@ -219,7 +219,7 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="flex flex-col">
+      <SidebarInset className="flex flex-col w-full max-w-screen overflow-x-hidden">
          {isMobile && (
           <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <SidebarTrigger asChild><Button size="icon" variant="outline" className="sm:hidden"><Menu className="h-5 w-5" /><span className="sr-only">Toggle Menu</span></Button></SidebarTrigger>
@@ -231,7 +231,7 @@ export default function DashboardLayout({
             </div>
           </header>
         )}
-        <main className="flex-1 overflow-hidden overflow-x-hidden p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-hidden overflow-x-hidden w-full max-w-screen p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </SidebarInset>

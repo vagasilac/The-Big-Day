@@ -167,7 +167,7 @@ export default function PlannerPage() {
   }
 
   return (
-    <div className="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-hidden">
+    <div className="flex flex-col flex-1 w-full max-w-screen overflow-x-hidden overflow-y-hidden">
       {!weddingData ? (
         <Card className="border-dashed border-2 p-8 text-center shadow-sm">
           <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
@@ -194,7 +194,7 @@ export default function PlannerPage() {
             </div>
           </div>
 
-          <Card className="shadow-lg">
+          <Card className="shadow-lg w-full max-w-screen">
             <CardHeader>
               <CardTitle>Progress</CardTitle>
               <CardDescription>
@@ -207,7 +207,7 @@ export default function PlannerPage() {
           </Card>
 
           <Tabs defaultValue="gantt" className="flex flex-col flex-1 overflow-hidden">
-            <TabsList>
+            <TabsList className="w-full max-w-screen">
               <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
             </TabsList>
