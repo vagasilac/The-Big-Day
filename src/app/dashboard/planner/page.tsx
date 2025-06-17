@@ -167,7 +167,7 @@ export default function PlannerPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col flex-1 w-full overflow-x-hidden overflow-y-hidden">
       {!weddingData ? (
         <Card className="border-dashed border-2 p-8 text-center shadow-sm">
           <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
@@ -212,12 +212,12 @@ export default function PlannerPage() {
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
             </TabsList>
             <TabsContent value="gantt" className="flex-1 overflow-hidden mt-4">
-              <div ref={scrollRef} className="h-full overflow-x-auto overflow-y-auto">
-                <div
-                  className="min-w-[1500px]"
-                  style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
-                  ref={ganttRef}
-                >
+                <div ref={scrollRef} className="h-full overflow-x-auto overflow-y-auto">
+                  <div className="w-max min-w-full">
+                    <div
+                      style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
+                      ref={ganttRef}
+                    >
                   <div
                     className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
                     style={{ marginLeft: LABEL_WIDTH, width: containerWidth }}
@@ -341,6 +341,7 @@ export default function PlannerPage() {
                   </div>
                 </div>
               </div>
+            </div>
             </TabsContent>
             <TabsContent value="todo" className="mt-4">
               {Object.entries(groupedTasks).map(([phase, tasks]) => (
