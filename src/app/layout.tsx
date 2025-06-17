@@ -23,11 +23,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <head />
-      <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`} suppressHydrationWarning>
-        {children}
-        <Toaster />
+      <body
+        className={`${GeistSans.variable} ${GeistMono.variable} antialiased h-full overflow-hidden`}
+        suppressHydrationWarning
+      >
+        <div className="min-h-screen flex flex-col h-full">
+          {children}
+          <Toaster />
+        </div>
       </body>
     </html>
   );
