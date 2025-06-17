@@ -1,43 +1,56 @@
-Two issues remain to be fixed in the Gantt chart:
+🔍 What likely went wrong
+✅ scrollRef.current.scrollLeft = ... logic is correct
+
+❌ But it runs before the layout is fully ready, or the containerWidth is still 0
+
+That means the scroll instruction runs too early — and gets ignored or scrolls to the wrong place.
+
+✅ Refined Prompt for Codex
+The logic to scroll the Gantt chart to center the "Today" line still does not work.
+
+Please fix this so that:
 
 ---
 
-### ✅ 1. Center the "Today" line on load
+### ✅ GOAL
 
-The `scrollToToday()` function already exists, but it's not working properly. Fix it so that:
+- On page load, the **scroll container (scrollRef)** should automatically scroll so that the "Today" vertical line is **centered** in the visible area.
+- This scroll must happen **only after layout is complete** and `containerWidth` is known.
 
-- The chart scrolls horizontally to **center the "Today" vertical line** on page load.
-- Make sure this runs inside `useLayoutEffect`, **after**:
-  - containerWidth is known
-  - scrollRef is populated
-  - chartStartDate and totalRange are all valid
+---
 
-Example logic to use:
+### 🔍 Problem Source
+
+Even though this line is correct:
 ```ts
-const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
-scrollRef.current.scrollLeft = 
+scrollRef.current.scrollLeft =
   (todayOffset / totalRange) * containerWidth + LABEL_WIDTH - scrollRef.current.clientWidth / 2;
-Use a hasScrolledRef.current flag to ensure it triggers only once.
+It likely runs too early, when containerWidth is still 0.
 
-✅ 2. Prevent overlapping header date ticks
-Even though headerTicks are now correctly based on task boundaries, they sometimes render too close together, creating overlapping text.
+✅ Fix Instructions
+Wrap the scroll logic in useLayoutEffect (not useEffect):
 
-Fix this by:
+This ensures it runs after layout and size calculation.
 
-Skipping ticks that would render less than ~50px apart from the previous one.
+Use a hasScrolledRef.current = true flag to run it only once
 
-In the .map() step, calculate where each tick would be positioned using:
-const leftPercent = offset / totalRange;
-const leftPx = leftPercent * containerWidth;
+Add containerWidth > 0 as a condition before executing scroll
 
-Only render ticks that are far enough apart from the last rendered tick.
+Use correct dependencies:
+useLayoutEffect(() => {
+  if (
+    !hasScrolledRef.current &&
+    containerWidth > 0 &&
+    scrollRef.current &&
+    totalRange > 0
+  ) {
+    scrollRef.current.scrollLeft =
+      (todayOffset / totalRange) * containerWidth +
+      LABEL_WIDTH -
+      scrollRef.current.clientWidth / 2;
+    hasScrolledRef.current = true;
+  }
+}, [containerWidth, totalRange, todayOffset]);
+You can compute todayOffset inside this effect too if needed.
 
-This will:
-
-Prevent overcrowding
-
-Maintain date clarity
-
-Eliminate the overlapping cluster at the end of the chart
-
-Please pay attention to not screw up anything which is already working fine! Thanks
+✅ After this fix, the chart should automatically center on today's date when it renders.
