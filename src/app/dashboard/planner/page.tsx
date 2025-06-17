@@ -97,8 +97,10 @@ export default function PlannerPage() {
   const scrollToToday = () => {
     if (scrollRef.current && chartStartDate && totalRange > 0 && containerWidth > 0) {
       const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
-      const target = (todayOffset / totalRange) * containerWidth;
-      scrollRef.current.scrollLeft = Math.max(0, target + LABEL_WIDTH - scrollRef.current.clientWidth / 2);
+      scrollRef.current.scrollLeft =
+        (todayOffset / totalRange) * containerWidth +
+        LABEL_WIDTH -
+        scrollRef.current.clientWidth / 2;
     }
   };
 
@@ -140,10 +142,22 @@ export default function PlannerPage() {
     });
     offsets.add(0);
     offsets.add(totalRange);
-    return Array.from(offsets)
-      .sort((a, b) => a - b)
-      .map(off => addDays(chartStartDate, off));
-  }, [ganttTasks, chartStartDate, baseStart, totalRange]);
+    return Array.from(offsets).sort((a, b) => a - b);
+  }, [ganttTasks, baseStart, totalRange]);
+
+  const visibleHeaderTicks = React.useMemo(() => {
+    const MIN_SPACING = 50; // pixels
+    let lastLeft = -Infinity;
+    const result: number[] = [];
+    headerTicks.forEach(off => {
+      const leftPx = (off / totalRange) * containerWidth;
+      if (leftPx - lastLeft >= MIN_SPACING) {
+        result.push(off);
+        lastLeft = leftPx;
+      }
+    });
+    return result;
+  }, [headerTicks, containerWidth, totalRange]);
 
 
   if (isLoading) {
@@ -225,18 +239,22 @@ export default function PlannerPage() {
                     className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
                     style={{ marginLeft: LABEL_WIDTH, width: containerWidth }}
                   >
-                    {headerTicks.map((d, i) => (
-                      <div
-                        key={i}
-                        className="absolute top-0 border-r border-border/50 text-center whitespace-nowrap"
-                        style={{
-                          left: `${(differenceInCalendarDays(d, chartStartDate) / totalRange) * 100}%`,
-                           width: i < headerTicks.length -1 ? `${(differenceInCalendarDays(headerTicks[i+1], d) / totalRange) * 100}%` : `${(differenceInCalendarDays(addDays(chartStartDate, totalRange), d) / totalRange) * 100}%`,
-                        }}
-                      >
-                        {format(d, 'MMM d, yyyy')}
-                      </div>
-                    ))}
+                    {visibleHeaderTicks.map((off, i) => {
+                      const currentDate = addDays(chartStartDate, off);
+                      const nextOff = i < visibleHeaderTicks.length - 1 ? visibleHeaderTicks[i + 1] : totalRange;
+                      return (
+                        <div
+                          key={i}
+                          className="absolute top-0 border-r border-border/50 text-center whitespace-nowrap"
+                          style={{
+                            left: `${(off / totalRange) * 100}%`,
+                            width: `${((nextOff - off) / totalRange) * 100}%`,
+                          }}
+                        >
+                          {format(currentDate, 'MMM d, yyyy')}
+                        </div>
+                      );
+                    })}
                     {differenceInCalendarDays(weddingDateObj, chartStartDate) >=0 && differenceInCalendarDays(weddingDateObj, chartStartDate) <= totalRange && (
                         <>
                         <div
@@ -268,12 +286,12 @@ export default function PlannerPage() {
                       className="absolute inset-0 pointer-events-none"
                       style={{ marginLeft: LABEL_WIDTH }}
                     >
-                      {headerTicks.map((d, i) => (
+                      {visibleHeaderTicks.map((off, i) => (
                         <div
                           key={i}
                           className="absolute inset-y-0 border-r border-border/30"
                           style={{
-                            left: `${(differenceInCalendarDays(d, chartStartDate) / totalRange) * 100}%`,
+                            left: `${(off / totalRange) * 100}%`,
                           }}
                         />
                       ))}
