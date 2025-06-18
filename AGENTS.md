@@ -1,97 +1,59 @@
-// Please apply the following fixes in the wedding planner Gantt & To-Do UI:
+🧠 Codex Prompt for Fixing Remaining Planner Issues
+We have a wedding planner app with a Gantt chart and to-do list. The current implementation has the following critical regressions and UI issues after recent changes:
 
-// ---------------------------
-// 🔁 1. Restore "scroll to Today" on Gantt chart load
-// ---------------------------
-/*
-✅ This used to work — now it's broken.
-✅ Reinstate the working logic that scrolls to the TODAY marker on initial render.
-✅ Use useLayoutEffect + hasScrolledRef to avoid repeating.
+🔧 TASKS TO FIX & IMPROVE
+1. ✅ Gantt chart should auto-scroll to “today” on load
+This was working 2 commits ago. Please investigate which commit broke this and restore the working scroll-to-today behavior.
 
-Logic:
-  scrollRef.current.scrollLeft =
-    (todayOffset / totalRange) * containerWidth +
-    LABEL_WIDTH - scrollRef.current.clientWidth / 2;
+The chart should scroll horizontally to center today’s date in the visible chart area.
 
-Make sure it runs only:
-- once
-- when ganttTasks are populated
-- when containerWidth > 0
-*/
+2. ✅
 
-// ---------------------------
-// 🧾 2. To-Do List still doesn't scroll vertically
-// ---------------------------
-/*
-✅ You already added dynamic scroll control based on activeTab (good!).
+3. ✅ Fix activity background bar cutoff issue
+The colored background of chart rows gets cut off early, especially toward the right.
 
-BUT: The To-Do tab is still unscrollable.
+Ensure background bars stretch the entire visible container width, even if there’s no active task.
 
-🔧 Fix:
-- Ensure parent wrapper div has: `overflow-y-auto` when tab is "todo"
-- There might still be a container with `overflow-hidden` blocking it
-- Double-check that all parent heights allow for scrolling
-*/
+4. ✅ Today’s vertical highlight line
+A vertical line showing today’s date should be rendered.
 
-// ---------------------------
-// 🎨 3. Gantt background rows stop prematurely
-// ---------------------------
-/*
-Issue:
-- Each task row background bar (light-colored) stops before the full timeline width.
+Style it to be a bit thicker and darker than the month separators (bg-green-600 z-20), and ensure it spans both header and task body.
 
-Fix:
-- Ensure these background elements stretch:
-  width = Math.max(containerWidth, totalRange * 10 + LABEL_WIDTH)
-- Or set `min-w-full` on the wrapping div
-*/
+5. ✅ Month separator grid lines
+Subtle vertical lines should separate each month (from header down to the last row).
 
-// ---------------------------
-// 📅 4. Vertical lines at month start missing
-// ---------------------------
-/*
-✅ You are mapping `monthTicks`, but likely didn't see the effect due to style/layout bugs.
+These should be light (border-muted/40) and rendered dynamically based on month changes in the chart range.
 
-Fix:
-- Each vertical gridline:
-  - `absolute inset-y-0 w-px bg-muted/30` or `border-muted/40`
-  - `left: ${(offset / totalRange) * 100}%`
-  - Should be inside `.relative` container
-- Layer should be below task bars, above background
-*/
+6. ✅ Fix chart overflow end (remove unused space)
+Currently, the Gantt chart renders empty space far to the right beyond the last task.
 
-// ---------------------------
-// 📍 5. "Today" line is still missing
-// ---------------------------
-/*
-✅ Reintroduce the green "Today" marker line.
+Trim this area. The right edge of the scrollable chart container should match the end of the last visible task.
 
-Fix:
-- Add a div like:
+7. ✅ Fix Gantt task name visibility
+The task name column is too narrow; only the first letter of each task is visible.
 
-  <div className="absolute inset-y-0 w-px bg-green-600 z-20"
-       style={{ left: `${(todayOffset / totalRange) * 100}%` }} />
+Ensure there’s a minimum width (e.g. min-w-[160px] or w-48) and enough horizontal padding to show the full name or at least 2–3 words.
 
-- Append to the same relative container that holds vertical month lines.
-- Ensure scrollable chart body doesn’t clip it.
-*/
+🧩 Important Context / Constraints
+Codebase uses React + TypeScript + Tailwind.
 
-// ---------------------------
-// ➕ 6. Add task section now supports notes — ✅
-// ---------------------------
-/*
-Great job with:
-- Storing to localStorage
-- Adding "optional note" input
-- Mapping plannerTasks + customTasks into ganttTasks (✅)
-*/
+The planner is implemented in: src/app/dashboard/planner/page.tsx.
 
-// 🧪 Test checklist after applying all changes:
-/*
-- Gantt auto-scrolls to Today on load
-- "Today" green vertical line is visible
-- Month gridlines span from header to body
-- Light row backgrounds stretch fully
-- To-Do tab is scrollable
-- Added tasks persist and show up in chart
-*/
+Tabs switch between Gantt Chart and To-Do List.
+
+Only the chart area should be horizontally scrollable.
+
+Only the To-Do tab should allow vertical scrolling.
+
+✅ Example of expected fixes:
+✅ Today = centered horizontally
+
+✅ No extra empty space right of last task
+
+✅ Monthly grid lines rendered from header to bottom
+
+✅ Task name column readable
+
+✅ Today line visible and prominent
+
+Please perform the changes incrementally and test for visual correctness.
