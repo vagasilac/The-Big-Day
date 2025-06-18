@@ -380,6 +380,15 @@ export default function PlannerPage() {
                         style={{ left: `${(off / totalRange) * 100}%` }}
                       />
                     ))}
+                    {differenceInCalendarDays(new Date(), chartStartDate) >= 0 &&
+                      differenceInCalendarDays(new Date(), chartStartDate) <= totalRange && (
+                        <div
+                          className="absolute inset-y-0 w-px bg-green-600 z-20"
+                          style={{
+                            left: `${(differenceInCalendarDays(new Date(), chartStartDate) / totalRange) * 100}%`,
+                          }}
+                        />
+                    )}
                   </div>
                   <div
                     className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
@@ -418,20 +427,12 @@ export default function PlannerPage() {
                         />
                         </>
                     )}
-                    {differenceInCalendarDays(new Date(), chartStartDate) >=0 && differenceInCalendarDays(new Date(), chartStartDate) <= totalRange && (
-                        <div
-                        className="absolute inset-y-0 w-px bg-green-600 z-10"
-                        style={{
-                            left: `${(differenceInCalendarDays(new Date(), chartStartDate) / totalRange) * 100}%`,
-                        }}
-                        />
-                    )}
                   </div>
                   <div className="relative space-y-1">
                     {ganttData.map((task, idx) => (
                       <div key={task.id} className="flex items-center h-6 text-sm">
                         <span className="w-48 pr-2 truncate sticky left-0 bg-background z-10" title={task.name}>{task.name}</span>
-                        <div className="flex-1 relative h-4 bg-muted rounded">
+                        <div className="flex-1 relative h-4 bg-muted rounded" style={{ minWidth: containerWidth }}>
                           <Rnd
                             bounds="parent"
                             default={{
@@ -506,7 +507,7 @@ export default function PlannerPage() {
               </div>
             </div>
             </TabsContent>
-            <TabsContent value="todo" className="mt-4">
+            <TabsContent value="todo" className="flex-1 overflow-y-auto mt-4">
               {Object.entries(groupedTasks).map(([phase, tasks]) => (
                 <Card key={phase} className="mb-4">
                   <CardHeader>

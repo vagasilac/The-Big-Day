@@ -231,7 +231,7 @@ export default function DashboardLayout({
             </div>
           </header>
         )}
-        <main className="flex flex-col flex-1 overflow-hidden overflow-x-hidden w-full max-w-screen p-4 md:p-6 lg:p-8">
+        <main className="flex flex-col flex-1 overflow-x-hidden overflow-y-auto w-full max-w-screen p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </SidebarInset>
