@@ -31,6 +31,7 @@ export default function PlannerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [taskStatus, setTaskStatus] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [customTasks, setCustomTasks] = useState<PlannerTask[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem('planner-status');
@@ -43,6 +44,12 @@ export default function PlannerPage() {
     if (storedNotes) {
       try {
         setNotes(JSON.parse(storedNotes));
+      } catch (_) {}
+    }
+    const storedCustom = localStorage.getItem('planner-custom-tasks');
+    if (storedCustom) {
+      try {
+        setCustomTasks(JSON.parse(storedCustom));
       } catch (_) {}
     }
   }, []);
@@ -75,9 +82,16 @@ export default function PlannerPage() {
       startDays,
       durationDays: 1,
     };
+    const nextCustom = [...customTasks, task];
+    setCustomTasks(nextCustom);
+    localStorage.setItem('planner-custom-tasks', JSON.stringify(nextCustom));
+    if (newTaskNote) {
+      updateNote(id, newTaskNote);
+    }
     setGanttTasks(prev => [...prev, task]);
     setNewTaskName('');
     setNewTaskDate('');
+    setNewTaskNote('');
   };
 
   const startEditTask = (task: PlannerTask) => {
@@ -88,12 +102,30 @@ export default function PlannerPage() {
   const saveEditTask = () => {
     if (!editTaskId) return;
     setGanttTasks(prev => prev.map(t => (t.id === editTaskId ? { ...t, name: editTaskName } : t)));
+    setCustomTasks(prev => {
+      const next = prev.map(t => (t.id === editTaskId ? { ...t, name: editTaskName } : t));
+      localStorage.setItem('planner-custom-tasks', JSON.stringify(next));
+      return next;
+    });
     setEditTaskId(null);
     setEditTaskName('');
   };
 
   const deleteTask = (id: string) => {
     setGanttTasks(prev => prev.filter(t => t.id !== id));
+    setCustomTasks(prev => {
+      const next = prev.filter(t => t.id !== id);
+      localStorage.setItem('planner-custom-tasks', JSON.stringify(next));
+      return next;
+    });
+    setNotes(prev => {
+      if (prev[id]) {
+        const { [id]: _, ...rest } = prev;
+        localStorage.setItem('planner-notes', JSON.stringify(rest));
+        return rest;
+      }
+      return prev;
+    });
   };
 
   useEffect(() => {
@@ -125,7 +157,11 @@ export default function PlannerPage() {
     return () => unsubscribe();
   }, [router]);
 
-  const [ganttTasks, setGanttTasks] = useState<PlannerTask[]>(plannerTasks);
+  const [ganttTasks, setGanttTasks] = useState<PlannerTask[]>([]);
+
+  useEffect(() => {
+    setGanttTasks([...plannerTasks, ...customTasks]);
+  }, [customTasks]);
 
   const totalTasks = ganttTasks.length;
   const completedCount = ganttTasks.filter(t => taskStatus[t.id] === 2).length;
@@ -148,6 +184,7 @@ export default function PlannerPage() {
   const [activeTab, setActiveTab] = useState('todo');
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskDate, setNewTaskDate] = useState('');
+  const [newTaskNote, setNewTaskNote] = useState('');
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [editTaskName, setEditTaskName] = useState('');
 
@@ -171,6 +208,12 @@ export default function PlannerPage() {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'gantt' && ganttRef.current) {
+      setContainerWidth(Math.max(0, ganttRef.current.offsetWidth - LABEL_WIDTH));
+    }
+  }, [activeTab, ganttTasks.length]);
 
   useEffect(() => {
     document.body.style.overflow = activeTab === 'gantt' ? 'hidden' : '';
@@ -269,7 +312,12 @@ export default function PlannerPage() {
   }
 
   return (
-    <div className="flex flex-col flex-1 w-full max-w-screen overflow-x-hidden overflow-y-hidden">
+    <div
+      className={cn(
+        'flex flex-col flex-1 w-full max-w-screen overflow-x-hidden',
+        activeTab === 'gantt' ? 'overflow-y-hidden' : 'overflow-y-auto'
+      )}
+    >
       {!weddingData ? (
         <Card className="border-dashed border-2 p-8 text-center shadow-sm">
           <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
@@ -319,7 +367,20 @@ export default function PlannerPage() {
                     <div
                       style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
                       ref={ganttRef}
+                      className="relative"
                     >
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ marginLeft: LABEL_WIDTH }}
+                  >
+                    {monthTicks.map((off, i) => (
+                      <div
+                        key={i}
+                        className="absolute inset-y-0 w-px bg-border/40"
+                        style={{ left: `${(off / totalRange) * 100}%` }}
+                      />
+                    ))}
+                  </div>
                   <div
                     className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
                     style={{ marginLeft: LABEL_WIDTH, width: containerWidth }}
@@ -367,18 +428,6 @@ export default function PlannerPage() {
                     )}
                   </div>
                   <div className="relative space-y-1">
-                    <div
-                      className="absolute inset-0 pointer-events-none"
-                      style={{ marginLeft: LABEL_WIDTH }}
-                    >
-                      {monthTicks.map((off, i) => (
-                        <div
-                          key={i}
-                          className="absolute inset-y-0 border-r border-muted/40"
-                          style={{ left: `${(off / totalRange) * 100}%` }}
-                        />
-                      ))}
-                    </div>
                     {ganttData.map((task, idx) => (
                       <div key={task.id} className="flex items-center h-6 text-sm">
                         <span className="w-48 pr-2 truncate sticky left-0 bg-background z-10" title={task.name}>{task.name}</span>
@@ -533,24 +582,31 @@ export default function PlannerPage() {
               ))}
               <div className="mt-4 space-y-2">
                 <h3 className="font-semibold">Add Task</h3>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Task name"
-                    className="flex-1 border rounded p-1 text-sm"
-                    value={newTaskName}
-                    onChange={(e) => setNewTaskName(e.target.value)}
-                  />
-                  <input
-                    type="date"
-                    className="border rounded p-1 text-sm"
-                    value={newTaskDate}
-                    onChange={(e) => setNewTaskDate(e.target.value)}
-                  />
-                  <Button type="button" onClick={handleAddTask}>
-                    Add
-                  </Button>
-                </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Task name"
+                  className="flex-1 border rounded p-1 text-sm"
+                  value={newTaskName}
+                  onChange={(e) => setNewTaskName(e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="border rounded p-1 text-sm"
+                  value={newTaskDate}
+                  onChange={(e) => setNewTaskDate(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Optional note"
+                  className="flex-1 border rounded p-1 text-sm"
+                  value={newTaskNote}
+                  onChange={(e) => setNewTaskNote(e.target.value)}
+                />
+                <Button type="button" onClick={handleAddTask}>
+                  Add
+                </Button>
+              </div>
               </div>
             </TabsContent>
           </Tabs>
