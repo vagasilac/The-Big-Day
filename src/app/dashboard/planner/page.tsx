@@ -179,7 +179,7 @@ export default function PlannerPage() {
   const ganttRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const LABEL_WIDTH = 192;
-  const [containerWidth, setContainerWidth] = useState(Math.max(600, totalRange * 10));
+  const [containerWidth, setContainerWidth] = useState(0);
   const [openNote, setOpenNote] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('todo');
   const [newTaskName, setNewTaskName] = useState('');
@@ -200,8 +200,8 @@ export default function PlannerPage() {
 
   useEffect(() => {
     const update = () => {
-      if (ganttRef.current) {
-        setContainerWidth(Math.max(0, ganttRef.current.offsetWidth - LABEL_WIDTH));
+      if (scrollRef.current) {
+        setContainerWidth(Math.max(0, scrollRef.current.clientWidth - LABEL_WIDTH));
       }
     };
     update();
@@ -210,8 +210,8 @@ export default function PlannerPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'gantt' && ganttRef.current) {
-      setContainerWidth(Math.max(0, ganttRef.current.offsetWidth - LABEL_WIDTH));
+    if (activeTab === 'gantt' && scrollRef.current) {
+      setContainerWidth(Math.max(0, scrollRef.current.clientWidth - LABEL_WIDTH));
     }
   }, [activeTab, ganttTasks.length]);
 
@@ -384,8 +384,8 @@ export default function PlannerPage() {
                       className="relative"
                     >
                   <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{ marginLeft: LABEL_WIDTH }}
+                    className="absolute top-0 bottom-0 pointer-events-none z-10"
+                    style={{ left: LABEL_WIDTH, width: containerWidth }}
                   >
                     {monthTicks.map((off, i) => (
                       <div
@@ -406,7 +406,7 @@ export default function PlannerPage() {
                   </div>
                   <div
                     className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
-                    style={{ marginLeft: LABEL_WIDTH, width: containerWidth }}
+                    style={{ left: LABEL_WIDTH, width: containerWidth }}
                   >
                     {monthTicks.map((off, i) => {
                       const currentDate = addDays(chartStartDate, off);
@@ -453,7 +453,7 @@ export default function PlannerPage() {
                         </span>
                         <div
                           className="flex-1 relative h-4 bg-muted rounded"
-                          style={{ width: containerWidth }}
+                          style={{ minWidth: containerWidth }}
                         >
                           <Rnd
                             bounds="parent"
