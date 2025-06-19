@@ -222,6 +222,12 @@ export default function PlannerPage() {
     };
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab === 'gantt') {
+      scrollToToday();
+    }
+  }, [activeTab, containerWidth, totalRange, chartStartDate]);
+
   const hasScrolledRef = useRef(false);
   useLayoutEffect(() => {
     if (
@@ -356,7 +362,15 @@ export default function PlannerPage() {
             </CardContent>
           </Card>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="todo" className="flex flex-col flex-1 overflow-hidden">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            defaultValue="todo"
+            className={cn(
+              'flex flex-col flex-1',
+              activeTab === 'todo' ? 'overflow-y-auto' : 'overflow-hidden'
+            )}
+          >
             <TabsList className="w-full max-w-screen">
               <TabsTrigger value="todo">To-Do List</TabsTrigger>
               <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
@@ -365,7 +379,7 @@ export default function PlannerPage() {
                 <div ref={scrollRef} className="h-full overflow-x-auto overflow-y-auto">
                   <div className="w-max min-w-full">
                     <div
-                      style={{ width: Math.max(600 + LABEL_WIDTH, totalRange * 10 + LABEL_WIDTH) }}
+                      style={{ width: totalRange * 10 + LABEL_WIDTH }}
                       ref={ganttRef}
                       className="relative"
                     >
@@ -383,7 +397,7 @@ export default function PlannerPage() {
                     {differenceInCalendarDays(new Date(), chartStartDate) >= 0 &&
                       differenceInCalendarDays(new Date(), chartStartDate) <= totalRange && (
                         <div
-                          className="absolute inset-y-0 w-px bg-green-600 z-20"
+                          className="absolute inset-y-0 w-0.5 bg-green-600 z-20"
                           style={{
                             left: `${(differenceInCalendarDays(new Date(), chartStartDate) / totalRange) * 100}%`,
                           }}
@@ -431,8 +445,16 @@ export default function PlannerPage() {
                   <div className="relative space-y-1">
                     {ganttData.map((task, idx) => (
                       <div key={task.id} className="flex items-center h-6 text-sm">
-                        <span className="w-48 pr-2 truncate sticky left-0 bg-background z-10" title={task.name}>{task.name}</span>
-                        <div className="flex-1 relative h-4 bg-muted rounded" style={{ minWidth: containerWidth }}>
+                        <span
+                          className="w-48 min-w-[160px] pr-2 truncate sticky left-0 bg-background z-10"
+                          title={task.name}
+                        >
+                          {task.name}
+                        </span>
+                        <div
+                          className="flex-1 relative h-4 bg-muted rounded"
+                          style={{ width: containerWidth }}
+                        >
                           <Rnd
                             bounds="parent"
                             default={{
