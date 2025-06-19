@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GanttChart, Heart, PlusCircle } from 'lucide-react';
-import { addDays, differenceInCalendarDays, format, addMonths } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, addMonths, startOfDay } from 'date-fns';
 import { Rnd } from 'react-rnd';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -179,7 +179,7 @@ export default function PlannerPage() {
   const ganttRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const LABEL_WIDTH = 192;
-  const [containerWidth, setContainerWidth] = useState(Math.max(600, totalRange * 10));
+  const [containerWidth, setContainerWidth] = useState(0);
   const [openNote, setOpenNote] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('todo');
   const [newTaskName, setNewTaskName] = useState('');
@@ -189,8 +189,11 @@ export default function PlannerPage() {
   const [editTaskName, setEditTaskName] = useState('');
 
   const scrollToToday = () => {
-    if (scrollRef.current && chartStartDate && totalRange > 0 && containerWidth > 0) {
-      const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
+    if (scrollRef.current && totalRange > 0 && containerWidth > 0) {
+      const todayOffset = differenceInCalendarDays(
+        startOfDay(new Date()),
+        startOfDay(chartStartDate)
+      );
       scrollRef.current.scrollLeft =
         (todayOffset / totalRange) * containerWidth +
         LABEL_WIDTH -
@@ -231,19 +234,16 @@ export default function PlannerPage() {
   const hasScrolledRef = useRef(false);
   useLayoutEffect(() => {
     if (
+      activeTab === 'gantt' &&
       !hasScrolledRef.current &&
       containerWidth > 0 &&
       scrollRef.current &&
       totalRange > 0
     ) {
-      const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
-      scrollRef.current.scrollLeft =
-        (todayOffset / totalRange) * containerWidth +
-        LABEL_WIDTH -
-        scrollRef.current.clientWidth / 2;
+      scrollToToday();
       hasScrolledRef.current = true;
     }
-  }, [containerWidth, totalRange, chartStartDate]);
+  }, [activeTab, containerWidth, totalRange, chartStartDate]);
 
   const ganttData = ganttTasks.map(t => ({
     ...t,
@@ -390,16 +390,16 @@ export default function PlannerPage() {
                     {monthTicks.map((off, i) => (
                       <div
                         key={i}
-                        className="absolute inset-y-0 w-px bg-border/40"
+                        className="absolute inset-y-0 w-px bg-muted/40"
                         style={{ left: `${(off / totalRange) * 100}%` }}
                       />
                     ))}
-                    {differenceInCalendarDays(new Date(), chartStartDate) >= 0 &&
-                      differenceInCalendarDays(new Date(), chartStartDate) <= totalRange && (
+                    {differenceInCalendarDays(startOfDay(new Date()), startOfDay(chartStartDate)) >= 0 &&
+                      differenceInCalendarDays(startOfDay(new Date()), startOfDay(chartStartDate)) <= totalRange && (
                         <div
                           className="absolute inset-y-0 w-0.5 bg-green-600 z-20"
                           style={{
-                            left: `${(differenceInCalendarDays(new Date(), chartStartDate) / totalRange) * 100}%`,
+                            left: `${(differenceInCalendarDays(startOfDay(new Date()), startOfDay(chartStartDate)) / totalRange) * 100}%`,
                           }}
                         />
                     )}
@@ -414,7 +414,7 @@ export default function PlannerPage() {
                       return (
                         <div
                           key={i}
-                          className="absolute top-0 border-r border-border/50 text-center whitespace-nowrap"
+                          className="absolute top-0 border-r border-muted/40 text-center whitespace-nowrap"
                           style={{
                             left: `${(off / totalRange) * 100}%`,
                             width: `${((nextOff - off) / totalRange) * 100}%`,
@@ -453,7 +453,7 @@ export default function PlannerPage() {
                         </span>
                         <div
                           className="flex-1 relative h-4 bg-muted rounded"
-                          style={{ width: containerWidth }}
+                          style={{ minWidth: containerWidth }}
                         >
                           <Rnd
                             bounds="parent"
