@@ -453,7 +453,7 @@ export default function PlannerPage() {
                         </span>
                         <div
                           className="flex-1 relative h-4 bg-muted rounded"
-                          style={{ width: containerWidth }}
+                          style={{ minWidth: containerWidth }}
                         >
                           <Rnd
                             bounds="parent"
