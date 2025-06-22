@@ -216,13 +216,13 @@ export default function PlannerPage() {
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, []);
+  }, [totalRange]);
 
   useEffect(() => {
     if (activeTab === 'gantt' && ganttRef.current) {
       setContainerWidth(Math.max(0, ganttRef.current.offsetWidth - LABEL_WIDTH));
     }
-  }, [activeTab, ganttTasks.length]);
+  }, [activeTab, ganttTasks.length, totalRange]);
 
   useEffect(() => {
     document.body.style.overflow = activeTab === 'gantt' ? 'hidden' : '';
