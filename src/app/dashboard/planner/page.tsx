@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GanttChart, Heart, PlusCircle } from 'lucide-react';
-import { addDays, differenceInCalendarDays, format, addMonths } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, addMonths, startOfToday } from 'date-fns';
 import { Rnd } from 'react-rnd';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -190,7 +190,7 @@ export default function PlannerPage() {
 
   const scrollToToday = () => {
     if (scrollRef.current && chartStartDate && totalRange > 0 && containerWidth > 0) {
-      const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
+      const todayOffset = differenceInCalendarDays(startOfToday(), chartStartDate);
       scrollRef.current.scrollLeft =
         (todayOffset / totalRange) * containerWidth +
         LABEL_WIDTH -
@@ -236,7 +236,7 @@ export default function PlannerPage() {
       scrollRef.current &&
       totalRange > 0
     ) {
-      const todayOffset = differenceInCalendarDays(new Date(), chartStartDate);
+      const todayOffset = differenceInCalendarDays(startOfToday(), chartStartDate);
       scrollRef.current.scrollLeft =
         (todayOffset / totalRange) * containerWidth +
         LABEL_WIDTH -
@@ -394,12 +394,12 @@ export default function PlannerPage() {
                         style={{ left: `${(off / totalRange) * 100}%` }}
                       />
                     ))}
-                    {differenceInCalendarDays(new Date(), chartStartDate) >= 0 &&
-                      differenceInCalendarDays(new Date(), chartStartDate) <= totalRange && (
+                    {differenceInCalendarDays(startOfToday(), chartStartDate) >= 0 &&
+                      differenceInCalendarDays(startOfToday(), chartStartDate) <= totalRange && (
                         <div
-                          className="absolute inset-y-0 w-0.5 bg-green-600 z-20"
+                          className="absolute inset-y-0 w-0.5 bg-green-600 z-30"
                           style={{
-                            left: `${(differenceInCalendarDays(new Date(), chartStartDate) / totalRange) * 100}%`,
+                            left: `${(differenceInCalendarDays(startOfToday(), chartStartDate) / totalRange) * 100}%`,
                           }}
                         />
                     )}
