@@ -11,7 +11,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GanttChart, Heart, PlusCircle } from 'lucide-react';
-import { addDays, differenceInCalendarDays, format, addMonths, startOfToday } from 'date-fns';
+import {
+  addDays,
+  differenceInCalendarDays,
+  format,
+  addMonths,
+  startOfToday,
+  startOfDay,
+} from 'date-fns';
 import { Rnd } from 'react-rnd';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -173,7 +180,9 @@ export default function PlannerPage() {
   const maxEnd = ganttTasks.length > 0 ? Math.max(...ganttTasks.map(t => t.startDays + t.durationDays)) : 500;
   const totalRange = Math.max(1, maxEnd - baseStart); 
 
-  const weddingDateObj = weddingData?.date ? weddingData.date.toDate() : new Date();
+  const weddingDateObj = startOfDay(
+    weddingData?.date ? weddingData.date.toDate() : new Date()
+  );
   const chartStartDate = addDays(weddingDateObj, baseStart);
 
   const ganttRef = useRef<HTMLDivElement>(null);
