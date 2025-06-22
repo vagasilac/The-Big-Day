@@ -238,6 +238,13 @@ export default function PlannerPage() {
   }, [activeTab, containerWidth, totalRange, chartStartDate]);
 
   const hasScrolledRef = useRef(false);
+
+  // Reset scroll flag whenever the chart range changes so today's
+  // position is recalculated after data loads or tasks change.
+  useEffect(() => {
+    hasScrolledRef.current = false;
+  }, [chartStartDate, totalRange]);
+
   useLayoutEffect(() => {
     if (
       !hasScrolledRef.current &&
