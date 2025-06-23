@@ -201,8 +201,7 @@ export default function PlannerPage() {
     if (scrollRef.current && chartStartDate && totalRange > 0 && containerWidth > 0) {
       const todayOffset = differenceInCalendarDays(startOfToday(), chartStartDate);
       scrollRef.current.scrollLeft =
-        (todayOffset / totalRange) * containerWidth +
-        LABEL_WIDTH -
+        (todayOffset / totalRange) * containerWidth -
         scrollRef.current.clientWidth / 2;
     }
   };
@@ -210,7 +209,7 @@ export default function PlannerPage() {
   useEffect(() => {
     const update = () => {
       if (ganttRef.current) {
-        setContainerWidth(Math.max(0, ganttRef.current.offsetWidth - LABEL_WIDTH));
+        setContainerWidth(Math.max(0, ganttRef.current.offsetWidth));
       }
     };
     update();
@@ -220,7 +219,7 @@ export default function PlannerPage() {
 
   useEffect(() => {
     if (activeTab === 'gantt' && ganttRef.current) {
-      setContainerWidth(Math.max(0, ganttRef.current.offsetWidth - LABEL_WIDTH));
+      setContainerWidth(Math.max(0, ganttRef.current.offsetWidth));
     }
   }, [activeTab, ganttTasks.length, totalRange]);
 
@@ -377,39 +376,51 @@ export default function PlannerPage() {
               <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
             </TabsList>
             <TabsContent value="gantt" className="flex-1 overflow-hidden mt-4">
-                <div ref={scrollRef} className="h-full overflow-x-auto overflow-y-auto">
-                  <div className="w-max min-w-full">
-                    <div
-                      style={{ width: totalRange * 10 + LABEL_WIDTH }}
-                      ref={ganttRef}
-                      className="relative"
-                    >
-                    <div
-                      className="absolute inset-y-0 pointer-events-none right-0"
-                      style={{ left: LABEL_WIDTH, width: containerWidth }}
-                    >
-                    {monthTicks.map((off, i) => (
+              <div className="flex h-full overflow-y-auto">
+                <div
+                  className="sticky left-0 z-20 shrink-0 pr-2 bg-background"
+                  style={{ width: LABEL_WIDTH }}
+                >
+                  <div className="space-y-1">
+                    {ganttData.map(task => (
                       <div
-                        key={i}
-                        className="absolute inset-y-0 w-px bg-border/40"
-                        style={{ left: `${(off / totalRange) * 100}%` }}
-                      />
+                        key={task.id}
+                        className="flex items-center h-6 text-sm w-48 min-w-[160px] truncate"
+                      >
+                        {task.name}
+                      </div>
                     ))}
-                    {differenceInCalendarDays(startOfToday(), chartStartDate) >= 0 &&
-                      differenceInCalendarDays(startOfToday(), chartStartDate) <= totalRange && (
+                  </div>
+                </div>
+                <div ref={scrollRef} className="flex-1 h-full overflow-x-auto overflow-y-auto">
+                  <div className="w-max min-w-full">
+                    <div ref={ganttRef} className="relative" style={{ width: totalRange * 10 }}>
+                      <div
+                        className="absolute inset-y-0 pointer-events-none right-0"
+                        style={{ width: containerWidth }}
+                      >
+                      {monthTicks.map((off, i) => (
                         <div
-                          className="absolute inset-y-0 w-0.5 bg-green-600 z-30"
-                          style={{
-                            left: `${(differenceInCalendarDays(startOfToday(), chartStartDate) / totalRange) * 100}%`,
-                          }}
+                          key={i}
+                          className="absolute inset-y-0 w-px bg-border/40"
+                          style={{ left: `${(off / totalRange) * 100}%` }}
                         />
-                    )}
+                      ))}
+                      {differenceInCalendarDays(startOfToday(), chartStartDate) >= 0 &&
+                        differenceInCalendarDays(startOfToday(), chartStartDate) <= totalRange && (
+                          <div
+                            className="absolute inset-y-0 w-0.5 bg-green-600 z-30"
+                            style={{
+                              left: `${(differenceInCalendarDays(startOfToday(), chartStartDate) / totalRange) * 100}%`,
+                            }}
+                          />
+                      )}
                   </div>
                   <div
-                    className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
-                    style={{ marginLeft: LABEL_WIDTH, width: containerWidth }}
-                  >
-                    {monthTicks.map((off, i) => {
+                      className="relative mb-4 h-6 text-xs sticky top-0 bg-background z-20"
+                      style={{ width: containerWidth }}
+                    >
+                      {monthTicks.map((off, i) => {
                       const currentDate = addDays(chartStartDate, off);
                       const nextOff = i < monthTicks.length - 1 ? monthTicks[i + 1] : totalRange;
                       return (
@@ -425,37 +436,32 @@ export default function PlannerPage() {
                         </div>
                       );
                     })}
-                    {differenceInCalendarDays(weddingDateObj, chartStartDate) >=0 && differenceInCalendarDays(weddingDateObj, chartStartDate) <= totalRange && (
-                        <>
-                        <div
-                          className="absolute inset-y-0 w-px bg-blue-500 z-10"
-                          style={{
-                            left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
-                          }}
-                        />
-                        <Heart
-                          className="absolute -top-3 h-4 w-4 text-blue-500 z-10"
-                          style={{
-                            left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
-                            transform: 'translateX(-50%)',
-                          }}
-                        />
-                        </>
-                    )}
+                      {differenceInCalendarDays(weddingDateObj, chartStartDate) >= 0 &&
+                        differenceInCalendarDays(weddingDateObj, chartStartDate) <= totalRange && (
+                          <>
+                            <div
+                              className="absolute inset-y-0 w-px bg-blue-500 z-10"
+                              style={{
+                                left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
+                              }}
+                            />
+                            <Heart
+                              className="absolute -top-3 h-4 w-4 text-blue-500 z-10"
+                              style={{
+                                left: `${(differenceInCalendarDays(weddingDateObj, chartStartDate) / totalRange) * 100}%`,
+                                transform: 'translateX(-50%)',
+                              }}
+                            />
+                          </>
+                      )}
                   </div>
-                  <div className="relative space-y-1">
-                    {ganttData.map((task, idx) => (
-                      <div key={task.id} className="flex items-center h-6 text-sm">
-                        <span
-                          className="w-48 min-w-[160px] pr-2 truncate sticky left-0 bg-background z-10"
-                          title={task.name}
-                        >
-                          {task.name}
-                        </span>
-                        <div
-                          className="flex-1 relative h-4 bg-muted rounded"
-                          style={{ minWidth: containerWidth }}
-                        >
+                      <div className="relative space-y-1">
+                        {ganttData.map((task, idx) => (
+                          <div key={task.id} className="flex items-center h-6 text-sm">
+                            <div
+                              className="flex-1 relative h-4 bg-muted rounded"
+                              style={{ minWidth: containerWidth }}
+                            >
                           <Rnd
                             bounds="parent"
                             default={{
