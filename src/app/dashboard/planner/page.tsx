@@ -399,10 +399,10 @@ export default function PlannerPage() {
                       ref={ganttRef}
                       className="relative"
                     >
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{ marginLeft: LABEL_WIDTH }}
-                  >
+                    <div
+                      className="absolute inset-y-0 pointer-events-none right-0"
+                      style={{ left: LABEL_WIDTH, width: containerWidth }}
+                    >
                     {monthTicks.map((off, i) => (
                       <div
                         key={i}
