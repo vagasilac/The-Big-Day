@@ -231,35 +231,20 @@ export default function PlannerPage() {
     };
   }, [activeTab]);
 
-  useEffect(() => {
-    if (activeTab === 'gantt') {
-      scrollToToday();
-    }
-  }, [activeTab, containerWidth, totalRange, chartStartDate]);
-
-  const hasScrolledRef = useRef(false);
-
-  // Reset scroll flag whenever the chart range changes so today's
-  // position is recalculated after data loads or tasks change.
-  useEffect(() => {
-    hasScrolledRef.current = false;
-  }, [chartStartDate, totalRange]);
+  const initialScrolledRef = useRef(false);
 
   useLayoutEffect(() => {
     if (
-      !hasScrolledRef.current &&
+      activeTab === 'gantt' &&
+      !initialScrolledRef.current &&
       containerWidth > 0 &&
       scrollRef.current &&
       totalRange > 0
     ) {
-      const todayOffset = differenceInCalendarDays(startOfToday(), chartStartDate);
-      scrollRef.current.scrollLeft =
-        (todayOffset / totalRange) * containerWidth +
-        LABEL_WIDTH -
-        scrollRef.current.clientWidth / 2;
-      hasScrolledRef.current = true;
+      scrollToToday();
+      initialScrolledRef.current = true;
     }
-  }, [containerWidth, totalRange, chartStartDate]);
+  }, [activeTab, containerWidth, totalRange, chartStartDate]);
 
   const ganttData = ganttTasks.map(t => ({
     ...t,
