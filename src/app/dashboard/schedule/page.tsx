@@ -7,19 +7,102 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Heart, PlusCircle, CalendarDays } from 'lucide-react';
+import {
+  Heart,
+  PlusCircle,
+  CalendarDays,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Loader2,
+  Plus
+} from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import type { Wedding } from '@/types/wedding';
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import type { Wedding, WeddingEvent } from '@/types/wedding';
 
 export default function SchedulePage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [weddingData, setWeddingData] = useState<Wedding | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [schedule, setSchedule] = useState<WeddingEvent[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const { toast } = useToast();
+
+  const updateEventField = (index: number, field: keyof WeddingEvent, value: string) => {
+    setSchedule(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const moveEventUp = (index: number) => {
+    if (index === 0) return;
+    setSchedule(prev => {
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  };
+
+  const moveEventDown = (index: number) => {
+    setSchedule(prev => {
+      if (index >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
+    });
+  };
+
+  const addEvent = () => {
+    setSchedule(prev => [...prev, { time: '', event: '', description: '' }]);
+  };
+
+  const handleDelete = (index: number) => {
+    setSchedule(prev => prev.filter((_, i) => i !== index));
+    setDeleteIndex(null);
+  };
+
+  const saveSchedule = async () => {
+    if (!weddingData?.id) return;
+    if (schedule.some(e => !e.time || !e.event)) {
+      toast({ title: 'Missing fields', description: 'Each event requires time and name.', variant: 'destructive' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await updateDoc(doc(db, 'weddings', weddingData.id), {
+        schedule,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: 'Schedule saved' });
+    } catch (error: any) {
+      console.error('Error saving schedule:', error);
+      toast({ title: 'Error', description: error.message || 'Could not save schedule.', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -49,6 +132,14 @@ export default function SchedulePage() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  useEffect(() => {
+    if (weddingData && Array.isArray(weddingData.schedule)) {
+      setSchedule(weddingData.schedule);
+    } else {
+      setSchedule([]);
+    }
+  }, [weddingData]);
 
   if (isLoading) {
     return (
@@ -108,12 +199,82 @@ export default function SchedulePage() {
                 Organize the events for your special day.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Event schedule management features will be available here soon.
-              </p>
-              <div className="mt-6 p-6 bg-secondary rounded-md text-center">
-                <p className="font-medium text-secondary-foreground">Timeline features coming soon!</p>
+            <CardContent className="space-y-4">
+              {schedule.length === 0 && (
+                <p className="text-muted-foreground">No events added yet.</p>
+              )}
+              {schedule.map((item, index) => (
+                <div key={index} className="space-y-2 border-b pb-4 last:border-b-0 last:pb-0">
+                  <div className="flex flex-col md:flex-row gap-2 w-full">
+                    <Input
+                      type="time"
+                      value={item.time}
+                      onChange={e => updateEventField(index, 'time', e.target.value)}
+                      className="md:w-32"
+                    />
+                    <Input
+                      placeholder="Event"
+                      value={item.event}
+                      onChange={e => updateEventField(index, 'event', e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                  <Textarea
+                    placeholder="Description (optional)"
+                    value={item.description || ''}
+                    onChange={e => updateEventField(index, 'description', e.target.value)}
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      disabled={index === 0}
+                      onClick={() => moveEventUp(index)}
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      disabled={index === schedule.length - 1}
+                      onClick={() => moveEventDown(index)}
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </Button>
+                    <AlertDialog onOpenChange={open => { if (!open) setDeleteIndex(null); }}>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" onClick={() => setDeleteIndex(index)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      {deleteIndex === index && (
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Event</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to remove this event?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(index)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      )}
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+
+              <Button variant="outline" type="button" onClick={addEvent} className="w-full">
+                <Plus className="w-4 h-4 mr-2" /> Add Event
+              </Button>
+              <div className="flex justify-end">
+                <Button onClick={saveSchedule} disabled={isSaving} className="mt-2">
+                  {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save Schedule
+                </Button>
               </div>
             </CardContent>
           </Card>
