@@ -18,6 +18,7 @@ export default function RsvpsPage() {
   const { wedding, loading } = useMyWedding();
   const { toast } = useToast();
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [responses, setResponses] = useState<Array<{ id: string; name: string; rsvpStatus?: string; mealChoice?: string | null; email?: string | null }>>([]);
   const [loadingGuests, setLoadingGuests] = useState(false);
 
   const loadGuests = useCallback(async (weddingId: string) => {
@@ -25,6 +26,8 @@ export default function RsvpsPage() {
     try {
       const snap = await getDocs(collection(db, 'weddings', weddingId, 'guests'));
       setGuests(snap.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as Guest));
+      const responseSnap = await getDocs(collection(db, 'weddings', weddingId, 'responses'));
+      setResponses(responseSnap.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as { id: string; name: string; rsvpStatus?: string; mealChoice?: string | null; email?: string | null }));
     } catch (error) {
       toast({ title: 'Could not load RSVPs', description: error instanceof Error ? error.message : '', variant: 'destructive' });
     } finally {
@@ -61,7 +64,9 @@ export default function RsvpsPage() {
     );
   }
 
-  const count = (status: string) => guests.filter((guest) => (guest.rsvpStatus || 'pending') === status).length;
+  const count = (status: string) =>
+    guests.filter((guest) => (guest.rsvpStatus || 'pending') === status).length
+    + responses.filter((response) => (response.rsvpStatus || 'pending') === status).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -69,7 +74,7 @@ export default function RsvpsPage() {
         <ListChecks className="h-8 w-8 text-primary" />
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">RSVPs</h1>
-          <p className="text-muted-foreground mt-1">Answers from the public site land here. You can also set a status yourself.</p>
+          <p className="text-muted-foreground mt-1">Guest records and name-only replies are saved with this wedding, so they show up on every phone you sign in with.</p>
         </div>
       </div>
 
@@ -86,7 +91,7 @@ export default function RsvpsPage() {
         <CardHeader>
           <CardTitle>Guest responses</CardTitle>
           <CardDescription>
-            {loadingGuests ? 'Loading…' : `${guests.length} guests. Add people under Guest Management, and put an invitation code on each one.`}
+            {loadingGuests ? 'Loading…' : `${guests.length} guests on this wedding. Personal links RSVP straight onto these rows.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -98,7 +103,7 @@ export default function RsvpsPage() {
               <div className="min-w-0">
                 <p className="font-medium truncate">{guest.name}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {[guest.email, guest.mealChoice ? `Meal: ${guest.mealChoice}` : '', guest.invitationCode ? `Code: ${guest.invitationCode}` : 'No invitation code']
+                  {[guest.email, guest.mealChoice ? `Meal: ${guest.mealChoice}` : '']
                     .filter(Boolean)
                     .join(' · ')}
                 </p>
@@ -116,6 +121,25 @@ export default function RsvpsPage() {
           ))}
         </CardContent>
       </Card>
+
+      {responses.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Replies from the website link</CardTitle>
+            <CardDescription>These people RSVP’d by name, without a personal guest link.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {responses.map((response) => (
+              <div key={response.id} className="border rounded-lg p-3">
+                <p className="font-medium">{response.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {[response.rsvpStatus || 'pending', response.mealChoice ? `Meal: ${response.mealChoice}` : '', response.email || ''].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

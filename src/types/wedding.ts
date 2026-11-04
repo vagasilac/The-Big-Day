@@ -31,6 +31,31 @@ export interface SongSuggestion {
   votes: number;
 }
 
+export interface BudgetItem {
+  id: string;
+  name: string;
+  estimate: number;
+  actual: number;
+}
+
+export interface WeddingPlannerState {
+  status?: Record<string, number>;
+  notes?: Record<string, string>;
+  customTasks?: Array<{
+    id: string;
+    phase: string;
+    name: string;
+    startDays: number;
+    durationDays: number;
+    critical?: boolean;
+    softCritical?: boolean;
+  }>;
+  budget?: {
+    target: number | null;
+    items: BudgetItem[];
+  };
+}
+
 // Main Wedding data structure
 export interface Wedding {
   id?: string; // Firestore document ID
@@ -49,6 +74,8 @@ export interface Wedding {
   schedule?: WeddingEvent[];
   registry?: RegistryLink[];
   songs?: SongSuggestion[];
+  /** Checklist, notes, custom tasks, and budget. Stored on the wedding so every signed-in phone sees it. */
+  planner?: WeddingPlannerState;
   dressCode?: string;
   rsvpDeadline?: Timestamp | string | null;
   selectedVenueLayoutId?: string; // ID of the VenueLayout selected for seating

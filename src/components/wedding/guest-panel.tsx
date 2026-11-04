@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Gift, ListMusic, Users } from 'lucide-react';
 import { db } from '@/lib/firebase-config';
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from '@/lib/backend/firestore';
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from '@/lib/backend/firestore';
 import type { Wedding, SongSuggestion } from '@/types/wedding';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,9 +30,9 @@ export default function GuestPanel({ wedding, isPreviewMode, sample }: GuestPane
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [suggestedBy, setSuggestedBy] = useState('');
-  const [code, setCode] = useState(searchParams.get('code') || '');
   const [guestId, setGuestId] = useState(searchParams.get('guest') || '');
   const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
   const [status, setStatus] = useState<'accepted' | 'declined' | 'maybe'>('accepted');
   const [meal, setMeal] = useState('');
   const [message, setMessage] = useState('');
@@ -125,62 +125,94 @@ export default function GuestPanel({ wedding, isPreviewMode, sample }: GuestPane
     }
   };
 
-  const lookupGuest = async () => {
-    setError('');
-    setGuestName('');
-    if (!wedding.id || locked) {
-      setError(sample ? 'Sample site: RSVP is shown so you can see the form. It is not saved.' : 'RSVP opens on the published site.');
-      return;
-    }
-    const trimmed = code.trim();
-    if (!trimmed && !guestId) {
-      setError('Enter the invitation code from your invitation.');
-      return;
-    }
-    setBusy(true);
-    try {
-      if (guestId) {
-        const snap = await getDoc(doc(db, 'weddings', wedding.id, 'guests', guestId));
+  useEffect(() => {
+    const id = searchParams.get('guest');
+    if (!id || !wedding.id || locked) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'weddings', wedding.id as string, 'guests', id));
         const data = snap.data();
-        if (snap.exists() && data && (!data.invitationCode || data.invitationCode === trimmed || !trimmed)) {
-          setGuestName(String(data.name || 'Guest'));
-          if (data.mealChoice) setMeal(String(data.mealChoice));
-          return;
+        if (cancelled || !snap.exists() || !data) return;
+        setGuestId(snap.id);
+        setGuestName(String(data.name || ''));
+        setGuestEmail(String(data.email || ''));
+        if (data.mealChoice) setMeal(String(data.mealChoice));
+        if (data.rsvpStatus === 'accepted' || data.rsvpStatus === 'declined' || data.rsvpStatus === 'maybe') {
+          setStatus(data.rsvpStatus);
         }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not open this invitation.');
       }
-      const snap = await getDocs(
-        query(collection(db, 'weddings', wedding.id, 'guests'), where('invitationCode', '==', trimmed)),
-      );
-      if (snap.empty) {
-        setError('No guest matched that code. Ask the couple to confirm the invitation link.');
-        return;
-      }
-      const found = snap.docs[0];
-      setGuestId(found.id);
-      setGuestName(String(found.data().name || 'Guest'));
-      const mealChoice = found.data().mealChoice;
-      if (mealChoice) setMeal(String(mealChoice));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not look up that invitation.');
-    } finally {
-      setBusy(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, wedding.id, locked]);
+
+  const notifyRsvp = async (email: string, name: string) => {
+    if (!email) return;
+    try {
+      await fetch('/api/send-rsvp-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          name,
+          status,
+          weddingTitle: wedding.title || 'the wedding',
+        }),
+      });
+    } catch {
+      // The RSVP is already saved. Mail is best-effort.
     }
   };
 
   const submitRsvp = async () => {
     setError('');
-    if (locked || !wedding.id || !guestId) {
-      setError('Find your invitation before sending an RSVP.');
+    if (locked || !wedding.id) {
+      setError(sample ? 'Sample site: this form is not saved.' : 'RSVP opens on the published site.');
+      return;
+    }
+    const name = guestName.trim();
+    if (!name) {
+      setError('Add your name so the couple knows who replied.');
       return;
     }
     setBusy(true);
     try {
-      await updateDoc(doc(db, 'weddings', wedding.id, 'guests', guestId), {
-        rsvpStatus: status,
-        mealChoice: meal.trim() || null,
-        updatedAt: serverTimestamp(),
-      });
-      setMessage(`RSVP saved for ${guestName || 'you'}.`);
+      let savedGuestId = guestId;
+      if (!savedGuestId) {
+        try {
+          const snap = await getDocs(collection(db, 'weddings', wedding.id, 'guests'));
+          const match = snap.docs.find((entry) => String(entry.data().name || '').trim().toLowerCase() === name.toLowerCase());
+          if (match) savedGuestId = match.id;
+        } catch {
+          // The public guest list is private. A name-only reply is stored as a response.
+        }
+      }
+
+      if (savedGuestId) {
+        await updateDoc(doc(db, 'weddings', wedding.id, 'guests', savedGuestId), {
+          rsvpStatus: status,
+          mealChoice: meal.trim() || null,
+          updatedAt: serverTimestamp(),
+        });
+        setGuestId(savedGuestId);
+      } else {
+        const responseId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || newId();
+        await setDoc(doc(db, 'weddings', wedding.id, 'responses', responseId), {
+          name,
+          rsvpStatus: status,
+          mealChoice: meal.trim() || null,
+          email: guestEmail.trim() || null,
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        }, { merge: true });
+      }
+
+      await notifyRsvp(guestEmail.trim(), name);
+      setMessage(`RSVP saved for ${name}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the RSVP.');
     } finally {
@@ -250,19 +282,22 @@ export default function GuestPanel({ wedding, isPreviewMode, sample }: GuestPane
             <Users className="h-6 w-6 text-primary" /> RSVP
           </h2>
           <p className="text-center text-sm text-muted-foreground mb-4">
-            Use the invitation code from your invitation. The couple can see your answer in Guest Management.
+            Your invitation link is enough. No account and no code. The couple sees your answer with the guest list.
           </p>
           <div className="space-y-3">
             <Input
-              placeholder="Invitation code"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              autoComplete="off"
+              placeholder="Your name"
+              value={guestName}
+              onChange={(event) => setGuestName(event.target.value)}
+              autoComplete="name"
             />
-            <Button type="button" variant="outline" disabled={busy} onClick={lookupGuest}>
-              Find my invitation
-            </Button>
-            {guestName && <p className="text-sm">Responding as <span className="font-medium">{guestName}</span></p>}
+            <Input
+              placeholder="Email for a confirmation (optional)"
+              type="email"
+              value={guestEmail}
+              onChange={(event) => setGuestEmail(event.target.value)}
+              autoComplete="email"
+            />
             <div className="flex flex-wrap gap-2">
               {(['accepted', 'declined', 'maybe'] as const).map((option) => (
                 <Button
@@ -281,7 +316,7 @@ export default function GuestPanel({ wedding, isPreviewMode, sample }: GuestPane
               value={meal}
               onChange={(event) => setMeal(event.target.value)}
             />
-            <Button type="button" disabled={busy || !guestName} onClick={submitRsvp}>
+            <Button type="button" disabled={busy || !guestName.trim()} onClick={submitRsvp}>
               Send RSVP
             </Button>
           </div>

@@ -338,7 +338,7 @@ export default function GuestsPage() {
   const prepareApiPayload = (guest: Guest, wedding: Wedding, forPreview: boolean) => {
     const payload = {
       email: guest.email,
-      link: `${window.location.origin}/weddings/${wedding.slug}${guest.id ? `?guest=${encodeURIComponent(guest.id)}` : ''}${guest.invitationCode ? `${guest.id ? '&' : '?'}code=${encodeURIComponent(guest.invitationCode)}` : ''}`,
+      link: `${window.location.origin}/weddings/${wedding.slug}${guest.id ? `?guest=${encodeURIComponent(guest.id)}` : ''}`,
       preview: forPreview,
       guestDetails: {
         name: guest.name,
@@ -862,20 +862,6 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                         </FormItem>
                       )}
                     />
-                     <FormField
-                      control={form.control}
-                      name="invitationCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Invitation Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Auto-generated if blank" {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                       control={form.control}
                       name="headOfFamily"

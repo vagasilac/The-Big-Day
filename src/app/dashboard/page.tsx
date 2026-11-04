@@ -88,16 +88,12 @@ export default function DashboardPage() {
 
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  const [plannerProgress, setPlannerProgress] = useState(0);
-  useEffect(() => {
-    const stored = localStorage.getItem('planner-status');
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as Record<string, number>;
-      const done = plannerTasks.filter((task) => parsed[task.id] === 2).length;
-      setPlannerProgress(Math.round((done / plannerTasks.length) * 100));
-    } catch (_) {}
-  }, []);
+  const plannerProgress = React.useMemo(() => {
+    const status = weddingData?.planner?.status;
+    if (!status) return 0;
+    const done = plannerTasks.filter((task) => status[task.id] === 2).length;
+    return Math.round((done / plannerTasks.length) * 100);
+  }, [weddingData]);
 
   const fetchWeddingAndGuestData = useCallback(async (user: User) => {
     setIsLoading(true);

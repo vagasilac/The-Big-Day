@@ -12,8 +12,11 @@ The marketing page calls the product **The Big Day**.
 - Theme (template and accent color)
 - Schedule, guest list, RSVP board, and invitation preview
 - Photo gallery, registry links, and a playlist guests can vote on
-- Planner checklist (saved in the browser) and the seating / venue blueprint editors
-- Public wedding page with RSVP, registry, and playlist
+- Planner checklist, notes, and budget, saved on the wedding in Firestore
+- Guest list and RSVPs saved on the wedding in Firestore
+- Public wedding page with RSVP (the invitation link is enough; no account and no code), registry, and playlist
+- Stripe Checkout for the Basic, Premium, and Deluxe plans (needs the env vars below)
+- Seating and venue blueprint editors
 
 ## Two ways to store data
 
@@ -28,7 +31,7 @@ Set the mode in `.env.local`:
 cp .env.example .env.local
 ```
 
-`NEXT_PUBLIC_DATA_MODE=local` is the default in `.env.example`. Next.js inlines `NEXT_PUBLIC_*` values when the dev server starts and when you run `npm run build`, so restart or rebuild after changing them. A production image should be built with `NEXT_PUBLIC_DATA_MODE=firebase` (the Dockerfile does this).
+`.env.example` defaults to `firebase` and project `the-big-day-31aox`. Next.js inlines `NEXT_PUBLIC_*` values when the dev server starts and when you run `npm run build`, so restart or rebuild after changing them. The Dockerfile also builds with `firebase`. `local` remains available for an offline browser-only trial.
 
 ### Preview login (local mode only)
 
@@ -43,7 +46,7 @@ Create a wedding under **Wedding Details**, then open **View Site**. Guest links
 
 ### Firebase mode
 
-The app still has the original web config for project `the-big-day-31aox` as a fallback in `src/lib/firebase-config.ts`. Override it with `NEXT_PUBLIC_FIREBASE_*` for a different project. Turn on **Email/Password** authentication. Deploy the rules before the public site or guest RSVPs will be rejected:
+The app uses Firebase project `the-big-day-31aox`. The web config in `src/lib/firebase-config.ts` falls back to that project. Turn on **Email/Password** authentication. Deploy the rules before the public site or guest RSVPs will be rejected:
 
 ```bash
 npx firebase-tools deploy --only firestore:rules,storage
@@ -72,22 +75,50 @@ npm start
 
 `npm test` currently prints that there is no automated suite. `npm run typecheck` runs TypeScript. The production build still ignores existing type and lint errors (`ignoreBuildErrors` / `ignoreDuringBuilds` in `next.config.ts`) so a large older seating editor does not block a deploy.
 
-## Email invitations
+## Email
 
-Preview and **Copy link** work without a mail server. **Send email** needs SMTP:
+KaizenViz’s mail provider was not visible from this environment, so invitations and RSVP confirmations use SMTP. Resend, Postmark, and SendGrid can all do this. Set:
 
 - `SMTP_HOST`
 - `SMTP_PORT` (usually `587`)
 - `SMTP_USER`
 - `SMTP_PASS`
-- `SMTP_FROM` (optional)
+- `SMTP_FROM` or `EMAIL_FROM` (optional)
 - `SMTP_SECURE=true` only for port 465
 
-Until those are set, the API responds with a clear message instead of a mail error.
+Until those are set, invitation sending returns a clear message. RSVPs are still saved. A confirmation email is sent only when SMTP is configured.
+
+## Stripe
+
+Checkout uses Stripe-hosted Checkout Sessions. The webhook at `/api/stripe/webhook` records the plan after `checkout.session.completed` or `checkout.session.async_payment_succeeded` when `payment_status` is paid. The success page does not grant the plan.
+
+Create three one-time Prices in the Stripe Dashboard (test mode first) and set:
+
+- `STRIPE_SECRET_KEY` — restricted key (`rk_test_...`), not a secret `sk_` key if you can avoid it
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` — publishable key, only if a later client SDK needs it (Checkout itself is server-created)
+- `STRIPE_WEBHOOK_SECRET` — signing secret for the endpoint
+- `STRIPE_PRICE_BASIC` — price id for **The Big Day Basic**, 49 USD, one time
+- `STRIPE_PRICE_PREMIUM` — price id for **The Big Day Premium**, 99 USD, one time
+- `STRIPE_PRICE_DELUXE` — price id for **The Big Day Deluxe**, 149 USD, one time
+- `FIREBASE_SERVICE_ACCOUNT_JSON` — service account JSON so the webhook can write `users/{uid}.plan` and `purchases/{sessionId}`. Without it the webhook returns 500 and Stripe retries.
+
+Point the webhook at `https://<your-host>/api/stripe/webhook` and subscribe to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, and `checkout.session.async_payment_failed`.
+
+No Stripe keys are stored in the repo.
 
 ## Deploy
 
-The app is Next.js with one server route (`/api/send-invitation`). A purely static host cannot send mail. Use a host that runs the Next.js server.
+The app is Next.js with server routes for invitations, RSVP mail, and Stripe. Use a host that runs the Next.js server. No custom domain: use the free Firebase address.
+
+App Hosting region: **europe-west4 (Netherlands)**. That is the Europe region App Hosting supports. Create it with:
+
+```bash
+firebase apphosting:backends:create --project the-big-day-31aox --location europe-west4
+```
+
+The free URL looks like `https://<backend-id>--the-big-day-31aox.europe-west4.hosted.app`.
+
+Firestore’s location is fixed when the database is first created and cannot be moved. If `the-big-day-31aox` does not have a database yet, create it in **europe-west1 (Belgium)**. The Hosting frameworks backend in `firebase.json` is also `europe-west1`, because that is the Cloud Functions region paired with this project. App Hosting itself stays `europe-west4`.
 
 ### Docker
 
@@ -104,7 +135,7 @@ docker run --rm -p 3000:3000 \
 ### Firebase
 
 1. `npm install -g firebase-tools` (or use `npx firebase-tools`)
-2. `firebase login` and `firebase use the-big-day-31aox` (or your project). `.firebaserc` already names the original project.
+2. `firebase login` and `firebase use the-big-day-31aox`. `.firebaserc` already names that project.
 3. Deploy rules: `firebase deploy --only firestore:rules,storage`
 4. For the Next.js app, use **Firebase App Hosting** (`apphosting.yaml`) or web frameworks with `firebase.json` hosting `source: "."`.
 
@@ -120,24 +151,21 @@ Firebase Hosting alone, without the frameworks backend or App Hosting, cannot ru
 
 Do not use `output: 'export'`. The invitation route and server-rendered public pages need a server. Local mode is only for a browser preview.
 
-## Not finished, on purpose
+## Decisions already made
 
-- **Pricing** on the homepage is a placeholder. There is no checkout.
-- **Sample quotes** are not real reviews.
-- **Sample website** (`/weddings/sample`) uses the placeholder couple, date, and venue that were already in the marketing page. It does not save RSVPs.
+- `/weddings/sample` stays, with the placeholder couple, date, and venue. It does not save RSVPs.
+- Firebase project is `the-big-day-31aox`.
+- An invitation link is enough to RSVP. Guests do not sign in and do not enter a code.
+- Plans are sold with Stripe Checkout. Keys stay in the environment.
+- Mail is SMTP until the KaizenViz provider is confirmed.
+- Hosting is the free Firebase address, App Hosting in `europe-west4`.
+- Planner checklist, budget, and the guest list are stored on the wedding in Firestore.
+- The contact email has been removed from the site.
+
+## Still open
+
+- **Sample quotes** on the homepage are not real reviews.
 - **Draw venue shape** on the seating canvas is still labeled as not available.
-- **Genkit** (`src/ai`) is not connected to any screen. `GOOGLE_GENAI_API_KEY` does nothing until a flow is added.
-- **Planner** checkboxes stay in this browser. They are not in Firestore.
-- **Playlist votes** in Firebase mode can be overwritten by anyone who can open the site, because the rule allows updates that touch only `songs`. Say if you want votes locked to signed-in guests.
-- Contact address `support@thebigday.app` is whatever was already on the page. It is not a confirmed inbox.
-
-## Questions for László
-
-1. Are the names, date, and venue on the sample site (Anna & Paul, 15 June 2026, The Enchanted Garden) staying as placeholders, or do you want them removed from the marketing page entirely?
-2. Is Firebase project `the-big-day-31aox` still the one to deploy to? The API key in the repo still accepts requests.
-3. Should guests RSVP without an account (current rules), and is it acceptable that an invitation link can open that guest’s name and email?
-4. Do you want real payments for the Basic / Premium / Deluxe prices, or should that section be removed?
-5. Which SMTP provider should send invitations?
-6. Do you want a custom domain, and which region should App Hosting use?
-7. Should planner progress sync across phones, or is this-browser storage enough?
-8. Is the contact address `support@thebigday.app` real?
+- **Genkit** (`src/ai`) is not connected to any screen.
+- **Playlist votes** can be changed by anyone who can open the site, because the rule allows updates that touch only `songs`.
+- Stripe products, price ids, the webhook secret, and `FIREBASE_SERVICE_ACCOUNT_JSON` still have to be created in the dashboards. Nothing is deployed yet.

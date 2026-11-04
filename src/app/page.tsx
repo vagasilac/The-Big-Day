@@ -25,6 +25,7 @@ import ModernTemplate from './templates/wedding/modern-template';
 import RusticTemplate from './templates/wedding/rustic-template';
 import { sampleWeddingData } from '@/lib/sample-wedding';
 import { LocalModeNote } from '@/components/local-mode-note';
+import { CheckoutButton } from '@/components/checkout-button';
 
 
 const HeroSection = () => {
@@ -205,14 +206,17 @@ const TemplatesSection: React.FC<TemplatesSectionProps> = ({ onPreview }) => {
 
 const PRICING_PLANS = [
   {
+    id: "basic",
     name: "Basic Plan", price: "$49", period: "one-time", description: "Perfect for intimate celebrations with core features to get you started.",
     features: [ "Customizable wedding website", "RSVP management (up to 50 guests)", "Standard photo gallery", "Digital invitations", "3 Template choices" ], popular: false
   },
   {
+    id: "premium",
     name: "Premium Plan", price: "$99", period: "one-time", description: "Our most popular plan with comprehensive features for the perfect celebration.",
     features: [ "Everything in Basic Plan", "RSVP management (up to 150 guests)", "Advanced photo gallery with albums", "Guest messaging tools", "All Templates access", "Playlist collaboration" ], popular: true
   },
   {
+    id: "deluxe",
     name: "Deluxe Plan", price: "$149", period: "one-time", description: "All-inclusive features for large weddings and those who want it all.",
     features: [ "Everything in Premium Plan", "Unlimited guest count", "Custom domain name support", "Video guestbook feature", "Priority support" ], popular: false
   }
@@ -226,7 +230,7 @@ const PricingSection = () => {
           <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            These prices are placeholders. There is no checkout, and choosing a plan does not charge a card or unlock features.
+            One-time payment through Stripe Checkout. The plan is recorded after Stripe confirms the payment.
           </p>
         </div>
 
@@ -256,10 +260,7 @@ const PricingSection = () => {
                     </li>
                   ))}
                 </ul>
-                <Button variant={plan.popular ? "default" : "outline"} size="lg" className="w-full mt-auto" asChild>
-                  <Link href="/auth?tab=register">Create a free account</Link>
-                </Button>
-                <p className="text-center text-xs text-muted-foreground mt-2">Not for sale yet</p>
+                <CheckoutButton planId={plan.id} popular={plan.popular} />
               </div>
             </div>
           ))}
@@ -422,7 +423,7 @@ const AppFooter = () => {
   return (
     <footer className="py-12 bg-secondary border-t border-border">
       <div className="container max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center mb-4">
               <Heart className="h-6 w-6 text-primary mr-2" />
@@ -455,11 +456,6 @@ const AppFooter = () => {
               <li className="text-muted-foreground">Photo Galleries</li>
               <li className="text-muted-foreground">Registry Links</li>
             </ul>
-          </div>
-          <div className="col-span-1">
-            <h3 className="text-lg font-semibold mb-4 text-foreground">Contact</h3>
-            <p className="text-sm text-muted-foreground mb-2">Have questions? We're here to help!</p>
-            <p className="text-sm text-muted-foreground">support@thebigday.app</p>
           </div>
         </div>
         <Separator className="my-8 bg-border/50" />

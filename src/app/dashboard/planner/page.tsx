@@ -26,7 +26,9 @@ import { cn } from '@/lib/utils';
 import { auth, db } from '@/lib/firebase-config';
 import type { User } from '@/lib/backend/auth';
 import { onAuthStateChanged } from '@/lib/backend/auth';
-import { collection, query, where, getDocs } from '@/lib/backend/firestore';
+import { collection, doc, getDocs, query, serverTimestamp, updateDoc, where } from '@/lib/backend/firestore';
+import type { BudgetItem } from '@/types/wedding';
+import { Input } from '@/components/ui/input';
 import type { Wedding } from '@/types/wedding';
 import type { PlannerTask } from '@/types/planner';
 import { plannerTasks } from '@/lib/planner-data';
@@ -39,32 +41,13 @@ export default function PlannerPage() {
   const [taskStatus, setTaskStatus] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [customTasks, setCustomTasks] = useState<PlannerTask[]>([]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('planner-status');
-    if (stored) {
-      try {
-        setTaskStatus(JSON.parse(stored));
-      } catch (_) {}
-    }
-    const storedNotes = localStorage.getItem('planner-notes');
-    if (storedNotes) {
-      try {
-        setNotes(JSON.parse(storedNotes));
-      } catch (_) {}
-    }
-    const storedCustom = localStorage.getItem('planner-custom-tasks');
-    if (storedCustom) {
-      try {
-        setCustomTasks(JSON.parse(storedCustom));
-      } catch (_) {}
-    }
-  }, []);
+  const [budgetTarget, setBudgetTarget] = useState('');
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+  const [plannerReady, setPlannerReady] = useState(false);
 
   const cycleTaskStatus = (id: string) => {
     setTaskStatus(prev => {
       const next = { ...prev, [id]: ((prev[id] ?? 0) + 1) % 3 };
-      localStorage.setItem('planner-status', JSON.stringify(next));
       return next;
     });
   };
@@ -72,7 +55,6 @@ export default function PlannerPage() {
   const updateNote = (id: string, value: string) => {
     setNotes(prev => {
       const next = { ...prev, [id]: value };
-      localStorage.setItem('planner-notes', JSON.stringify(next));
       return next;
     });
   };
@@ -91,7 +73,6 @@ export default function PlannerPage() {
     };
     const nextCustom = [...customTasks, task];
     setCustomTasks(nextCustom);
-    localStorage.setItem('planner-custom-tasks', JSON.stringify(nextCustom));
     if (newTaskNote) {
       updateNote(id, newTaskNote);
     }
@@ -109,26 +90,17 @@ export default function PlannerPage() {
   const saveEditTask = () => {
     if (!editTaskId) return;
     setGanttTasks(prev => prev.map(t => (t.id === editTaskId ? { ...t, name: editTaskName } : t)));
-    setCustomTasks(prev => {
-      const next = prev.map(t => (t.id === editTaskId ? { ...t, name: editTaskName } : t));
-      localStorage.setItem('planner-custom-tasks', JSON.stringify(next));
-      return next;
-    });
+    setCustomTasks(prev => prev.map(t => (t.id === editTaskId ? { ...t, name: editTaskName } : t)));
     setEditTaskId(null);
     setEditTaskName('');
   };
 
   const deleteTask = (id: string) => {
     setGanttTasks(prev => prev.filter(t => t.id !== id));
-    setCustomTasks(prev => {
-      const next = prev.filter(t => t.id !== id);
-      localStorage.setItem('planner-custom-tasks', JSON.stringify(next));
-      return next;
-    });
+    setCustomTasks(prev => prev.filter(t => t.id !== id));
     setNotes(prev => {
       if (prev[id]) {
         const { [id]: _, ...rest } = prev;
-        localStorage.setItem('planner-notes', JSON.stringify(rest));
         return rest;
       }
       return prev;
@@ -146,9 +118,35 @@ export default function PlannerPage() {
 
           if (!querySnapshot.empty) {
             const weddingDoc = querySnapshot.docs[0];
-            setWeddingData({ id: weddingDoc.id, ...weddingDoc.data() } as Wedding);
+            const data = { id: weddingDoc.id, ...weddingDoc.data() } as Wedding;
+            setWeddingData(data);
+            const planner = data.planner;
+            if (planner) {
+              setTaskStatus(planner.status || {});
+              setNotes(planner.notes || {});
+              setCustomTasks(planner.customTasks || []);
+              setBudgetItems(planner.budget?.items || []);
+              setBudgetTarget(planner.budget?.target != null ? String(planner.budget.target) : '');
+            } else if (typeof window !== 'undefined') {
+              try {
+                const storedStatus = window.localStorage.getItem('planner-status');
+                const storedNotes = window.localStorage.getItem('planner-notes');
+                const storedCustom = window.localStorage.getItem('planner-custom-tasks');
+                if (storedStatus) setTaskStatus(JSON.parse(storedStatus));
+                if (storedNotes) setNotes(JSON.parse(storedNotes));
+                if (storedCustom) setCustomTasks(JSON.parse(storedCustom));
+                window.localStorage.removeItem('planner-status');
+                window.localStorage.removeItem('planner-notes');
+                window.localStorage.removeItem('planner-custom-tasks');
+                window.localStorage.removeItem('planner-completed');
+              } catch {
+                // Ignore a broken older checklist and start clean in Firestore.
+              }
+            }
+            setPlannerReady(true);
           } else {
             setWeddingData(null);
+            setPlannerReady(false);
           }
         } catch (error) {
           console.error('Error fetching wedding data:', error);
@@ -181,8 +179,32 @@ export default function PlannerPage() {
   const totalRange = Math.max(1, maxEnd - baseStart); 
 
   const weddingDateObj = startOfDay(
-    weddingData?.date ? weddingData.date.toDate() : new Date()
+    weddingData?.date && typeof (weddingData.date as { toDate?: () => Date }).toDate === 'function'
+      ? (weddingData.date as { toDate: () => Date }).toDate()
+      : weddingData?.date
+        ? new Date(weddingData.date as string)
+        : new Date()
   );
+
+  useEffect(() => {
+    if (!plannerReady || !weddingData?.id) return;
+    const handle = window.setTimeout(() => {
+      const target = budgetTarget.trim() === '' ? null : Number(budgetTarget);
+      updateDoc(doc(db, 'weddings', weddingData.id as string), {
+        planner: {
+          status: taskStatus,
+          notes,
+          customTasks,
+          budget: {
+            target: target != null && Number.isFinite(target) ? target : null,
+            items: budgetItems,
+          },
+        },
+        updatedAt: serverTimestamp(),
+      }).catch((error) => console.error('Could not save planner', error));
+    }, 500);
+    return () => window.clearTimeout(handle);
+  }, [plannerReady, weddingData?.id, taskStatus, notes, customTasks, budgetItems, budgetTarget]);
   const chartStartDate = addDays(weddingDateObj, baseStart);
 
   const ganttRef = useRef<HTMLDivElement>(null);
@@ -346,7 +368,7 @@ export default function PlannerPage() {
             <div>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Wedding Planner</h1>
               <p className="text-muted-foreground mt-1">
-                Track every step leading up to the big day. Checklist progress is saved in this browser only.
+                Track every step leading up to the big day. The checklist, notes, and budget are saved to this wedding and follow the account on every phone.
               </p>
             </div>
           </div>
@@ -360,6 +382,59 @@ export default function PlannerPage() {
             </CardHeader>
             <CardContent>
               <Progress value={progressPercent} />
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle>Budget</CardTitle>
+              <CardDescription>Estimates and actuals are stored with this wedding.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Input
+                type="number"
+                min="0"
+                inputMode="decimal"
+                placeholder="Overall budget"
+                value={budgetTarget}
+                onChange={(event) => setBudgetTarget(event.target.value)}
+              />
+              {budgetItems.map((item) => (
+                <div key={item.id} className="grid grid-cols-1 sm:grid-cols-[1fr_7rem_7rem_auto] gap-2">
+                  <Input
+                    placeholder="Item"
+                    value={item.name}
+                    onChange={(event) => setBudgetItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, name: event.target.value } : entry))}
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Estimate"
+                    value={item.estimate || ''}
+                    onChange={(event) => setBudgetItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, estimate: Number(event.target.value) || 0 } : entry))}
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Actual"
+                    value={item.actual || ''}
+                    onChange={(event) => setBudgetItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, actual: Number(event.target.value) || 0 } : entry))}
+                  />
+                  <Button type="button" variant="ghost" onClick={() => setBudgetItems((current) => current.filter((entry) => entry.id !== item.id))}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <p className="text-sm text-muted-foreground">
+                Estimated {budgetItems.reduce((sum, item) => sum + (item.estimate || 0), 0).toLocaleString()} · Actual {budgetItems.reduce((sum, item) => sum + (item.actual || 0), 0).toLocaleString()}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setBudgetItems((current) => [...current, { id: `budget-${Date.now()}`, name: '', estimate: 0, actual: 0 }])}
+              >
+                Add budget line
+              </Button>
             </CardContent>
           </Card>
 

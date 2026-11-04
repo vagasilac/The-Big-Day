@@ -14,16 +14,8 @@ import { useMyWedding } from '@/lib/use-my-wedding';
 import type { Guest } from '@/types/guest';
 import type { Wedding } from '@/types/wedding';
 
-function invitationCode() {
-  return Math.random().toString(36).slice(2, 8);
-}
-
 function weddingLink(wedding: Wedding, guest: Guest) {
-  const params = new URLSearchParams();
-  if (guest.id) params.set('guest', guest.id);
-  if (guest.invitationCode) params.set('code', guest.invitationCode);
-  const query = params.toString();
-  return `${window.location.origin}/weddings/${wedding.slug}${query ? `?${query}` : ''}`;
+  return `${window.location.origin}/weddings/${wedding.slug}${guest.id ? `?guest=${encodeURIComponent(guest.id)}` : ''}`;
 }
 
 function dateIso(wedding: Wedding) {
@@ -54,19 +46,6 @@ export default function InvitationsPage() {
     }
   }, [wedding?.id, loadGuests, toast]);
 
-  const ensureCode = async (guest: Guest) => {
-    if (!wedding?.id || !guest.id) return guest;
-    if (guest.invitationCode) return guest;
-    const code = invitationCode();
-    await updateDoc(doc(db, 'weddings', wedding.id, 'guests', guest.id), {
-      invitationCode: code,
-      updatedAt: serverTimestamp(),
-    });
-    const next = { ...guest, invitationCode: code };
-    setGuests((current) => current.map((item) => (item.id === guest.id ? next : item)));
-    return next;
-  };
-
   const payloadFor = (guest: Guest, preview: boolean) => ({
     email: guest.email,
     link: weddingLink(wedding as Wedding, guest),
@@ -92,11 +71,10 @@ export default function InvitationsPage() {
     }
     setBusyId(guest.id || 'preview');
     try {
-      const ready = await ensureCode(guest);
       const response = await fetch('/api/send-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payloadFor(ready, true)),
+        body: JSON.stringify(payloadFor(guest, true)),
       });
       const data = await response.json();
       if (!response.ok || !data.html) throw new Error(data.error || 'Could not build the preview.');
@@ -112,9 +90,8 @@ export default function InvitationsPage() {
   const copyLink = async (guest: Guest) => {
     if (!wedding) return;
     try {
-      const ready = await ensureCode(guest);
-      await navigator.clipboard.writeText(weddingLink(wedding, ready));
-      toast({ title: 'Link copied', description: 'Send it by text, chat, or email.' });
+      await navigator.clipboard.writeText(weddingLink(wedding, guest));
+      toast({ title: 'Link copied', description: 'That link is enough for them to RSVP. No account and no code.' });
     } catch (error) {
       toast({ title: 'Could not copy', description: error instanceof Error ? error.message : '', variant: 'destructive' });
     }
@@ -124,11 +101,10 @@ export default function InvitationsPage() {
     if (!wedding?.id || !guest.id || !guest.email) return;
     setBusyId(guest.id);
     try {
-      const ready = await ensureCode(guest);
       const response = await fetch('/api/send-invitation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payloadFor(ready, false)),
+        body: JSON.stringify(payloadFor(guest, false)),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Email was not sent.');
@@ -136,7 +112,7 @@ export default function InvitationsPage() {
         invitationStatus: 'sent',
         updatedAt: serverTimestamp(),
       });
-      setGuests((current) => current.map((item) => (item.id === guest.id ? { ...item, invitationStatus: 'sent', invitationCode: ready.invitationCode } : item)));
+      setGuests((current) => current.map((item) => (item.id === guest.id ? { ...item, invitationStatus: 'sent' } : item)));
       toast({ title: 'Invitation sent', description: guest.email });
     } catch (error) {
       toast({ title: 'Email not sent', description: error instanceof Error ? error.message : '', variant: 'destructive' });
@@ -164,7 +140,7 @@ export default function InvitationsPage() {
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Digital Invitations</h1>
           <p className="text-muted-foreground mt-1">
-            Copy a personal link, or send email when SMTP is configured. Without SMTP, sending is unavailable and the preview still works.
+            Copy a personal link. Opening it is enough to RSVP. Email sends when SMTP is configured; the preview still works without it.
           </p>
         </div>
       </div>
@@ -176,7 +152,7 @@ export default function InvitationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Guests</CardTitle>
-          <CardDescription>Each link includes an invitation code so that guest can RSVP.</CardDescription>
+          <CardDescription>Each link opens this guest’s RSVP. They do not sign in and they do not need a code.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {guests.length === 0 && (
@@ -188,7 +164,6 @@ export default function InvitationsPage() {
                 <p className="font-medium">{guest.name}</p>
                 <p className="text-xs text-muted-foreground">
                   {guest.email || 'No email'} · {guest.invitationStatus === 'sent' ? 'Marked as sent' : 'Not marked as sent'}
-                  {guest.invitationCode ? ` · Code ${guest.invitationCode}` : ''}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

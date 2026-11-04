@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import { format } from 'date-fns';
+import { sendMail } from '@/lib/mailer';
 
 interface GuestDetails {
   name: string;
@@ -128,30 +128,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, html });
     }
 
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      return NextResponse.json({
-        error: 'Email is not configured. Add SMTP_HOST, SMTP_USER, and SMTP_PASS to the server environment. You can still preview the invitation and copy the guest link.',
-      }, { status: 503 });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: process.env.SMTP_SECURE === 'true', 
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    const result = await sendMail({
       to: email,
       subject: `You're Invited to ${weddingTitle}!`,
       html,
     });
+    if (!result.sent) {
+      return NextResponse.json({
+        error: 'Email is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS (SMTP_FROM or EMAIL_FROM optional). You can still preview the invitation and copy the guest link.',
+      }, { status: 503 });
+    }
 
-    return NextResponse.json({ success: true, messageId: info.messageId });
+    return NextResponse.json({ success: true, messageId: result.messageId });
   } catch (err: any) {
     console.error('Error sending invitation:', err);
     // Try to return a JSON error even if parsing req.json() fails or other errors occur early
