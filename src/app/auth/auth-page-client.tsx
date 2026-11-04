@@ -30,6 +30,12 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Info, Loader2 } from 'lucide-react';
+import { auth, db } from '@/lib/firebase-config';
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, setLocalPassword, signInWithEmailAndPassword } from '@/lib/backend/auth';
+import { doc, setDoc, Timestamp } from '@/lib/backend/firestore';
+import { isLocalMode } from '@/lib/data-mode';
+import { DEMO_EMAIL, DEMO_PASSWORD } from '@/lib/demo-account';
+import { LocalModeNote } from '@/components/local-mode-note';
 
 // Define Zod schemas for validation
 const loginSchema = z.object({
@@ -51,9 +57,6 @@ const registerSchema = z
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const DEMO_EMAIL = "demo@example.com";
-const DEMO_PASSWORD = "demopassword123";
-
 export default function AuthPageClient() {
   const { toast } = useToast();
   const router = useRouter();
@@ -61,6 +64,10 @@ export default function AuthPageClient() {
   const [isLoginLoading, setIsLoginLoading] = React.useState(false);
   const [isRegisterLoading, setIsRegisterLoading] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("login");
+  const [showReset, setShowReset] = React.useState(false);
+  const [resetEmail, setResetEmail] = React.useState('');
+  const [resetPassword, setResetPassword] = React.useState('');
+  const [resetLoading, setResetLoading] = React.useState(false);
 
 
   React.useEffect(() => {
@@ -91,8 +98,6 @@ export default function AuthPageClient() {
 
   async function onLoginSubmit(data: LoginFormValues) {
     setIsLoginLoading(true);
-    const { auth } = await import('@/lib/firebase-config');
-    const { signInWithEmailAndPassword } = await import('firebase/auth');
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       toast({
@@ -130,11 +135,31 @@ export default function AuthPageClient() {
     }
   }
 
+  async function onReset(event: React.FormEvent) {
+    event.preventDefault();
+    setResetLoading(true);
+    try {
+      if (isLocalMode()) {
+        await setLocalPassword(resetEmail, resetPassword);
+        toast({ title: 'Password updated', description: 'This browser-only account can now sign in with the new password.' });
+      } else {
+        await sendPasswordResetEmail(auth, resetEmail);
+        toast({ title: 'Reset email sent', description: 'Check the inbox for that address.' });
+      }
+      setShowReset(false);
+    } catch (error: any) {
+      toast({
+        title: 'Could not reset password',
+        description: error.message || 'Try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   async function onRegisterSubmit(data: RegisterFormValues) {
     setIsRegisterLoading(true);
-    const { auth, db } = await import('@/lib/firebase-config');
-    const { createUserWithEmailAndPassword } = await import('firebase/auth');
-    const { doc, setDoc, Timestamp } = await import('firebase/firestore');
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
@@ -185,14 +210,15 @@ export default function AuthPageClient() {
     loginForm.setValue("email", DEMO_EMAIL);
     loginForm.setValue("password", DEMO_PASSWORD);
     toast({
-      title: "Demo Credentials Filled",
-      description: "Ready to log in as the demo user.",
+      title: "Preview login filled",
+      description: "This account exists only in this browser.",
     });
   };
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-secondary p-4">
-       <Link href="/" className="absolute left-4 top-4 md:left-8 md:top-8">
+    <div className="flex min-h-svh flex-col items-center justify-center bg-secondary p-4">
+      <div className="absolute top-0 left-0 right-0"><LocalModeNote /></div>
+       <Link href="/" className="absolute left-4 top-12 md:left-8">
           <Button variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4"/>
             Back to Home
@@ -216,20 +242,29 @@ export default function AuthPageClient() {
             <Form {...loginForm}>
               <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
                 <CardContent className="space-y-4">
-                  <Alert className="border-primary/30 bg-primary/5">
-                    <Info className="h-5 w-5 text-primary" />
-                    <AlertDescription className="text-sm text-foreground/80">
-                      Try the demo account:
-                      <Button
-                        type="button"
-                        variant="link"
-                        onClick={fillDemoCredentials}
-                        className="ml-1 p-0 h-auto text-sm text-primary hover:underline"
-                      >
-                        Fill demo credentials
-                      </Button>
-                    </AlertDescription>
-                  </Alert>
+                  {isLocalMode() ? (
+                    <Alert className="border-primary/30 bg-primary/5">
+                      <Info className="h-5 w-5 text-primary" />
+                      <AlertDescription className="text-sm text-foreground/80">
+                        Browser preview account (not a real person):
+                        <Button
+                          type="button"
+                          variant="link"
+                          onClick={fillDemoCredentials}
+                          className="ml-1 p-0 h-auto text-sm text-primary hover:underline"
+                        >
+                          Fill preview login
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert>
+                      <Info className="h-5 w-5" />
+                      <AlertDescription className="text-sm">
+                        Sign in with an account on the Firebase project. There is no shared demo login in this mode.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <FormField
                     control={loginForm.control}
                     name="email"
@@ -250,9 +285,9 @@ export default function AuthPageClient() {
                       <FormItem>
                          <div className="flex items-center justify-between">
                            <FormLabel>Password</FormLabel>
-                           <Link href="#" className="text-sm text-primary hover:underline"> {/* TODO: Implement forgot password */}
+                           <button type="button" className="text-sm text-primary hover:underline" onClick={() => { setShowReset(true); setResetEmail(loginForm.getValues('email')); }}>
                             Forgot password?
-                           </Link>
+                           </button>
                          </div>
                         <FormControl>
                           <Input type="password" {...field} />
@@ -348,6 +383,33 @@ export default function AuthPageClient() {
           </Card>
         </TabsContent>
       </Tabs>
+      {showReset && (
+        <Card className="w-full max-w-md mt-4 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl">Reset password</CardTitle>
+            <CardDescription>
+              {isLocalMode()
+                ? 'Preview accounts live in this browser, so there is no email. Set a new password for an account that already exists here.'
+                : 'We will email a reset link if this address has a Firebase account.'}
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={onReset}>
+            <CardContent className="space-y-3">
+              <Input type="email" required placeholder="Email" value={resetEmail} onChange={(event) => setResetEmail(event.target.value)} />
+              {isLocalMode() && (
+                <Input type="password" required minLength={6} placeholder="New password" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} />
+              )}
+            </CardContent>
+            <CardFooter className="flex gap-2">
+              <Button type="submit" disabled={resetLoading}>
+                {resetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLocalMode() ? 'Save new password' : 'Send reset email'}
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setShowReset(false)}>Cancel</Button>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
     </div>
   );
 }

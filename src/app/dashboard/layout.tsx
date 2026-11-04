@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { auth, db } from '@/lib/firebase-config';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { onAuthStateChanged, signOut, type User } from '@/lib/backend/auth';
 
 import {
   SidebarProvider,
@@ -32,6 +32,7 @@ import {
   Gift,
   LogOut,
   Mail,
+  ListChecks,
   ImageIcon,
   CalendarDays,
   GanttChart,
@@ -45,6 +46,7 @@ import {
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { LocalModeNote } from '@/components/local-mode-note';
 import {
   Tooltip,
   TooltipContent,
@@ -148,7 +150,7 @@ export default function DashboardLayout({
 
 
   return (
-    <SidebarProvider defaultOpen={!isMobile}>
+    <SidebarProvider defaultOpen={!isMobile} className="h-dvh max-h-dvh overflow-hidden">
       <Sidebar collapsible={isMobile ? "offcanvas" : "icon"}>
         <SidebarHeader className="p-4 flex-row items-center group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:py-3 group-data-[state=collapsed]:px-1.5">
           <div className="flex flex-grow items-center gap-3 group-data-[state=collapsed]:justify-center">
@@ -181,6 +183,7 @@ export default function DashboardLayout({
             <SidebarGroupLabel>Guests</SidebarGroupLabel>
             <SidebarMenu>
               <NavLink href="/dashboard/guests" icon={<Users />} tooltip="Guest Management">Guest Management</NavLink>
+              <NavLink href="/dashboard/rsvps" icon={<ListChecks />} tooltip="RSVPs">RSVPs</NavLink>
               <NavLink href="/dashboard/invitations" icon={<Mail />} tooltip="Digital Invitations">Digital Invitations</NavLink>
               <NavLink href="/dashboard/seating" icon={<Armchair />} tooltip="Seating Arrangements">Seating Arrangements</NavLink>
               <NavLink href="/dashboard/blueprints" icon={<Map />} tooltip="Venue Blueprints">Venue Blueprints</NavLink>
@@ -219,7 +222,8 @@ export default function DashboardLayout({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="flex flex-col w-full max-w-screen overflow-x-hidden">
+      <SidebarInset className="flex flex-col w-full max-w-screen overflow-x-hidden min-h-0">
+         <LocalModeNote />
          {isMobile && (
           <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <SidebarTrigger asChild><Button size="icon" variant="outline" className="sm:hidden"><Menu className="h-5 w-5" /><span className="sr-only">Toggle Menu</span></Button></SidebarTrigger>

@@ -1,5 +1,5 @@
 {
-  "name": "nextn",
+  "name": "the-big-day",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,8 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "node -e \"console.log('No automated tests yet.')\""
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.6.2",
@@ -54,19 +53,23 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
-    "react-konva": "^19.0.5",
+    "react-konva": "^18.2.10",
     "react-rnd": "^10.5.2",
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
+    "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "autoprefixer": "^10.6.2",
     "genkit-cli": "^1.6.2",
+    "postcss": "^8.5.32",
     "typescript": "5.8.3"
   }
 }

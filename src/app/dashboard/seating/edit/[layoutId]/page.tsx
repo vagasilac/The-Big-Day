@@ -12,10 +12,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { ArrowLeft, Save, Loader2, Trash2, LayoutGrid as LayoutGridIcon, Square, Circle as CircleIcon, Candy, CupSoda, Presentation, Footprints, Shapes } from 'lucide-react';
 
 import { auth, db, storage } from '@/lib/firebase-config';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { onAuthStateChanged, type User as FirebaseUser } from '@/lib/backend/auth';
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc } from '@/lib/backend/firestore';
 import { normalizeVenueLayout } from '@/lib/utils';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject as deleteFileObject } from "firebase/storage"; // Renamed to avoid conflict
+import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject as deleteFileObject } from "@/lib/backend/storage"; // Renamed to avoid conflict
 
 import type { VenueLayout, TableElement as StoredTableElement, Chair as StoredChair } from '@/types/venue'; // Use Stored types for clarity
 import { Button } from '@/components/ui/button';

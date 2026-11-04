@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase-config';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged } from '@/lib/backend/auth';
+import { collection, query, where, getDocs } from '@/lib/backend/firestore';
 import type { VenueBlueprint } from '@/types/blueprint';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

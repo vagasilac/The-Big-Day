@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { SafeImage as Image } from '@/components/safe-image';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,9 +14,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from 'firebase/firestore';
+import type { User } from '@/lib/backend/auth';
+import { onAuthStateChanged } from '@/lib/backend/auth';
+import { collection, query, where, getDocs, Timestamp, doc, onSnapshot } from '@/lib/backend/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { Guest } from '@/types/guest';
 
@@ -88,14 +88,16 @@ export default function DashboardPage() {
 
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  const [plannerCompleted, setPlannerCompleted] = useState<Record<string, boolean>>({});
+  const [plannerProgress, setPlannerProgress] = useState(0);
   useEffect(() => {
-    const stored = localStorage.getItem('planner-completed');
-    if (stored) {
-      try { setPlannerCompleted(JSON.parse(stored)); } catch (_) {}
-    }
+    const stored = localStorage.getItem('planner-status');
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored) as Record<string, number>;
+      const done = plannerTasks.filter((task) => parsed[task.id] === 2).length;
+      setPlannerProgress(Math.round((done / plannerTasks.length) * 100));
+    } catch (_) {}
   }, []);
-  const plannerProgress = Math.round((Object.keys(plannerCompleted).filter(k => plannerCompleted[k]).length / plannerTasks.length) * 100);
 
   const fetchWeddingAndGuestData = useCallback(async (user: User) => {
     setIsLoading(true);
@@ -227,11 +229,13 @@ export default function DashboardPage() {
 
 
   useEffect(() => {
+    let unsubscribeGuests = () => {};
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      let unsubscribeGuests = () => {};
+      unsubscribeGuests();
+      unsubscribeGuests = () => {};
       if (user) {
         setCurrentUser(user);
-        unsubscribeGuests = await fetchWeddingAndGuestData(user) || (() => {});
+        unsubscribeGuests = (await fetchWeddingAndGuestData(user)) || (() => {});
       } else {
         setCurrentUser(null);
         setWeddingData(null);
@@ -239,14 +243,11 @@ export default function DashboardPage() {
         setIsLoading(false);
         setIsLoadingStats(false);
       }
-      return () => {
-        unsubscribeAuth();
-        if (unsubscribeGuests) {
-          unsubscribeGuests();
-        }
-      };
     });
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      unsubscribeGuests();
+    };
   }, [router, fetchWeddingAndGuestData]);
 
   if (isLoading) {

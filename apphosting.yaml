@@ -1,0 +1,15 @@
+# Firebase App Hosting. Set NEXT_PUBLIC_* and SMTP_* in the console
+# (or as secrets) before the first rollout. The values are inlined into the
+# client at build time, so change them and rebuild when you switch projects.
+env:
+  - variable: NEXT_PUBLIC_DATA_MODE
+    value: firebase
+    availability:
+      - BUILD
+      - RUNTIME
+
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0
+  maxInstances: 2

@@ -24,9 +24,9 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { cn } from '@/lib/utils';
 
 import { auth, db } from '@/lib/firebase-config';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import type { User } from '@/lib/backend/auth';
+import { onAuthStateChanged } from '@/lib/backend/auth';
+import { collection, query, where, getDocs } from '@/lib/backend/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { PlannerTask } from '@/types/planner';
 import { plannerTasks } from '@/lib/planner-data';
@@ -346,7 +346,7 @@ export default function PlannerPage() {
             <div>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Wedding Planner</h1>
               <p className="text-muted-foreground mt-1">
-                Track every step leading up to the big day.
+                Track every step leading up to the big day. Checklist progress is saved in this browser only.
               </p>
             </div>
           </div>

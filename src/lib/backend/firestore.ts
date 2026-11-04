@@ -1,0 +1,20 @@
+import { isLocalMode } from '@/lib/data-mode';
+import * as local from '@/lib/local/firestore';
+import * as remote from 'firebase/firestore';
+
+export const Timestamp = isLocalMode() ? local.Timestamp : remote.Timestamp;
+export const collection = ((...args: never[]) => (isLocalMode() ? local.collection : remote.collection)(...args)) as typeof remote.collection;
+export const doc = ((...args: never[]) => (isLocalMode() ? local.doc : remote.doc)(...args)) as typeof remote.doc;
+export const query = ((...args: never[]) => (isLocalMode() ? local.query : remote.query)(...args)) as typeof remote.query;
+export const where = ((...args: never[]) => (isLocalMode() ? local.where : remote.where)(...args)) as typeof remote.where;
+export const orderBy = ((...args: never[]) => (isLocalMode() ? local.orderBy : remote.orderBy)(...args)) as typeof remote.orderBy;
+export const or = ((...args: never[]) => (isLocalMode() ? local.or : remote.or)(...args)) as typeof remote.or;
+export const getDocs = ((...args: never[]) => (isLocalMode() ? local.getDocs : remote.getDocs)(...args)) as typeof remote.getDocs;
+export const getDoc = ((...args: never[]) => (isLocalMode() ? local.getDoc : remote.getDoc)(...args)) as typeof remote.getDoc;
+export const addDoc = ((...args: never[]) => (isLocalMode() ? local.addDoc : remote.addDoc)(...args)) as typeof remote.addDoc;
+export const setDoc = ((...args: never[]) => (isLocalMode() ? local.setDoc : remote.setDoc)(...args)) as typeof remote.setDoc;
+export const updateDoc = ((...args: never[]) => (isLocalMode() ? local.updateDoc : remote.updateDoc)(...args)) as typeof remote.updateDoc;
+export const deleteDoc = ((...args: never[]) => (isLocalMode() ? local.deleteDoc : remote.deleteDoc)(...args)) as typeof remote.deleteDoc;
+export const onSnapshot = ((...args: never[]) => (isLocalMode() ? local.onSnapshot : remote.onSnapshot)(...args)) as typeof remote.onSnapshot;
+export const serverTimestamp = ((...args: never[]) => (isLocalMode() ? local.serverTimestamp : remote.serverTimestamp)(...args)) as typeof remote.serverTimestamp;
+export const writeBatch = ((...args: never[]) => (isLocalMode() ? local.writeBatch : remote.writeBatch)(...args)) as typeof remote.writeBatch;

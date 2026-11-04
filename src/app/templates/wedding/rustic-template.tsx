@@ -3,15 +3,16 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from '@/lib/backend/firestore';
 import BaseTemplate from './base-template';
 import { nunitoSans, caveat } from '../../../lib/fonts'; 
 import { Calendar, MapPin, Heart, Users, Gift, Leaf, Clock, Camera } from 'lucide-react';
-import Image from 'next/image';
+import { SafeImage as Image } from '@/components/safe-image';
 
 interface RusticTemplateProps {
   wedding: Partial<Wedding>;
   isPreviewMode?: boolean;
+  sample?: boolean;
 }
 
 const toDate = (val?: Timestamp | string | Date | null) => {
@@ -21,9 +22,9 @@ const toDate = (val?: Timestamp | string | Date | null) => {
   return val.toDate();
 };
 
-const RusticTemplate: React.FC<RusticTemplateProps> = ({ wedding, isPreviewMode }) => {
+const RusticTemplate: React.FC<RusticTemplateProps> = ({ wedding, isPreviewMode, sample }) => {
   return (
-    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode}>
+    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode} sample={sample}>
       <div className={`${nunitoSans.variable} font-sans bg-[#fdfaf6] text-[#5d4037]`}>
         {/* Details Section */}
         <section className="py-12 md:py-16">
@@ -164,9 +165,9 @@ const RusticTemplate: React.FC<RusticTemplateProps> = ({ wedding, isPreviewMode 
             <p className="text-base sm:text-lg text-[#5d4037] mb-6 md:mb-8 max-w-xl mx-auto">
               We&apos;d be overjoyed to share our special day with you. Please let us know if you can make it by {wedding.rsvpDeadline ? toDate(wedding.rsvpDeadline)?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric'}) : 'the deadline'}.
             </p>
-            <button className="px-8 sm:px-10 py-2 sm:py-3 bg-[#795548] text-white rounded-md shadow-lg hover:bg-[#6d4c41] transition-colors text-base sm:text-lg font-semibold">
+            <a href="#rsvp" className="inline-block px-8 sm:px-10 py-2 sm:py-3 bg-[#795548] text-white rounded-md shadow-lg hover:bg-[#6d4c41] transition-colors text-base sm:text-lg font-semibold">
               RSVP
-            </button>
+            </a>
           </div>
         </section>
       </div>

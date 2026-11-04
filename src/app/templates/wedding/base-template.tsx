@@ -1,17 +1,18 @@
 
 'use client'; 
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Wedding } from '@/types/wedding';
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from '@/lib/backend/firestore';
 import { format } from 'date-fns';
 import { Heart } from 'lucide-react';
-import Image from 'next/image';
+import GuestPanel from '@/components/wedding/guest-panel';
 
 interface BaseTemplateProps {
   wedding: Partial<Wedding>;
   children?: React.ReactNode;
   isPreviewMode?: boolean;
+  sample?: boolean;
 }
 
 const toDate = (val?: Timestamp | string | Date | null) => {
@@ -21,7 +22,7 @@ const toDate = (val?: Timestamp | string | Date | null) => {
   return val.toDate();
 };
 
-const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children, isPreviewMode }) => {
+const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children, isPreviewMode, sample }) => {
   const formattedDate = wedding.date
     ? format(toDate(wedding.date)!, "EEEE, MMMM do, yyyy 'at' h:mm a")
     : 'Date to be announced';
@@ -30,15 +31,19 @@ const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children, isPrevie
     ? "text-2xl md:text-3xl font-bold mb-3" // Smaller size for preview
     : "text-4xl md:text-6xl font-bold mb-4"; // Original size
 
+  const accentStyle = wedding.accentColor
+    ? ({ ['--primary']: wedding.accentColor } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-background text-foreground" style={accentStyle}>
       {/* Hero Section */}
       <section
         className="relative py-20 md:py-32 bg-cover bg-center text-white"
         style={{
           backgroundImage: wedding.coverPhoto
             ? `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${wedding.coverPhoto})`
-            : 'linear-gradient(rgba(var(--primary-hsl)/0.7), rgba(var(--primary-hsl)/0.9))',
+            : 'linear-gradient(hsl(var(--primary) / 0.8), hsl(var(--primary) / 0.95))',
         }}
       >
         <div className="container mx-auto px-6 text-center relative z-10">
@@ -52,6 +57,9 @@ const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children, isPrevie
           <p className="text-lg md:text-xl">
             {wedding.location || 'Venue to be Announced'}
           </p>
+          {wedding.address && (
+            <p className="text-base md:text-lg mt-1 opacity-90">{wedding.address}</p>
+          )}
         </div>
       </section>
 
@@ -73,6 +81,11 @@ const BaseTemplate: React.FC<BaseTemplateProps> = ({ wedding, children, isPrevie
       {/* Custom Content Area */}
       <main className="flex-grow">
         {children}
+        {!isPreviewMode && (
+          <Suspense fallback={null}>
+            <GuestPanel wedding={wedding} sample={sample} />
+          </Suspense>
+        )}
       </main>
 
       {/* Footer */}

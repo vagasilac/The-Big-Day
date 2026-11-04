@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+.git
+.firebase
+.genkit
+*.md
+.env
+.env.*
+!.env.example
+npm-debug.log*

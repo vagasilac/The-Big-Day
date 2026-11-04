@@ -1,124 +1,220 @@
-
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Heart, PlusCircle, Mail } from 'lucide-react';
-
-import { auth, db } from '@/lib/firebase-config';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Heart, Loader2, Mail, PlusCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase-config';
+import { Timestamp, collection, doc, getDocs, serverTimestamp, updateDoc } from '@/lib/backend/firestore';
+import { useMyWedding } from '@/lib/use-my-wedding';
+import type { Guest } from '@/types/guest';
 import type { Wedding } from '@/types/wedding';
 
+function invitationCode() {
+  return Math.random().toString(36).slice(2, 8);
+}
+
+function weddingLink(wedding: Wedding, guest: Guest) {
+  const params = new URLSearchParams();
+  if (guest.id) params.set('guest', guest.id);
+  if (guest.invitationCode) params.set('code', guest.invitationCode);
+  const query = params.toString();
+  return `${window.location.origin}/weddings/${wedding.slug}${query ? `?${query}` : ''}`;
+}
+
+function dateIso(wedding: Wedding) {
+  if (!wedding.date) return '';
+  if (wedding.date instanceof Timestamp) return wedding.date.toDate().toISOString();
+  if (typeof wedding.date === 'string') return wedding.date;
+  return '';
+}
+
 export default function InvitationsPage() {
-  const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [weddingData, setWeddingData] = useState<Wedding | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { wedding, loading } = useMyWedding();
+  const { toast } = useToast();
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const loadGuests = useCallback(async (weddingId: string) => {
+    const snap = await getDocs(collection(db, 'weddings', weddingId, 'guests'));
+    setGuests(snap.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as Guest));
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        try {
-          const weddingsRef = collection(db, 'weddings');
-          const q = query(weddingsRef, where('userId', '==', user.uid));
-          const querySnapshot = await getDocs(q);
+    if (wedding?.id) {
+      loadGuests(wedding.id).catch((error) => {
+        toast({ title: 'Could not load guests', description: error instanceof Error ? error.message : '', variant: 'destructive' });
+      });
+    }
+  }, [wedding?.id, loadGuests, toast]);
 
-          if (!querySnapshot.empty) {
-            const weddingDoc = querySnapshot.docs[0];
-            setWeddingData({ id: weddingDoc.id, ...weddingDoc.data() } as Wedding);
-          } else {
-            setWeddingData(null);
-          }
-        } catch (error) {
-          console.error("Error fetching wedding data:", error);
-          setWeddingData(null);
-        }
-      } else {
-        setCurrentUser(null);
-        setWeddingData(null);
-        router.push('/auth');
-      }
-      setIsLoading(false);
+  const ensureCode = async (guest: Guest) => {
+    if (!wedding?.id || !guest.id) return guest;
+    if (guest.invitationCode) return guest;
+    const code = invitationCode();
+    await updateDoc(doc(db, 'weddings', wedding.id, 'guests', guest.id), {
+      invitationCode: code,
+      updatedAt: serverTimestamp(),
     });
-    return () => unsubscribe();
-  }, [router]);
+    const next = { ...guest, invitationCode: code };
+    setGuests((current) => current.map((item) => (item.id === guest.id ? next : item)));
+    return next;
+  };
 
-  if (isLoading) {
+  const payloadFor = (guest: Guest, preview: boolean) => ({
+    email: guest.email,
+    link: weddingLink(wedding as Wedding, guest),
+    preview,
+    guestDetails: {
+      name: guest.name,
+      plusOneAllowed: guest.plusOneAllowed,
+      plusOneName: guest.plusOneName,
+      headOfFamily: guest.headOfFamily,
+      personalMessage: guest.personalMessage,
+    },
+    weddingDetails: {
+      title: wedding?.title,
+      dateISO: wedding ? dateIso(wedding) : '',
+      location: wedding?.location || 'To be announced',
+    },
+  });
+
+  const preview = async (guest: Guest) => {
+    if (!guest.email) {
+      toast({ title: 'Add an email first', description: 'Open Guest Management and save an email address.', variant: 'destructive' });
+      return;
+    }
+    setBusyId(guest.id || 'preview');
+    try {
+      const ready = await ensureCode(guest);
+      const response = await fetch('/api/send-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadFor(ready, true)),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.html) throw new Error(data.error || 'Could not build the preview.');
+      setPreviewHtml(data.html);
+      setPreviewOpen(true);
+    } catch (error) {
+      toast({ title: 'Preview failed', description: error instanceof Error ? error.message : '', variant: 'destructive' });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const copyLink = async (guest: Guest) => {
+    if (!wedding) return;
+    try {
+      const ready = await ensureCode(guest);
+      await navigator.clipboard.writeText(weddingLink(wedding, ready));
+      toast({ title: 'Link copied', description: 'Send it by text, chat, or email.' });
+    } catch (error) {
+      toast({ title: 'Could not copy', description: error instanceof Error ? error.message : '', variant: 'destructive' });
+    }
+  };
+
+  const sendEmail = async (guest: Guest) => {
+    if (!wedding?.id || !guest.id || !guest.email) return;
+    setBusyId(guest.id);
+    try {
+      const ready = await ensureCode(guest);
+      const response = await fetch('/api/send-invitation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadFor(ready, false)),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Email was not sent.');
+      await updateDoc(doc(db, 'weddings', wedding.id, 'guests', guest.id), {
+        invitationStatus: 'sent',
+        updatedAt: serverTimestamp(),
+      });
+      setGuests((current) => current.map((item) => (item.id === guest.id ? { ...item, invitationStatus: 'sent', invitationCode: ready.invitationCode } : item)));
+      toast({ title: 'Invitation sent', description: guest.email });
+    } catch (error) {
+      toast({ title: 'Email not sent', description: error instanceof Error ? error.message : '', variant: 'destructive' });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (loading) return <Skeleton className="h-40 w-full" />;
+  if (!wedding) {
     return (
-      <div className="flex flex-col gap-6 md:gap-8">
-        <div className="flex items-center gap-3">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div>
-                <Skeleton className="h-10 w-48 mb-2" />
-                <Skeleton className="h-5 w-72" />
-            </div>
-        </div>
-        <Card className="shadow-md">
-          <CardHeader>
-            <Skeleton className="h-8 w-1/3 mb-2" />
-            <Skeleton className="h-4 w-2/3" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-20 w-full" />
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-dashed border-2 p-8 text-center">
+        <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
+        <CardTitle className="mb-2">No Wedding Site Yet</CardTitle>
+        <CardDescription className="mb-6">Create your wedding site before inviting guests.</CardDescription>
+        <Button asChild><Link href="/dashboard/details"><PlusCircle className="mr-2 h-4 w-4" />Create Your Wedding Site</Link></Button>
+      </Card>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 md:gap-8">
-      {!weddingData ? (
-        <Card className="border-dashed border-2 p-8 text-center shadow-sm">
-          <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
-          <CardTitle className="text-xl font-semibold mb-2">No Wedding Site Yet</CardTitle>
-          <CardDescription className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Please create your wedding site first to manage digital invitations.
-          </CardDescription>
-          <Button asChild>
-            <Link href="/dashboard/details">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Your Wedding Site
-            </Link>
-          </Button>
-        </Card>
-      ) : (
-        <>
-          <div className="flex items-center gap-3">
-             <Mail className="h-8 w-8 text-primary" />
-            <div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Digital Invitations</h1>
-                <p className="text-muted-foreground mt-1">
-                Design and send beautiful digital invitations to your guests.
-                </p>
-            </div>
-          </div>
-          
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Invitation Management</CardTitle>
-              <CardDescription>
-                Create, customize, and send your wedding invitations.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Digital invitation features will be available here soon.
-              </p>
-              <div className="mt-6 p-6 bg-secondary rounded-md text-center">
-                <p className="font-medium text-secondary-foreground">Invitation features coming soon!</p>
-              </div>
-            </CardContent>
-          </Card>
-        </>
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-3">
+        <Mail className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Digital Invitations</h1>
+          <p className="text-muted-foreground mt-1">
+            Copy a personal link, or send email when SMTP is configured. Without SMTP, sending is unavailable and the preview still works.
+          </p>
+        </div>
+      </div>
+
+      {!wedding.slug && (
+        <p className="text-sm text-destructive">Set a website address under Wedding Details before sharing links.</p>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Guests</CardTitle>
+          <CardDescription>Each link includes an invitation code so that guest can RSVP.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {guests.length === 0 && (
+            <Button asChild variant="outline"><Link href="/dashboard/guests">Add guests</Link></Button>
+          )}
+          {guests.map((guest) => (
+            <div key={guest.id} className="border rounded-lg p-3 space-y-2">
+              <div>
+                <p className="font-medium">{guest.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {guest.email || 'No email'} · {guest.invitationStatus === 'sent' ? 'Marked as sent' : 'Not marked as sent'}
+                  {guest.invitationCode ? ` · Code ${guest.invitationCode}` : ''}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" disabled={!guest.email || busyId === guest.id} onClick={() => preview(guest)}>
+                  {busyId === guest.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Preview'}
+                </Button>
+                <Button type="button" size="sm" variant="outline" disabled={!wedding.slug} onClick={() => copyLink(guest)}>
+                  Copy link
+                </Button>
+                <Button type="button" size="sm" disabled={!guest.email || !wedding.slug || busyId === guest.id} onClick={() => sendEmail(guest)}>
+                  Send email
+                </Button>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Invitation preview</DialogTitle>
+          </DialogHeader>
+          <div className="border rounded-md overflow-hidden bg-white" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

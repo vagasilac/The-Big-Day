@@ -20,10 +20,11 @@ import {
   Newspaper, Camera, ListChecks, Music, Gift, Users, Palette, Share2, ArrowRight,
   CheckCircle, Edit3, Send, Heart, Menu, X, Check, DollarSign, Star, LogIn, UserPlus
 } from 'lucide-react';
-import type { Wedding } from '@/types/wedding';
 import ElegantTemplate from './templates/wedding/elegant-template';
 import ModernTemplate from './templates/wedding/modern-template';
 import RusticTemplate from './templates/wedding/rustic-template';
+import { sampleWeddingData } from '@/lib/sample-wedding';
+import { LocalModeNote } from '@/components/local-mode-note';
 
 
 const HeroSection = () => {
@@ -58,6 +59,7 @@ const HeroSection = () => {
                 data-ai-hint="elegant wedding celebration"
               />
               <div className="absolute -bottom-5 -right-5 bg-card p-4 rounded-lg shadow-xl border-2 border-primary">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Sample</p>
                 <div className="text-xl md:text-2xl text-primary" style={{ fontFamily: 'Times New Roman, Times, serif' }}>Anna & Paul</div>
                 <p className="text-muted-foreground text-xs md:text-sm">June 15, 2025</p>
               </div>
@@ -224,7 +226,7 @@ const PricingSection = () => {
           <DollarSign className="w-12 h-12 text-primary mx-auto mb-4" />
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Choose the plan that best fits your needs. No hidden fees, just straightforward pricing for your special day.
+            These prices are placeholders. There is no checkout, and choosing a plan does not charge a card or unlock features.
           </p>
         </div>
 
@@ -255,8 +257,9 @@ const PricingSection = () => {
                   ))}
                 </ul>
                 <Button variant={plan.popular ? "default" : "outline"} size="lg" className="w-full mt-auto" asChild>
-                  <Link href="/auth?tab=register">Get Started</Link>
+                  <Link href="/auth?tab=register">Create a free account</Link>
                 </Button>
+                <p className="text-center text-xs text-muted-foreground mt-2">Not for sale yet</p>
               </div>
             </div>
           ))}
@@ -293,9 +296,9 @@ const TestimonialsSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
           <Heart className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">What Couples Say</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Sample quotes</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Hear from happy couples who created memorable and beautiful wedding experiences with The Big Day.
+            These are illustrative placeholders, not reviews from real couples. Replace them when you have permission to publish real stories.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -369,8 +372,8 @@ const HowItWorksSection = () => {
                 See a fully featured demo wedding website. Experience both the guest view and the powerful admin dashboard.
               </p>
               <Button asChild size="lg" className="px-8 py-3 h-auto text-base self-center md:self-start">
-                <Link href="/#how-it-works">
-                  View Demo Website
+                <Link href="/weddings/sample">
+                  View Sample Website
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -469,31 +472,6 @@ const AppFooter = () => {
 };
 
 
-const sampleWeddingData: Partial<Wedding> = {
-  title: "Anna & Paul's Wedding",
-  description: "We are so excited to celebrate our special day with all of our amazing friends and family! Join us for a day filled with love, laughter, and unforgettable memories as we begin our new journey together.",
-  date: "2026-06-15T17:30:00.000Z",
-  location: "The Enchanted Garden, Springsville",
-  coverPhoto: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwYmFucXVldCUyMHJvb218ZW58MHx8fHwxNzQ3NTg4OTg5fDA&ixlib=rb-4.0.3&q=80&w=1080",
-  gallery: [
-    { id: "1", url: "https://images.unsplash.com/photo-1522346513757-54c352451edb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9wb3NhbCUyMGJlYWNofGVufDB8fHx8MTc0NzY5NTQ0MHww&ixlib=rb-4.0.3&q=80&w=400", description: "The Proposal", dataAiHint: "proposal beach sunset"},
-    { id: "2", url: "https://images.unsplash.com/photo-1591604466107-ec97de527c60?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwcm9wb3NhbCUyMGJlYWNofGVufDB8fHx8MTc0NzY5NTQ0MHww&ixlib=rb-4.0.3&q=80&w=400", description: "She said yes!", dataAiHint: "engagement ring hand"},
-    { id: "3", url: "https://images.unsplash.com/photo-1508808937599-06c4f5855260?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwdmVudWUlMjBnYXJkZW58ZW58MHx8fHwxNzQ3Njk1NTA1fDA&ixlib=rb-4.0.3&q=80&w=400", description: "Our Future Venue", dataAiHint: "wedding venue garden"},
-    { id: "4", url: "https://images.unsplash.com/photo-1589156218404-209c028574b2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3ZWRkaW5nJTIwdmVudWUlMjBnYXJkZW58ZW58MHx8fHwxNzQ3Njk1NTA1fDA&ixlib=rb-4.0.3&q=80&w=400", description: "Venue Details", dataAiHint: "outdoor wedding setup"},
-    { id: "5", url: "https://images.unsplash.com/photo-1552873829-78940e407a4c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxlbmdhZ2VtZW50JTIwcGhvdG9zJTIwY291cGxlfGVufDB8fHx8MTc0NzY5NTU1NHww&ixlib=rb-4.0.3&q=80&w=400", description: "Engagement Photos", dataAiHint: "engagement photos couple"},
-    { id: "6", url: "https://images.unsplash.com/photo-1580403390485-499ea959307f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxlbmdhZ2VtZW50JTIwcGhvdG9zJTIwY291cGxlfGVufDB8fHx8MTc0NzY5NTU1NHww&ixlib=rb-4.0.3&q=80&w=400", description: "Save the Date", dataAiHint: "couple holding hands"},
-  ],
-  schedule: [
-    { time: "3:00 PM", event: "Guest Arrival", description: "Welcome drinks and light refreshments" },
-    { time: "4:00 PM", event: "Ceremony", description: "Join us as we say \"I do\"" },
-    { time: "5:00 PM", event: "Cocktail Hour", description: "Enjoy cocktails and appetizers" },
-    { time: "6:30 PM", event: "Reception", description: "Dinner, dancing, and celebrations" },
-    { time: "10:00 PM", event: "Sparkler Send-off", description: "Wish us well as we depart" }
-  ],
-  dressCode: "Semi-Formal: Suits, gowns, or cocktail dresses.",
-  rsvpDeadline: "2026-04-30T23:59:00.000Z"
-};
-
 export default function HomePage() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -531,6 +509,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-svh bg-background">
+      <LocalModeNote />
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center space-x-2" onClick={closeMenu}>
