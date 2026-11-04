@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
+import { SafeImage as Image } from '@/components/safe-image';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -41,8 +41,8 @@ import { ArrowLeft, CalendarIcon, Loader2, ScrollText, ImageIcon, Trash2 } from 
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { auth, db, storage } from '@/lib/firebase-config'; // Ensure storage is imported
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
+import type { User } from '@/lib/backend/auth';
+import { onAuthStateChanged } from '@/lib/backend/auth';
 import {
   doc,
   setDoc,
@@ -53,8 +53,8 @@ import {
   collection,
   Timestamp,
   serverTimestamp,
-} from 'firebase/firestore';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
+} from '@/lib/backend/firestore';
+import { ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from "@/lib/backend/storage";
 import type { Wedding } from '@/types/wedding';
 
 const weddingFormSchema = z.object({
@@ -69,6 +69,9 @@ const weddingFormSchema = z.object({
   date: z.date().optional(),
   time: z.string().optional(), // e.g., "14:30"
   location: z.string().optional(),
+  address: z.string().optional(),
+  dressCode: z.string().optional(),
+  rsvpDeadline: z.date().optional(),
   description: z.string().optional(),
   coverPhoto: z.string().url({ message: "Invalid URL format for cover photo." }).optional().or(z.literal('')), // Stores the URL
   templateId: z.string().min(1, { message: 'Please select a template.' }),
@@ -107,6 +110,9 @@ export default function WeddingDetailsPage() {
       date: undefined,
       time: '',
       location: '',
+      address: '',
+      dressCode: '',
+      rsvpDeadline: undefined,
       description: '',
       coverPhoto: '',
       templateId: MOCK_TEMPLATES[0].id,
@@ -152,12 +158,22 @@ export default function WeddingDetailsPage() {
             formTime = `${hours}:${minutes}`;
           }
 
+          let deadline: Date | undefined;
+          if (weddingData.rsvpDeadline && weddingData.rsvpDeadline instanceof Timestamp) {
+            deadline = weddingData.rsvpDeadline.toDate();
+          } else if (typeof weddingData.rsvpDeadline === 'string') {
+            deadline = new Date(weddingData.rsvpDeadline);
+          }
+
           form.reset({
             title: weddingData.title || '',
             slug: weddingData.slug || '',
             date: formDate,
             time: formTime,
             location: weddingData.location || '',
+            address: weddingData.address || '',
+            dressCode: weddingData.dressCode || '',
+            rsvpDeadline: deadline,
             description: weddingData.description || '',
             coverPhoto: weddingData.coverPhoto || '',
             templateId: weddingData.templateId || MOCK_TEMPLATES[0].id,
@@ -166,7 +182,7 @@ export default function WeddingDetailsPage() {
           setIsNewWedding(true);
           setCurrentCoverPhotoUrl(null);
           form.reset({ // Reset to empty for new wedding
-            title: '', slug: '', date: undefined, time: '', location: '', description: '', coverPhoto: '', templateId: MOCK_TEMPLATES[0].id,
+            title: '', slug: '', date: undefined, time: '', location: '', address: '', dressCode: '', rsvpDeadline: undefined, description: '', coverPhoto: '', templateId: MOCK_TEMPLATES[0].id,
           });
         }
       } catch (error) {
@@ -240,6 +256,11 @@ export default function WeddingDetailsPage() {
       return;
     }
     
+    if (data.slug === 'sample') {
+      toast({ title: 'That address is reserved', description: '“sample” is the placeholder website. Choose another slug.', variant: 'destructive' });
+      return;
+    }
+
     setIsSaving(true);
     let finalCoverPhotoUrl = currentCoverPhotoUrl || ''; // Start with current URL or empty
 
@@ -309,12 +330,22 @@ export default function WeddingDetailsPage() {
       combinedDateTime = Timestamp.fromDate(dateObj);
     }
 
+    let rsvpDeadline: Timestamp | null = null;
+    if (data.rsvpDeadline) {
+      const deadline = new Date(data.rsvpDeadline);
+      deadline.setHours(23, 59, 0, 0);
+      rsvpDeadline = Timestamp.fromDate(deadline);
+    }
+
     const weddingDataToSave: Omit<Wedding, 'id' | 'createdAt' | 'updatedAt'> & { updatedAt: Timestamp, createdAt?: Timestamp } = {
       userId: currentUser.uid,
       title: data.title,
       slug: data.slug,
       date: combinedDateTime,
       location: data.location || '',
+      address: data.address || '',
+      dressCode: data.dressCode || '',
+      rsvpDeadline,
       description: data.description || '',
       coverPhoto: finalCoverPhotoUrl, // Use the determined final URL
       templateId: data.templateId,
@@ -554,15 +585,68 @@ export default function WeddingDetailsPage() {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street address (optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Street, city" {...field} />
+                    </FormControl>
+                    <FormDescription>Shown under the venue name. Leave blank if you do not want it public.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="dressCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dress code (optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="For example, cocktail attire" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="rsvpDeadline"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>RSVP deadline (optional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className={cn('w-full justify-start text-left font-normal h-10', !field.value && 'text-muted-foreground')}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a deadline</span>}
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Cover Photo Upload Section */}
               <FormItem>
                 <FormLabel>Upload Cover Photo</FormLabel>
                 <div className="space-y-2">
                   <div className="w-full max-w-sm h-48 relative bg-secondary rounded-md overflow-hidden border border-dashed flex items-center justify-center">
                     {filePreview ? (
-                      <Image src={filePreview} alt="Cover photo preview" layout="fill" objectFit="cover" />
+                      <Image src={filePreview} alt="Cover photo preview" fill className="object-cover" />
                     ) : currentCoverPhotoUrl ? (
-                      <Image src={currentCoverPhotoUrl} alt="Current cover photo" layout="fill" objectFit="cover" data-ai-hint="wedding couple" />
+                      <Image src={currentCoverPhotoUrl} alt="Current cover photo" fill className="object-cover" />
                     ) : (
                       <div className="text-center text-muted-foreground p-4">
                         <ImageIcon className="mx-auto h-12 w-12" />

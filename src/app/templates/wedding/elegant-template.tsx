@@ -3,15 +3,16 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from '@/lib/backend/firestore';
 import BaseTemplate from './base-template';
 import { greatVibes, cormorantGaramond } from '../../../lib/fonts'; 
 import { Calendar, MapPin, Heart, Camera, Users, Gift } from 'lucide-react';
-import Image from 'next/image';
+import { SafeImage as Image } from '@/components/safe-image';
 
 interface ElegantTemplateProps {
   wedding: Partial<Wedding>;
   isPreviewMode?: boolean;
+  sample?: boolean;
 }
 
 const toDate = (val?: Timestamp | string | Date | null) => {
@@ -21,9 +22,9 @@ const toDate = (val?: Timestamp | string | Date | null) => {
   return val.toDate();
 };
 
-const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMode }) => {
+const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMode, sample }) => {
   return (
-    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode}>
+    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode} sample={sample}>
       <div className={`${cormorantGaramond.variable} font-sans`}>
         {/* Details Section */}
         <section className="py-12 md:py-16 bg-background text-foreground">
@@ -66,10 +67,11 @@ const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMod
                 <p className="text-base sm:text-lg text-muted-foreground mb-1">
                   {wedding.location || 'Venue to be announced'}
                 </p>
-                {/* Placeholder address, consider making this part of Wedding data model */}
-                <p className="text-sm sm:text-md text-muted-foreground">
-                  123 Celebration Avenue, Dream City, DC 45678
-                </p>
+                {wedding.address && (
+                  <p className="text-sm sm:text-md text-muted-foreground">
+                    {wedding.address}
+                  </p>
+                )}
               </div>
             </div>
             {wedding.dressCode && (
@@ -145,9 +147,9 @@ const ElegantTemplate: React.FC<ElegantTemplateProps> = ({ wedding, isPreviewMod
             <p className="text-lg sm:text-xl text-muted-foreground mb-6 md:mb-8">
               Please RSVP by {wedding.rsvpDeadline ? toDate(wedding.rsvpDeadline)?.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'the deadline'} so we can finalize our arrangements.
             </p>
-            <button className="px-8 sm:px-10 py-3 sm:py-4 bg-primary text-primary-foreground rounded-lg shadow-md hover:bg-primary/90 transition-colors text-base sm:text-lg font-semibold">
+            <a href="#rsvp" className="inline-block px-8 sm:px-10 py-3 sm:py-4 bg-primary text-primary-foreground rounded-lg shadow-md hover:bg-primary/90 transition-colors text-base sm:text-lg font-semibold">
               RSVP Now
-            </button>
+            </a>
             <div className="mt-8 sm:mt-12 flex justify-center">
               <Heart className="text-primary h-6 w-6 sm:h-8 sm:w-8" />
             </div>

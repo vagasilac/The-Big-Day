@@ -1,4 +1,4 @@
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from '@/lib/backend/firestore';
 
 export interface Obstacle {
   id: string;

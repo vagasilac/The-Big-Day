@@ -1,5 +1,5 @@
 
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from '@/lib/backend/firestore';
 
 export interface Guest {
   id?: string; // Firestore document ID

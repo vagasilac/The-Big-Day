@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Konva from 'konva';
-import { Stage, KonvaDialog, Layer, Rect as KonvaRect, Circle as KonvaCircle, Group, Text, Line, Label as KonvaLabel, Tag as KonvaTag } from 'react-konva';
+import { Stage, Layer, Rect as KonvaRect, Circle as KonvaCircle, Group, Text, Line, Label as KonvaLabel, Tag as KonvaTag } from 'react-konva';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,9 +28,9 @@ import { Heart, PlusCircle, Armchair, LayoutGrid, Search, ExternalLink, CheckCir
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, orderBy, deleteDoc, Timestamp, or, serverTimestamp } from 'firebase/firestore';
+import type { User } from '@/lib/backend/auth';
+import { onAuthStateChanged } from '@/lib/backend/auth';
+import { collection, query, where, getDocs, doc, updateDoc, onSnapshot, orderBy, deleteDoc, Timestamp, or, serverTimestamp } from '@/lib/backend/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { VenueLayout, TableElement as VenueTableElement, Chair as VenueChair } from '@/types/venue';
 import { normalizeVenueLayout } from '@/lib/utils';

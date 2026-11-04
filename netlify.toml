@@ -1,0 +1,9 @@
+# Netlify runs the Next.js server, including /api/send-invitation.
+# Install the Next.js runtime on the site (Netlify adds @netlify/plugin-nextjs
+# automatically for Next.js projects; this file records the build command).
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_PUBLIC_DATA_MODE = "firebase"

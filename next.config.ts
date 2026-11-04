@@ -2,7 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfigBase: NextConfig = {
-  /* config options here */
+  output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -10,6 +10,9 @@ const nextConfigBase: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    // The optimizer rejects some Unsplash responses in dev ("upstream response is invalid").
+    // Serving the original URLs keeps gallery photos working without the image proxy.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -41,11 +44,9 @@ const nextConfigBase: NextConfig = {
     config.externals = [...(config.externals || []), { canvas: 'canvas' }];
     return config;
   },
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        canvas: './empty.js',
-      },
+  turbopack: {
+    resolveAlias: {
+      canvas: './empty.js',
     },
   },
 };

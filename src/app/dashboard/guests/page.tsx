@@ -61,8 +61,8 @@ import { Heart, PlusCircle, Users, Edit, Trash, Mail, Loader2, Eye } from 'lucid
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
+import type { User } from '@/lib/backend/auth';
+import { onAuthStateChanged } from '@/lib/backend/auth';
 import {
   collection,
   query,
@@ -75,7 +75,7 @@ import {
   serverTimestamp,
   writeBatch,
   Timestamp,
-} from 'firebase/firestore';
+} from '@/lib/backend/firestore';
 import type { Wedding } from '@/types/wedding';
 import type { Guest } from '@/types/guest';
 
@@ -338,7 +338,7 @@ export default function GuestsPage() {
   const prepareApiPayload = (guest: Guest, wedding: Wedding, forPreview: boolean) => {
     const payload = {
       email: guest.email,
-      link: `${window.location.origin}/weddings/${wedding.slug}`,
+      link: `${window.location.origin}/weddings/${wedding.slug}${guest.id ? `?guest=${encodeURIComponent(guest.id)}` : ''}`,
       preview: forPreview,
       guestDetails: {
         name: guest.name,
@@ -349,7 +349,7 @@ export default function GuestsPage() {
       },
       weddingDetails: {
         title: wedding.title,
-        dateISO: wedding.date instanceof Timestamp ? wedding.date.toDate().toISOString() : (typeof wedding.date === 'string' ? wedding.date : new Date().toISOString()),
+        dateISO: wedding.date instanceof Timestamp ? wedding.date.toDate().toISOString() : (typeof wedding.date === 'string' ? wedding.date : ''),
         location: wedding.location || 'To be announced',
       },
     };
@@ -862,20 +862,6 @@ const fetchInvitationPreview = async (guestToPreview: Guest) => {
                         </FormItem>
                       )}
                     />
-                     <FormField
-                      control={form.control}
-                      name="invitationCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Invitation Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Auto-generated if blank" {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                       control={form.control}
                       name="headOfFamily"

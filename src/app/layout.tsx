@@ -26,13 +26,11 @@ export default function RootLayout({
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head />
       <body
-        className={`${GeistSans.variable} ${GeistMono.variable} antialiased h-full overflow-hidden`}
+        className={`${GeistSans.variable} ${GeistMono.variable} antialiased min-h-svh bg-background text-foreground`}
         suppressHydrationWarning
       >
-        <div className="min-h-screen flex flex-col h-full">
-          {children}
-          <Toaster />
-        </div>
+        {children}
+        <Toaster />
       </body>
     </html>
   );

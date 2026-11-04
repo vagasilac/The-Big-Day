@@ -1,5 +1,5 @@
 
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from '@/lib/backend/firestore';
 
 // Defines the structure for a single chair within a table layout
 export interface Chair {

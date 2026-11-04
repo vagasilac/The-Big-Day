@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -8,22 +7,51 @@ service cloud.firestore {
     // Logged-in users can read other users' basic profiles if needed (e.g. for sharing).
     match /users/{userId} {
       allow read: if request.auth.uid == userId || request.auth != null;
-      allow create: if request.auth.uid == userId && request.auth.uid == request.resource.data.uid;
-      allow update: if request.auth.uid == userId;
-      // allow delete: if false; // Typically users don't delete their own accounts directly
+      allow create: if request.auth.uid == userId
+        && request.auth.uid == request.resource.data.uid
+        && !request.resource.data.keys().hasAny(['plan', 'stripeCustomerId']);
+      allow update: if request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan', 'stripeCustomerId', 'planUpdatedAt']);
+      // Purchased plan fields are written by the Stripe webhook with the Admin SDK.
     }
 
-    // Weddings: Owners can CRUD their own weddings.
+    match /purchases/{purchaseId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Weddings are readable without an account so the public website can render.
+    // Guests may replace only the playlist (`songs`). Everything else stays owner-only.
     match /weddings/{weddingId} {
-      // Read: Owner can read. Public wedding pages should fetch data server-side.
-      allow read: if request.auth.uid != null && resource.data.userId == request.auth.uid;
+      function weddingOwner() {
+        return request.auth != null
+          && get(/databases/$(database)/documents/weddings/$(weddingId)).data.userId == request.auth.uid;
+      }
+
+      allow read: if true;
       allow create: if request.auth.uid != null && request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth.uid != null && resource.data.userId == request.auth.uid;
+      allow update: if (request.auth.uid != null && resource.data.userId == request.auth.uid)
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['songs']);
       allow delete: if request.auth.uid != null && resource.data.userId == request.auth.uid;
 
-      // Guests subcollection: Only wedding owner can manage guests for their wedding.
+      // The invitation link is /weddings/{slug}?guest={guestId}.
+      // That id is enough to read the guest and send an RSVP. No account and no code.
       match /guests/{guestId} {
-        allow read, write, delete: if request.auth.uid != null && get(/databases/$(database)/documents/weddings/$(weddingId)).data.userId == request.auth.uid;
+        allow read, write: if weddingOwner();
+        allow get: if true;
+        allow update: if request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['rsvpStatus', 'mealChoice', 'updatedAt'])
+          && request.resource.data.rsvpStatus in ['pending', 'accepted', 'declined', 'maybe'];
+      }
+
+      // Name-only replies from the public wedding link.
+      match /responses/{responseId} {
+        allow read, delete: if weddingOwner();
+        allow create, update: if request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() < 200
+          && request.resource.data.rsvpStatus in ['accepted', 'declined', 'maybe']
+          && request.resource.data.keys().hasOnly(['name', 'rsvpStatus', 'mealChoice', 'email', 'createdAt', 'updatedAt']);
       }
     }
 

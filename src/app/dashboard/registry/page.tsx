@@ -1,124 +1,114 @@
-
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Heart, PlusCircle, Gift } from 'lucide-react';
+import { Gift, Heart, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase-config';
+import { doc, serverTimestamp, updateDoc } from '@/lib/backend/firestore';
+import { useMyWedding } from '@/lib/use-my-wedding';
+import type { RegistryLink } from '@/types/wedding';
 
-import { auth, db } from '@/lib/firebase-config';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import type { Wedding } from '@/types/wedding';
+function newId() {
+  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `reg_${Date.now()}`;
+}
 
 export default function RegistryPage() {
-  const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [weddingData, setWeddingData] = useState<Wedding | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { wedding, loading, reload } = useMyWedding();
+  const { toast } = useToast();
+  const [items, setItems] = useState<RegistryLink[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        try {
-          const weddingsRef = collection(db, 'weddings');
-          const q = query(weddingsRef, where('userId', '==', user.uid));
-          const querySnapshot = await getDocs(q);
+    setItems(wedding?.registry || []);
+  }, [wedding]);
 
-          if (!querySnapshot.empty) {
-            const weddingDoc = querySnapshot.docs[0];
-            setWeddingData({ id: weddingDoc.id, ...weddingDoc.data() } as Wedding);
-          } else {
-            setWeddingData(null);
-          }
-        } catch (error) {
-          console.error("Error fetching wedding data:", error);
-          setWeddingData(null);
-        }
-      } else {
-        setCurrentUser(null);
-        setWeddingData(null);
-        router.push('/auth');
-      }
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
-  }, [router]);
+  const update = (id: string, field: keyof RegistryLink, value: string) => {
+    setItems((current) => current.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
+  };
 
-  if (isLoading) {
+  const save = async () => {
+    if (!wedding?.id) return;
+    if (items.some((item) => !item.name.trim() || !item.url.trim())) {
+      toast({ title: 'Missing fields', description: 'Each link needs a name and a URL.', variant: 'destructive' });
+      return;
+    }
+    if (items.some((item) => !/^https?:\/\//i.test(item.url.trim()))) {
+      toast({ title: 'Link must start with http', description: 'Use the full address of the registry page.', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'weddings', wedding.id), {
+        registry: items.map((item) => ({
+          id: item.id,
+          name: item.name.trim(),
+          url: item.url.trim(),
+          note: item.note?.trim() || '',
+        })),
+        updatedAt: serverTimestamp(),
+      });
+      await reload();
+      toast({ title: 'Registry saved' });
+    } catch (error) {
+      toast({ title: 'Could not save', description: error instanceof Error ? error.message : '', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <Skeleton className="h-40 w-full" />;
+  if (!wedding) {
     return (
-      <div className="flex flex-col gap-6 md:gap-8">
-        <div className="flex items-center gap-3">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div>
-                <Skeleton className="h-10 w-48 mb-2" />
-                <Skeleton className="h-5 w-72" />
-            </div>
-        </div>
-        <Card className="shadow-md">
-          <CardHeader>
-            <Skeleton className="h-8 w-1/3 mb-2" />
-            <Skeleton className="h-4 w-2/3" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-20 w-full" />
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-dashed border-2 p-8 text-center">
+        <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
+        <CardTitle className="mb-2">No Wedding Site Yet</CardTitle>
+        <CardDescription className="mb-6">Create your wedding site before adding registry links.</CardDescription>
+        <Button asChild><Link href="/dashboard/details"><PlusCircle className="mr-2 h-4 w-4" />Create Your Wedding Site</Link></Button>
+      </Card>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 md:gap-8">
-      {!weddingData ? (
-        <Card className="border-dashed border-2 p-8 text-center shadow-sm">
-          <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
-          <CardTitle className="text-xl font-semibold mb-2">No Wedding Site Yet</CardTitle>
-          <CardDescription className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Please create your wedding site first to manage your gift registry.
-          </CardDescription>
-          <Button asChild>
-            <Link href="/dashboard/details">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Your Wedding Site
-            </Link>
-          </Button>
-        </Card>
-      ) : (
-        <>
-          <div className="flex items-center gap-3">
-             <Gift className="h-8 w-8 text-primary" />
-            <div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Gift Registry</h1>
-                <p className="text-muted-foreground mt-1">
-                Share your gift preferences with your guests.
-                </p>
+    <div className="flex flex-col gap-6 max-w-3xl">
+      <div className="flex items-center gap-3">
+        <Gift className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Gift Registry</h1>
+          <p className="text-muted-foreground mt-1">Links you add here appear on the public wedding website. This app does not take payments.</p>
+        </div>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Registry links</CardTitle>
+          <CardDescription>Point guests at a store, a honeymoon fund, or any page you already use.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {items.length === 0 && <p className="text-sm text-muted-foreground">No links yet.</p>}
+          {items.map((item) => (
+            <div key={item.id} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] border rounded-lg p-3">
+              <Input placeholder="Name, for example a store" value={item.name} onChange={(event) => update(item.id, 'name', event.target.value)} />
+              <Input placeholder="https://" value={item.url} onChange={(event) => update(item.id, 'url', event.target.value)} />
+              <Button type="button" variant="ghost" size="icon" aria-label="Remove link" onClick={() => setItems((current) => current.filter((entry) => entry.id !== item.id))}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              <Input className="sm:col-span-3" placeholder="Note for guests (optional)" value={item.note || ''} onChange={(event) => update(item.id, 'note', event.target.value)} />
             </div>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => setItems((current) => [...current, { id: newId(), name: '', url: '', note: '' }])}>
+              <PlusCircle className="mr-2 h-4 w-4" />Add link
+            </Button>
+            <Button type="button" onClick={save} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save registry
+            </Button>
           </div>
-          
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Registry Links</CardTitle>
-              <CardDescription>
-                Add links to your online gift registries or a cash fund.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Gift registry management features will be available here soon.
-              </p>
-              <div className="mt-6 p-6 bg-secondary rounded-md text-center">
-                <p className="font-medium text-secondary-foreground">Registry features coming soon!</p>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

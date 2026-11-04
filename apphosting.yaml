@@ -1,0 +1,26 @@
+# Firebase App Hosting for project the-big-day-31aox.
+# No custom domain: the free address is
+#   <backend-id>--the-big-day-31aox.europe-west4.hosted.app
+# Create the backend in europe-west4 (Netherlands). That is the Europe region
+# App Hosting offers. Firestore's location is chosen once, when the database
+# is created, and cannot be moved. If it is not created yet, choose
+# europe-west1 (Belgium). Classic Hosting's Next.js backend is europe-west1
+# in firebase.json (Cloud Functions has no europe-west4 in every project).
+#
+# firebase apphosting:backends:create --project the-big-day-31aox --location europe-west4
+#
+# Set NEXT_PUBLIC_* , SMTP_* , and STRIPE_* in the console before the first
+# rollout. NEXT_PUBLIC_* values are inlined at build time.
+env:
+  - variable: NEXT_PUBLIC_DATA_MODE
+    value: firebase
+    availability:
+      - BUILD
+      - RUNTIME
+
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  minInstances: 0
+  maxInstances: 2
+  # The backend region itself is selected at creation time (europe-west4).

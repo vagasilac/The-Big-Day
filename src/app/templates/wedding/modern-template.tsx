@@ -3,14 +3,15 @@
 
 import React from 'react';
 import type { Wedding } from '@/types/wedding';
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from '@/lib/backend/firestore';
 import BaseTemplate from './base-template'; 
 import { Calendar, MapPin, Heart, Camera, Music, Users, Gift, ListChecks } from 'lucide-react';
-import Image from 'next/image';
+import { SafeImage as Image } from '@/components/safe-image';
 
 interface ModernTemplateProps {
   wedding: Partial<Wedding>;
   isPreviewMode?: boolean;
+  sample?: boolean;
 }
 
 const toDate = (val?: Timestamp | string | Date | null) => {
@@ -20,9 +21,9 @@ const toDate = (val?: Timestamp | string | Date | null) => {
   return val.toDate();
 };
 
-const ModernTemplate: React.FC<ModernTemplateProps> = ({ wedding, isPreviewMode }) => {
+const ModernTemplate: React.FC<ModernTemplateProps> = ({ wedding, isPreviewMode, sample }) => {
   return (
-    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode}>
+    <BaseTemplate wedding={wedding} isPreviewMode={isPreviewMode} sample={sample}>
       <div className="font-sans"> {/* Using Geist Sans from layout.tsx by default */}
         {/* Details Section */}
         <section className="py-12 md:py-16 bg-secondary text-secondary-foreground">
@@ -141,9 +142,9 @@ const ModernTemplate: React.FC<ModernTemplateProps> = ({ wedding, isPreviewMode 
             <p className="text-base sm:text-lg md:text-xl opacity-90 mb-8 md:mb-10 max-w-xl mx-auto">
               We&apos;re excited to celebrate with you. Please let us know if you can make it by {wedding.rsvpDeadline ? toDate(wedding.rsvpDeadline)?.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'the deadline'}!
             </p>
-            <button className="px-8 sm:px-10 py-2 sm:py-3 bg-primary-foreground text-primary font-bold rounded-md shadow-lg hover:bg-background hover:text-foreground transition-colors text-base sm:text-lg">
+            <a href="#rsvp" className="inline-block px-8 sm:px-10 py-2 sm:py-3 bg-primary-foreground text-primary font-bold rounded-md shadow-lg hover:bg-background hover:text-foreground transition-colors text-base sm:text-lg">
               RSVP NOW
-            </button>
+            </a>
           </div>
         </section>
       </div>

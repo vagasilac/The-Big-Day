@@ -1,124 +1,117 @@
-
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Heart, PlusCircle, Music } from 'lucide-react';
+import { Heart, Loader2, Music, PlusCircle, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/firebase-config';
+import { doc, serverTimestamp, updateDoc } from '@/lib/backend/firestore';
+import { useMyWedding } from '@/lib/use-my-wedding';
+import type { SongSuggestion } from '@/types/wedding';
 
-import { auth, db } from '@/lib/firebase-config';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import type { Wedding } from '@/types/wedding';
+function newId() {
+  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `song_${Date.now()}`;
+}
 
 export default function MusicPage() {
-  const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [weddingData, setWeddingData] = useState<Wedding | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { wedding, loading, reload } = useMyWedding();
+  const { toast } = useToast();
+  const [songs, setSongs] = useState<SongSuggestion[]>([]);
+  const [title, setTitle] = useState('');
+  const [artist, setArtist] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        try {
-          const weddingsRef = collection(db, 'weddings');
-          const q = query(weddingsRef, where('userId', '==', user.uid));
-          const querySnapshot = await getDocs(q);
+    setSongs(wedding?.songs || []);
+  }, [wedding]);
 
-          if (!querySnapshot.empty) {
-            const weddingDoc = querySnapshot.docs[0];
-            setWeddingData({ id: weddingDoc.id, ...weddingDoc.data() } as Wedding);
-          } else {
-            setWeddingData(null);
-          }
-        } catch (error) {
-          console.error("Error fetching wedding data:", error);
-          setWeddingData(null);
-        }
-      } else {
-        setCurrentUser(null);
-        setWeddingData(null);
-        router.push('/auth');
-      }
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
-  }, [router]);
+  const persist = async (next: SongSuggestion[], note: string) => {
+    if (!wedding?.id) return;
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'weddings', wedding.id), { songs: next, updatedAt: serverTimestamp() });
+      setSongs(next);
+      await reload();
+      toast({ title: note });
+    } catch (error) {
+      toast({ title: 'Could not save playlist', description: error instanceof Error ? error.message : '', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  if (isLoading) {
+  const addSong = () => {
+    if (!title.trim()) {
+      toast({ title: 'Add a title', variant: 'destructive' });
+      return;
+    }
+    void persist(
+      [...songs, { id: newId(), title: title.trim(), artist: artist.trim() || undefined, votes: 0 }],
+      'Song added',
+    );
+    setTitle('');
+    setArtist('');
+  };
+
+  if (loading) return <Skeleton className="h-40 w-full" />;
+  if (!wedding) {
     return (
-      <div className="flex flex-col gap-6 md:gap-8">
-        <div className="flex items-center gap-3">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div>
-                <Skeleton className="h-10 w-48 mb-2" />
-                <Skeleton className="h-5 w-72" />
-            </div>
-        </div>
-        <Card className="shadow-md">
-          <CardHeader>
-            <Skeleton className="h-8 w-1/3 mb-2" />
-            <Skeleton className="h-4 w-2/3" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-20 w-full" />
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-dashed border-2 p-8 text-center">
+        <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
+        <CardTitle className="mb-2">No Wedding Site Yet</CardTitle>
+        <CardDescription className="mb-6">Create your wedding site before building a playlist.</CardDescription>
+        <Button asChild><Link href="/dashboard/details"><PlusCircle className="mr-2 h-4 w-4" />Create Your Wedding Site</Link></Button>
+      </Card>
     );
   }
 
+  const ordered = songs.slice().sort((a, b) => (b.votes || 0) - (a.votes || 0));
+
   return (
-    <div className="flex flex-col gap-6 md:gap-8">
-      {!weddingData ? (
-        <Card className="border-dashed border-2 p-8 text-center shadow-sm">
-          <Heart className="h-12 w-12 mx-auto text-primary/40 mb-4" />
-          <CardTitle className="text-xl font-semibold mb-2">No Wedding Site Yet</CardTitle>
-          <CardDescription className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Please create your wedding site first to manage playlist voting.
-          </CardDescription>
-          <Button asChild>
-            <Link href="/dashboard/details">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Your Wedding Site
-            </Link>
-          </Button>
-        </Card>
-      ) : (
-        <>
-          <div className="flex items-center gap-3">
-             <Music className="h-8 w-8 text-primary" />
-            <div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Playlist Voting</h1>
-                <p className="text-muted-foreground mt-1">
-                Let your guests contribute to the wedding playlist.
-                </p>
-            </div>
+    <div className="flex flex-col gap-6 max-w-3xl">
+      <div className="flex items-center gap-3">
+        <Music className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Playlist</h1>
+          <p className="text-muted-foreground mt-1">Guests can suggest songs and vote on the public website. This does not play music.</p>
+        </div>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Songs</CardTitle>
+          <CardDescription>Seed the list yourself, then share the website so guests can vote.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {ordered.length === 0 && <p className="text-sm text-muted-foreground">No songs yet.</p>}
+          <ul className="space-y-2">
+            {ordered.map((song) => (
+              <li key={song.id} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{song.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {[song.artist, song.suggestedBy ? `suggested by ${song.suggestedBy}` : ''].filter(Boolean).join(' · ') || 'No artist'}
+                    {' · '}{song.votes || 0} votes
+                  </p>
+                </div>
+                <Button type="button" variant="ghost" size="icon" aria-label="Remove song" disabled={saving} onClick={() => persist(songs.filter((entry) => entry.id !== song.id), 'Song removed')}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <Input placeholder="Song title" value={title} onChange={(event) => setTitle(event.target.value)} />
+            <Input placeholder="Artist (optional)" value={artist} onChange={(event) => setArtist(event.target.value)} />
+            <Button type="button" onClick={addSong} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlusCircle className="h-4 w-4" />}
+            </Button>
           </div>
-          
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Music Preferences</CardTitle>
-              <CardDescription>
-                Manage song suggestions and voting for your event.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Playlist voting features will be available here soon.
-              </p>
-              <div className="mt-6 p-6 bg-secondary rounded-md text-center">
-                <p className="font-medium text-secondary-foreground">Playlist features coming soon!</p>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

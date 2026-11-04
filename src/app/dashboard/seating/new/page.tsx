@@ -37,7 +37,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config'; // Import auth and db
-import { addDoc, collection, serverTimestamp, doc, getDoc, setDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, getDoc, setDoc } from '@/lib/backend/firestore';
 import { normalizeVenueLayout } from '@/lib/utils';
 import type { VenueLayout as StoredVenueLayout, TableElement as StoredTableElement, Chair as StoredChair } from '@/types/venue';
 

@@ -33,9 +33,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
 import { auth, db } from '@/lib/firebase-config';
-import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import type { User } from '@/lib/backend/auth';
+import { onAuthStateChanged } from '@/lib/backend/auth';
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from '@/lib/backend/firestore';
 import type { Wedding, WeddingEvent } from '@/types/wedding';
 
 export default function SchedulePage() {
